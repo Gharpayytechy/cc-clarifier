@@ -18,20 +18,13 @@ function TowerShell() {
   const nav = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
-  useEffect(() => {
-    if (!auth.loading && !auth.user) nav({ to: "/auth" });
-  }, [auth.loading, auth.user, nav]);
-
-  if (auth.loading) return <div className="p-8 text-sm text-muted-foreground">Loading…</div>;
-  if (!auth.user) return null;
-
   const tabs = [
     { to: "/tower", label: "Control Tower", exact: true },
     { to: "/tower/my-leads", label: "My Leads" },
     { to: "/tower/team", label: "Team" },
     { to: "/tower/dashboard", label: "Dashboard" },
     { to: "/tower/eod", label: "EOD" },
-    ...(auth.isAdmin ? [{ to: "/tower/admin", label: "Admin" }] : []),
+    { to: "/tower/admin", label: "Admin" },
   ];
 
   return (
@@ -55,13 +48,19 @@ function TowerShell() {
             </nav>
           </div>
           <div className="flex items-center gap-3">
-            <div className="text-right">
-              <div className="text-xs font-medium">{auth.user.email}</div>
-              <div className="flex gap-1 justify-end mt-0.5">
-                {auth.roles.map((r) => <Badge key={r} variant="outline" className="text-[9px] px-1">{r}</Badge>)}
-              </div>
-            </div>
-            <Button size="sm" variant="outline" onClick={async () => { await auth.signOut(); nav({ to: "/auth" }); }}>Sign out</Button>
+            {auth.user ? (
+              <>
+                <div className="text-right">
+                  <div className="text-xs font-medium">{auth.user.email}</div>
+                  <div className="flex gap-1 justify-end mt-0.5">
+                    {auth.roles.map((r) => <Badge key={r} variant="outline" className="text-[9px] px-1">{r}</Badge>)}
+                  </div>
+                </div>
+                <Button size="sm" variant="outline" onClick={async () => { await auth.signOut(); nav({ to: "/auth" }); }}>Sign out</Button>
+              </>
+            ) : (
+              <Button size="sm" variant="outline" onClick={() => nav({ to: "/auth" })}>Sign in</Button>
+            )}
           </div>
         </div>
       </header>
