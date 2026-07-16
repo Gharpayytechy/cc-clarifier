@@ -1,5 +1,4 @@
 import { createFileRoute, Outlet, Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useEffect } from "react";
 import { TowerAuthProvider, useTowerAuth } from "@/lib/tower/auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
