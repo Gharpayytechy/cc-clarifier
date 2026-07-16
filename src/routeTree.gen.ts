@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ZonesRouteImport } from './routes/zones'
 import { Route as ZoneBrainRouteImport } from './routes/zone-brain'
+import { Route as TowerRouteImport } from './routes/tower'
 import { Route as ToursRouteImport } from './routes/tours'
 import { Route as TodayRouteImport } from './routes/today'
 import { Route as SettingsRouteImport } from './routes/settings'
@@ -33,11 +34,18 @@ import { Route as FollowUpsRouteImport } from './routes/follow-ups'
 import { Route as ExecutionRouteImport } from './routes/execution'
 import { Route as CoachRouteImport } from './routes/coach'
 import { Route as CalendarRouteImport } from './routes/calendar'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ActivityRouteImport } from './routes/activity'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as TowerIndexRouteImport } from './routes/tower.index'
 import { Route as SupplyHubIndexRouteImport } from './routes/supply-hub/index'
 import { Route as OwnerIndexRouteImport } from './routes/owner/index'
 import { Route as MytIndexRouteImport } from './routes/myt/index'
+import { Route as TowerTeamRouteImport } from './routes/tower.team'
+import { Route as TowerMyLeadsRouteImport } from './routes/tower.my-leads'
+import { Route as TowerEodRouteImport } from './routes/tower.eod'
+import { Route as TowerDashboardRouteImport } from './routes/tower.dashboard'
+import { Route as TowerAdminRouteImport } from './routes/tower.admin'
 import { Route as SupplyHubMatchRouteImport } from './routes/supply-hub/match'
 import { Route as SupplyHubAreasRouteImport } from './routes/supply-hub/areas'
 import { Route as SupplyHubIdRouteImport } from './routes/supply-hub/$id'
@@ -67,6 +75,7 @@ import { Route as MytDraftsRouteImport } from './routes/myt/drafts'
 import { Route as MytCalendarRouteImport } from './routes/myt/calendar'
 import { Route as MytBookingsRouteImport } from './routes/myt/bookings'
 import { Route as LeadsAddRouteImport } from './routes/leads.add'
+import { Route as TowerLeadsIdRouteImport } from './routes/tower.leads.$id'
 import { Route as OwnerMediaRoomIdRouteImport } from './routes/owner/media.$roomId'
 import { Route as MytTourIdRouteImport } from './routes/myt/tour.$id'
 import { Route as MytTcmPerformanceRouteImport } from './routes/myt/tcm.performance'
@@ -82,6 +91,11 @@ const ZonesRoute = ZonesRouteImport.update({
 const ZoneBrainRoute = ZoneBrainRouteImport.update({
   id: '/zone-brain',
   path: '/zone-brain',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TowerRoute = TowerRouteImport.update({
+  id: '/tower',
+  path: '/tower',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ToursRoute = ToursRouteImport.update({
@@ -194,6 +208,11 @@ const CalendarRoute = CalendarRouteImport.update({
   path: '/calendar',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ActivityRoute = ActivityRouteImport.update({
   id: '/activity',
   path: '/activity',
@@ -203,6 +222,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const TowerIndexRoute = TowerIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => TowerRoute,
 } as any)
 const SupplyHubIndexRoute = SupplyHubIndexRouteImport.update({
   id: '/supply-hub/',
@@ -218,6 +242,31 @@ const MytIndexRoute = MytIndexRouteImport.update({
   id: '/myt/',
   path: '/myt/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const TowerTeamRoute = TowerTeamRouteImport.update({
+  id: '/team',
+  path: '/team',
+  getParentRoute: () => TowerRoute,
+} as any)
+const TowerMyLeadsRoute = TowerMyLeadsRouteImport.update({
+  id: '/my-leads',
+  path: '/my-leads',
+  getParentRoute: () => TowerRoute,
+} as any)
+const TowerEodRoute = TowerEodRouteImport.update({
+  id: '/eod',
+  path: '/eod',
+  getParentRoute: () => TowerRoute,
+} as any)
+const TowerDashboardRoute = TowerDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => TowerRoute,
+} as any)
+const TowerAdminRoute = TowerAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => TowerRoute,
 } as any)
 const SupplyHubMatchRoute = SupplyHubMatchRouteImport.update({
   id: '/supply-hub/match',
@@ -364,6 +413,11 @@ const LeadsAddRoute = LeadsAddRouteImport.update({
   path: '/add',
   getParentRoute: () => LeadsRoute,
 } as any)
+const TowerLeadsIdRoute = TowerLeadsIdRouteImport.update({
+  id: '/leads/$id',
+  path: '/leads/$id',
+  getParentRoute: () => TowerRoute,
+} as any)
 const OwnerMediaRoomIdRoute = OwnerMediaRoomIdRouteImport.update({
   id: '/owner/media/$roomId',
   path: '/owner/media/$roomId',
@@ -398,6 +452,7 @@ const MytTourIdReportRoute = MytTourIdReportRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/activity': typeof ActivityRoute
+  '/auth': typeof AuthRoute
   '/calendar': typeof CalendarRoute
   '/coach': typeof CoachRoute
   '/execution': typeof ExecutionRoute
@@ -420,6 +475,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/today': typeof TodayRoute
   '/tours': typeof ToursRoute
+  '/tower': typeof TowerRouteWithChildren
   '/zone-brain': typeof ZoneBrainRoute
   '/zones': typeof ZonesRoute
   '/leads/add': typeof LeadsAddRoute
@@ -451,19 +507,27 @@ export interface FileRoutesByFullPath {
   '/supply-hub/$id': typeof SupplyHubIdRoute
   '/supply-hub/areas': typeof SupplyHubAreasRoute
   '/supply-hub/match': typeof SupplyHubMatchRoute
+  '/tower/admin': typeof TowerAdminRoute
+  '/tower/dashboard': typeof TowerDashboardRoute
+  '/tower/eod': typeof TowerEodRoute
+  '/tower/my-leads': typeof TowerMyLeadsRoute
+  '/tower/team': typeof TowerTeamRoute
   '/myt/': typeof MytIndexRoute
   '/owner/': typeof OwnerIndexRoute
   '/supply-hub/': typeof SupplyHubIndexRoute
+  '/tower/': typeof TowerIndexRoute
   '/myt/feedback/$id': typeof MytFeedbackIdRoute
   '/myt/tcm/actions': typeof MytTcmActionsRoute
   '/myt/tcm/performance': typeof MytTcmPerformanceRoute
   '/myt/tour/$id': typeof MytTourIdRouteWithChildren
   '/owner/media/$roomId': typeof OwnerMediaRoomIdRoute
+  '/tower/leads/$id': typeof TowerLeadsIdRoute
   '/myt/tour/$id/report': typeof MytTourIdReportRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/activity': typeof ActivityRoute
+  '/auth': typeof AuthRoute
   '/calendar': typeof CalendarRoute
   '/coach': typeof CoachRoute
   '/execution': typeof ExecutionRoute
@@ -517,20 +581,28 @@ export interface FileRoutesByTo {
   '/supply-hub/$id': typeof SupplyHubIdRoute
   '/supply-hub/areas': typeof SupplyHubAreasRoute
   '/supply-hub/match': typeof SupplyHubMatchRoute
+  '/tower/admin': typeof TowerAdminRoute
+  '/tower/dashboard': typeof TowerDashboardRoute
+  '/tower/eod': typeof TowerEodRoute
+  '/tower/my-leads': typeof TowerMyLeadsRoute
+  '/tower/team': typeof TowerTeamRoute
   '/myt': typeof MytIndexRoute
   '/owner': typeof OwnerIndexRoute
   '/supply-hub': typeof SupplyHubIndexRoute
+  '/tower': typeof TowerIndexRoute
   '/myt/feedback/$id': typeof MytFeedbackIdRoute
   '/myt/tcm/actions': typeof MytTcmActionsRoute
   '/myt/tcm/performance': typeof MytTcmPerformanceRoute
   '/myt/tour/$id': typeof MytTourIdRouteWithChildren
   '/owner/media/$roomId': typeof OwnerMediaRoomIdRoute
+  '/tower/leads/$id': typeof TowerLeadsIdRoute
   '/myt/tour/$id/report': typeof MytTourIdReportRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/activity': typeof ActivityRoute
+  '/auth': typeof AuthRoute
   '/calendar': typeof CalendarRoute
   '/coach': typeof CoachRoute
   '/execution': typeof ExecutionRoute
@@ -553,6 +625,7 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/today': typeof TodayRoute
   '/tours': typeof ToursRoute
+  '/tower': typeof TowerRouteWithChildren
   '/zone-brain': typeof ZoneBrainRoute
   '/zones': typeof ZonesRoute
   '/leads/add': typeof LeadsAddRoute
@@ -584,14 +657,21 @@ export interface FileRoutesById {
   '/supply-hub/$id': typeof SupplyHubIdRoute
   '/supply-hub/areas': typeof SupplyHubAreasRoute
   '/supply-hub/match': typeof SupplyHubMatchRoute
+  '/tower/admin': typeof TowerAdminRoute
+  '/tower/dashboard': typeof TowerDashboardRoute
+  '/tower/eod': typeof TowerEodRoute
+  '/tower/my-leads': typeof TowerMyLeadsRoute
+  '/tower/team': typeof TowerTeamRoute
   '/myt/': typeof MytIndexRoute
   '/owner/': typeof OwnerIndexRoute
   '/supply-hub/': typeof SupplyHubIndexRoute
+  '/tower/': typeof TowerIndexRoute
   '/myt/feedback/$id': typeof MytFeedbackIdRoute
   '/myt/tcm/actions': typeof MytTcmActionsRoute
   '/myt/tcm/performance': typeof MytTcmPerformanceRoute
   '/myt/tour/$id': typeof MytTourIdRouteWithChildren
   '/owner/media/$roomId': typeof OwnerMediaRoomIdRoute
+  '/tower/leads/$id': typeof TowerLeadsIdRoute
   '/myt/tour/$id/report': typeof MytTourIdReportRoute
 }
 export interface FileRouteTypes {
@@ -599,6 +679,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/activity'
+    | '/auth'
     | '/calendar'
     | '/coach'
     | '/execution'
@@ -621,6 +702,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/today'
     | '/tours'
+    | '/tower'
     | '/zone-brain'
     | '/zones'
     | '/leads/add'
@@ -652,19 +734,27 @@ export interface FileRouteTypes {
     | '/supply-hub/$id'
     | '/supply-hub/areas'
     | '/supply-hub/match'
+    | '/tower/admin'
+    | '/tower/dashboard'
+    | '/tower/eod'
+    | '/tower/my-leads'
+    | '/tower/team'
     | '/myt/'
     | '/owner/'
     | '/supply-hub/'
+    | '/tower/'
     | '/myt/feedback/$id'
     | '/myt/tcm/actions'
     | '/myt/tcm/performance'
     | '/myt/tour/$id'
     | '/owner/media/$roomId'
+    | '/tower/leads/$id'
     | '/myt/tour/$id/report'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/activity'
+    | '/auth'
     | '/calendar'
     | '/coach'
     | '/execution'
@@ -718,19 +808,27 @@ export interface FileRouteTypes {
     | '/supply-hub/$id'
     | '/supply-hub/areas'
     | '/supply-hub/match'
+    | '/tower/admin'
+    | '/tower/dashboard'
+    | '/tower/eod'
+    | '/tower/my-leads'
+    | '/tower/team'
     | '/myt'
     | '/owner'
     | '/supply-hub'
+    | '/tower'
     | '/myt/feedback/$id'
     | '/myt/tcm/actions'
     | '/myt/tcm/performance'
     | '/myt/tour/$id'
     | '/owner/media/$roomId'
+    | '/tower/leads/$id'
     | '/myt/tour/$id/report'
   id:
     | '__root__'
     | '/'
     | '/activity'
+    | '/auth'
     | '/calendar'
     | '/coach'
     | '/execution'
@@ -753,6 +851,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/today'
     | '/tours'
+    | '/tower'
     | '/zone-brain'
     | '/zones'
     | '/leads/add'
@@ -784,20 +883,28 @@ export interface FileRouteTypes {
     | '/supply-hub/$id'
     | '/supply-hub/areas'
     | '/supply-hub/match'
+    | '/tower/admin'
+    | '/tower/dashboard'
+    | '/tower/eod'
+    | '/tower/my-leads'
+    | '/tower/team'
     | '/myt/'
     | '/owner/'
     | '/supply-hub/'
+    | '/tower/'
     | '/myt/feedback/$id'
     | '/myt/tcm/actions'
     | '/myt/tcm/performance'
     | '/myt/tour/$id'
     | '/owner/media/$roomId'
+    | '/tower/leads/$id'
     | '/myt/tour/$id/report'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ActivityRoute: typeof ActivityRoute
+  AuthRoute: typeof AuthRoute
   CalendarRoute: typeof CalendarRoute
   CoachRoute: typeof CoachRoute
   ExecutionRoute: typeof ExecutionRoute
@@ -820,6 +927,7 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   TodayRoute: typeof TodayRoute
   ToursRoute: typeof ToursRoute
+  TowerRoute: typeof TowerRouteWithChildren
   ZoneBrainRoute: typeof ZoneBrainRoute
   ZonesRoute: typeof ZonesRoute
   MytBookingsRoute: typeof MytBookingsRoute
@@ -872,6 +980,13 @@ declare module '@tanstack/react-router' {
       path: '/zone-brain'
       fullPath: '/zone-brain'
       preLoaderRoute: typeof ZoneBrainRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tower': {
+      id: '/tower'
+      path: '/tower'
+      fullPath: '/tower'
+      preLoaderRoute: typeof TowerRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/tours': {
@@ -1028,6 +1143,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CalendarRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/activity': {
       id: '/activity'
       path: '/activity'
@@ -1041,6 +1163,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/tower/': {
+      id: '/tower/'
+      path: '/'
+      fullPath: '/tower/'
+      preLoaderRoute: typeof TowerIndexRouteImport
+      parentRoute: typeof TowerRoute
     }
     '/supply-hub/': {
       id: '/supply-hub/'
@@ -1062,6 +1191,41 @@ declare module '@tanstack/react-router' {
       fullPath: '/myt/'
       preLoaderRoute: typeof MytIndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/tower/team': {
+      id: '/tower/team'
+      path: '/team'
+      fullPath: '/tower/team'
+      preLoaderRoute: typeof TowerTeamRouteImport
+      parentRoute: typeof TowerRoute
+    }
+    '/tower/my-leads': {
+      id: '/tower/my-leads'
+      path: '/my-leads'
+      fullPath: '/tower/my-leads'
+      preLoaderRoute: typeof TowerMyLeadsRouteImport
+      parentRoute: typeof TowerRoute
+    }
+    '/tower/eod': {
+      id: '/tower/eod'
+      path: '/eod'
+      fullPath: '/tower/eod'
+      preLoaderRoute: typeof TowerEodRouteImport
+      parentRoute: typeof TowerRoute
+    }
+    '/tower/dashboard': {
+      id: '/tower/dashboard'
+      path: '/dashboard'
+      fullPath: '/tower/dashboard'
+      preLoaderRoute: typeof TowerDashboardRouteImport
+      parentRoute: typeof TowerRoute
+    }
+    '/tower/admin': {
+      id: '/tower/admin'
+      path: '/admin'
+      fullPath: '/tower/admin'
+      preLoaderRoute: typeof TowerAdminRouteImport
+      parentRoute: typeof TowerRoute
     }
     '/supply-hub/match': {
       id: '/supply-hub/match'
@@ -1266,6 +1430,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LeadsAddRouteImport
       parentRoute: typeof LeadsRoute
     }
+    '/tower/leads/$id': {
+      id: '/tower/leads/$id'
+      path: '/leads/$id'
+      fullPath: '/tower/leads/$id'
+      preLoaderRoute: typeof TowerLeadsIdRouteImport
+      parentRoute: typeof TowerRoute
+    }
     '/owner/media/$roomId': {
       id: '/owner/media/$roomId'
       path: '/owner/media/$roomId'
@@ -1321,6 +1492,28 @@ const LeadsRouteChildren: LeadsRouteChildren = {
 
 const LeadsRouteWithChildren = LeadsRoute._addFileChildren(LeadsRouteChildren)
 
+interface TowerRouteChildren {
+  TowerAdminRoute: typeof TowerAdminRoute
+  TowerDashboardRoute: typeof TowerDashboardRoute
+  TowerEodRoute: typeof TowerEodRoute
+  TowerMyLeadsRoute: typeof TowerMyLeadsRoute
+  TowerTeamRoute: typeof TowerTeamRoute
+  TowerIndexRoute: typeof TowerIndexRoute
+  TowerLeadsIdRoute: typeof TowerLeadsIdRoute
+}
+
+const TowerRouteChildren: TowerRouteChildren = {
+  TowerAdminRoute: TowerAdminRoute,
+  TowerDashboardRoute: TowerDashboardRoute,
+  TowerEodRoute: TowerEodRoute,
+  TowerMyLeadsRoute: TowerMyLeadsRoute,
+  TowerTeamRoute: TowerTeamRoute,
+  TowerIndexRoute: TowerIndexRoute,
+  TowerLeadsIdRoute: TowerLeadsIdRoute,
+}
+
+const TowerRouteWithChildren = TowerRoute._addFileChildren(TowerRouteChildren)
+
 interface MytTcmRouteChildren {
   MytTcmActionsRoute: typeof MytTcmActionsRoute
   MytTcmPerformanceRoute: typeof MytTcmPerformanceRoute
@@ -1349,6 +1542,7 @@ const MytTourIdRouteWithChildren = MytTourIdRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ActivityRoute: ActivityRoute,
+  AuthRoute: AuthRoute,
   CalendarRoute: CalendarRoute,
   CoachRoute: CoachRoute,
   ExecutionRoute: ExecutionRoute,
@@ -1371,6 +1565,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   TodayRoute: TodayRoute,
   ToursRoute: ToursRoute,
+  TowerRoute: TowerRouteWithChildren,
   ZoneBrainRoute: ZoneBrainRoute,
   ZonesRoute: ZonesRoute,
   MytBookingsRoute: MytBookingsRoute,
@@ -1411,12 +1606,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
