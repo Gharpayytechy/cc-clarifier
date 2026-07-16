@@ -14,16 +14,871 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      assignments: {
+        Row: {
+          accepted_at: string | null
+          assigned_at: string
+          created_at: string
+          cycle_id: string | null
+          first_action_at: string | null
+          id: string
+          lead_id: string
+          owner_id: string
+          previous_owner: string | null
+          priority: Database["public"]["Enums"]["lead_priority"]
+          reassign_reason: string | null
+          reassigned_at: string | null
+          sla_deadline_accept: string
+          sla_deadline_first_action: string
+          state: Database["public"]["Enums"]["assignment_state"]
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          assigned_at?: string
+          created_at?: string
+          cycle_id?: string | null
+          first_action_at?: string | null
+          id?: string
+          lead_id: string
+          owner_id: string
+          previous_owner?: string | null
+          priority: Database["public"]["Enums"]["lead_priority"]
+          reassign_reason?: string | null
+          reassigned_at?: string | null
+          sla_deadline_accept: string
+          sla_deadline_first_action: string
+          state?: Database["public"]["Enums"]["assignment_state"]
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          assigned_at?: string
+          created_at?: string
+          cycle_id?: string | null
+          first_action_at?: string | null
+          id?: string
+          lead_id?: string
+          owner_id?: string
+          previous_owner?: string | null
+          priority?: Database["public"]["Enums"]["lead_priority"]
+          reassign_reason?: string | null
+          reassigned_at?: string | null
+          sla_deadline_accept?: string
+          sla_deadline_first_action?: string
+          state?: Database["public"]["Enums"]["assignment_state"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assignments_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "lead_cycles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignments_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_logs: {
+        Row: {
+          action: string
+          actor: string | null
+          at: string
+          entity: string
+          entity_id: string | null
+          id: string
+          next: Json | null
+          prev: Json | null
+          reason: string | null
+        }
+        Insert: {
+          action: string
+          actor?: string | null
+          at?: string
+          entity: string
+          entity_id?: string | null
+          id?: string
+          next?: Json | null
+          prev?: Json | null
+          reason?: string | null
+        }
+        Update: {
+          action?: string
+          actor?: string | null
+          at?: string
+          entity?: string
+          entity_id?: string | null
+          id?: string
+          next?: Json | null
+          prev?: Json | null
+          reason?: string | null
+        }
+        Relationships: []
+      }
+      duplicate_matches: {
+        Row: {
+          created_at: string
+          existing_lead_id: string | null
+          id: string
+          new_conversation_id: string | null
+          phone: string
+          resolution: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          existing_lead_id?: string | null
+          id?: string
+          new_conversation_id?: string | null
+          phone: string
+          resolution?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          existing_lead_id?: string | null
+          id?: string
+          new_conversation_id?: string | null
+          phone?: string
+          resolution?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "duplicate_matches_existing_lead_id_fkey"
+            columns: ["existing_lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "duplicate_matches_new_conversation_id_fkey"
+            columns: ["new_conversation_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      eod_reports: {
+        Row: {
+          checklist: Json
+          closed: boolean
+          closed_at: string | null
+          closed_by: string | null
+          created_at: string
+          day: string
+          id: string
+          totals: Json
+        }
+        Insert: {
+          checklist?: Json
+          closed?: boolean
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          day: string
+          id?: string
+          totals?: Json
+        }
+        Update: {
+          checklist?: Json
+          closed?: boolean
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          day?: string
+          id?: string
+          totals?: Json
+        }
+        Relationships: []
+      }
+      hourly_reports: {
+        Row: {
+          accepted: number
+          assigned: number
+          captured: number
+          created_at: string
+          duplicates: number
+          first_actioned: number
+          hour_start: string
+          id: string
+          owners_at_capacity: number
+          pending_capture: number
+          reassignments: number
+          received: number
+          sla_breaches: number
+          super_hot_pending: number
+          unclear_date: number
+          unclear_location: number
+        }
+        Insert: {
+          accepted?: number
+          assigned?: number
+          captured?: number
+          created_at?: string
+          duplicates?: number
+          first_actioned?: number
+          hour_start: string
+          id?: string
+          owners_at_capacity?: number
+          pending_capture?: number
+          reassignments?: number
+          received?: number
+          sla_breaches?: number
+          super_hot_pending?: number
+          unclear_date?: number
+          unclear_location?: number
+        }
+        Update: {
+          accepted?: number
+          assigned?: number
+          captured?: number
+          created_at?: string
+          duplicates?: number
+          first_actioned?: number
+          hour_start?: string
+          id?: string
+          owners_at_capacity?: number
+          pending_capture?: number
+          reassignments?: number
+          received?: number
+          sla_breaches?: number
+          super_hot_pending?: number
+          unclear_date?: number
+          unclear_location?: number
+        }
+        Relationships: []
+      }
+      inbound_conversations: {
+        Row: {
+          captured_at: string | null
+          captured_by: string | null
+          conversation_link: string | null
+          created_at: string
+          cycle_id: string | null
+          first_message: string | null
+          id: string
+          latest_message: string | null
+          lead_id: string | null
+          phone: string
+          received_at: string
+          source_id: string | null
+          wa_name: string | null
+        }
+        Insert: {
+          captured_at?: string | null
+          captured_by?: string | null
+          conversation_link?: string | null
+          created_at?: string
+          cycle_id?: string | null
+          first_message?: string | null
+          id?: string
+          latest_message?: string | null
+          lead_id?: string | null
+          phone: string
+          received_at?: string
+          source_id?: string | null
+          wa_name?: string | null
+        }
+        Update: {
+          captured_at?: string | null
+          captured_by?: string | null
+          conversation_link?: string | null
+          created_at?: string
+          cycle_id?: string | null
+          first_message?: string | null
+          id?: string
+          latest_message?: string | null
+          lead_id?: string | null
+          phone?: string
+          received_at?: string
+          source_id?: string | null
+          wa_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inbound_conversations_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "lead_cycles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_conversations_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_conversations_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_cycles: {
+        Row: {
+          close_reason: string | null
+          closed_at: string | null
+          cycle_no: number
+          id: string
+          lead_id: string
+          open_reason: string | null
+          opened_at: string
+        }
+        Insert: {
+          close_reason?: string | null
+          closed_at?: string | null
+          cycle_no: number
+          id?: string
+          lead_id: string
+          open_reason?: string | null
+          opened_at?: string
+        }
+        Update: {
+          close_reason?: string | null
+          closed_at?: string | null
+          cycle_no?: number
+          id?: string
+          lead_id?: string
+          open_reason?: string | null
+          opened_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_cycles_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_scenarios_log: {
+        Row: {
+          assignment_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          lead_id: string
+          notes: string | null
+          scenario: Database["public"]["Enums"]["scenario_code"]
+        }
+        Insert: {
+          assignment_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lead_id: string
+          notes?: string | null
+          scenario: Database["public"]["Enums"]["scenario_code"]
+        }
+        Update: {
+          assignment_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lead_id?: string
+          notes?: string | null
+          scenario?: Database["public"]["Enums"]["scenario_code"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_scenarios_log_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_scenarios_log_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leads: {
+        Row: {
+          created_at: string
+          current_owner: string | null
+          current_scenario: Database["public"]["Enums"]["scenario_code"] | null
+          id: string
+          location_score: number
+          location_text: string | null
+          movein_bucket: Database["public"]["Enums"]["move_in_bucket"] | null
+          movein_date: string | null
+          movein_score: number
+          phone: string
+          priority: Database["public"]["Enums"]["lead_priority"] | null
+          score: number
+          status: string
+          updated_at: string
+          wa_name: string | null
+          zone_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          current_owner?: string | null
+          current_scenario?: Database["public"]["Enums"]["scenario_code"] | null
+          id?: string
+          location_score?: number
+          location_text?: string | null
+          movein_bucket?: Database["public"]["Enums"]["move_in_bucket"] | null
+          movein_date?: string | null
+          movein_score?: number
+          phone: string
+          priority?: Database["public"]["Enums"]["lead_priority"] | null
+          score?: number
+          status?: string
+          updated_at?: string
+          wa_name?: string | null
+          zone_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          current_owner?: string | null
+          current_scenario?: Database["public"]["Enums"]["scenario_code"] | null
+          id?: string
+          location_score?: number
+          location_text?: string | null
+          movein_bucket?: Database["public"]["Enums"]["move_in_bucket"] | null
+          movein_date?: string | null
+          movein_score?: number
+          phone?: string
+          priority?: Database["public"]["Enums"]["lead_priority"] | null
+          score?: number
+          status?: string
+          updated_at?: string
+          wa_name?: string | null
+          zone_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      next_actions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          done_at: string | null
+          due_at: string
+          id: string
+          kind: string
+          lead_id: string
+          notes: string | null
+          owner_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          done_at?: string | null
+          due_at: string
+          id?: string
+          kind: string
+          lead_id: string
+          notes?: string | null
+          owner_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          done_at?: string | null
+          due_at?: string
+          id?: string
+          kind?: string
+          lead_id?: string
+          notes?: string | null
+          owner_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "next_actions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      performance_scores: {
+        Row: {
+          attendance: number
+          category: Database["public"]["Enums"]["perf_category"]
+          computed_at: string
+          conv_rate: number
+          crm_discipline: number
+          followup_rate: number
+          id: string
+          sla_rate: number
+          tour_conv: number
+          user_id: string
+          window_days: number
+        }
+        Insert: {
+          attendance?: number
+          category?: Database["public"]["Enums"]["perf_category"]
+          computed_at?: string
+          conv_rate?: number
+          crm_discipline?: number
+          followup_rate?: number
+          id?: string
+          sla_rate?: number
+          tour_conv?: number
+          user_id: string
+          window_days: number
+        }
+        Update: {
+          attendance?: number
+          category?: Database["public"]["Enums"]["perf_category"]
+          computed_at?: string
+          conv_rate?: number
+          crm_discipline?: number
+          followup_rate?: number
+          id?: string
+          sla_rate?: number
+          tour_conv?: number
+          user_id?: string
+          window_days?: number
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          full_name: string | null
+          is_available: boolean
+          is_clocked_in: boolean
+          is_restricted: boolean
+          performer_category: Database["public"]["Enums"]["perf_category"]
+          phone: string | null
+          primary_zone_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          full_name?: string | null
+          is_available?: boolean
+          is_clocked_in?: boolean
+          is_restricted?: boolean
+          performer_category?: Database["public"]["Enums"]["perf_category"]
+          phone?: string | null
+          primary_zone_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          full_name?: string | null
+          is_available?: boolean
+          is_clocked_in?: boolean
+          is_restricted?: boolean
+          performer_category?: Database["public"]["Enums"]["perf_category"]
+          phone?: string | null
+          primary_zone_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_primary_zone_id_fkey"
+            columns: ["primary_zone_id"]
+            isOneToOne: false
+            referencedRelation: "zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sla_breaches: {
+        Row: {
+          assignment_id: string
+          breached_at: string
+          id: string
+          kind: Database["public"]["Enums"]["sla_kind"]
+          resolved_at: string | null
+        }
+        Insert: {
+          assignment_id: string
+          breached_at?: string
+          id?: string
+          kind: Database["public"]["Enums"]["sla_kind"]
+          resolved_at?: string | null
+        }
+        Update: {
+          assignment_id?: string
+          breached_at?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["sla_kind"]
+          resolved_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sla_breaches_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      system_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          updated_by: string | null
+          value: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+          value: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      whatsapp_sources: {
+        Row: {
+          campaign: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          label: string
+          updated_at: string
+          wa_number: string
+        }
+        Insert: {
+          campaign?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label: string
+          updated_at?: string
+          wa_number: string
+        }
+        Update: {
+          campaign?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          updated_at?: string
+          wa_number?: string
+        }
+        Relationships: []
+      }
+      workload_points: {
+        Row: {
+          active_no_next_action: number
+          max_points: number
+          overdue_followups: number
+          points: number
+          positive_no_quote: number
+          sla_breaches_open: number
+          state: Database["public"]["Enums"]["availability_state"]
+          tours_no_outcome: number
+          uncontacted: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active_no_next_action?: number
+          max_points?: number
+          overdue_followups?: number
+          points?: number
+          positive_no_quote?: number
+          sla_breaches_open?: number
+          state?: Database["public"]["Enums"]["availability_state"]
+          tours_no_outcome?: number
+          uncontacted?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active_no_next_action?: number
+          max_points?: number
+          overdue_followups?: number
+          points?: number
+          positive_no_quote?: number
+          sla_breaches_open?: number
+          state?: Database["public"]["Enums"]["availability_state"]
+          tours_no_outcome?: number
+          uncontacted?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      zone_membership: {
+        Row: {
+          created_at: string
+          id: string
+          is_primary: boolean
+          user_id: string
+          zone_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          user_id: string
+          zone_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          user_id?: string
+          zone_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zone_membership_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      zones: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          inventory_strength: number
+          is_serviceable: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          inventory_strength?: number
+          is_serviceable?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          inventory_strength?: number
+          is_serviceable?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      any_role: { Args: { _user_id: string }; Returns: boolean }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "manager" | "operator" | "sales"
+      assignment_state:
+        | "pending_accept"
+        | "accepted"
+        | "declined"
+        | "reassigned"
+        | "completed"
+        | "expired"
+      availability_state:
+        | "available"
+        | "near_capacity"
+        | "blocked"
+        | "unavailable"
+        | "restricted"
+      lead_priority: "super_hot" | "hot" | "active" | "future" | "nurture"
+      move_in_bucket:
+        | "today"
+        | "within_3d"
+        | "within_7d"
+        | "within_15d"
+        | "within_30d"
+        | "more_30d"
+        | "not_confirmed"
+      perf_category: "A" | "B" | "C" | "D"
+      scenario_code:
+        | "connected_qualified"
+        | "connected_incomplete"
+        | "callback_requested"
+        | "no_answer"
+        | "whatsapp_sent"
+        | "wrong_number"
+        | "duplicate"
+        | "location_changed"
+        | "date_changed"
+        | "future_movein"
+        | "tour_ready"
+        | "virtual_tour"
+        | "pre_booking"
+        | "not_serviceable"
+        | "not_interested"
+        | "invalid_spam"
+      sla_kind: "accept" | "first_action"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +1005,53 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "manager", "operator", "sales"],
+      assignment_state: [
+        "pending_accept",
+        "accepted",
+        "declined",
+        "reassigned",
+        "completed",
+        "expired",
+      ],
+      availability_state: [
+        "available",
+        "near_capacity",
+        "blocked",
+        "unavailable",
+        "restricted",
+      ],
+      lead_priority: ["super_hot", "hot", "active", "future", "nurture"],
+      move_in_bucket: [
+        "today",
+        "within_3d",
+        "within_7d",
+        "within_15d",
+        "within_30d",
+        "more_30d",
+        "not_confirmed",
+      ],
+      perf_category: ["A", "B", "C", "D"],
+      scenario_code: [
+        "connected_qualified",
+        "connected_incomplete",
+        "callback_requested",
+        "no_answer",
+        "whatsapp_sent",
+        "wrong_number",
+        "duplicate",
+        "location_changed",
+        "date_changed",
+        "future_movein",
+        "tour_ready",
+        "virtual_tour",
+        "pre_booking",
+        "not_serviceable",
+        "not_interested",
+        "invalid_spam",
+      ],
+      sla_kind: ["accept", "first_action"],
+    },
   },
 } as const

@@ -1,147 +1,108 @@
-# Gharpayy Closing Engine (0 → 1)
+# GHARPAYY Lead Control Tower — Build Plan
 
-Transform the CRM from list-of-leads into a **stage-gated execution pipeline** where every lead moves through 11 enforced checkpoints with timers, mandatory data capture, and manager visibility.
+A single, production-shaped operating system for 8 WhatsApp numbers. Built on Lovable Cloud (Postgres + RLS + Auth) with a TanStack Start front end. Everything is real data — no mocks, no in-memory stores.
+
+## Guiding outcome
+ZERO LEAD LEFT BEHIND. Operator enters only **Location** + **Move-in date**; the rest is captured, scored, assigned, timed and escalated automatically.
 
 ---
 
-## 1. Pipeline Schema (single source of truth)
+## Phase 1 — Data model & security (one migration)
 
-Extend `UnifiedLead` in `src/lib/lead-identity/types.ts`:
+Enums: `app_role` (admin, manager, operator, sales), `perf_category` (A, B, C, D), `lead_priority` (super_hot, hot, active, future, nurture), `zone_code`, `move_in_bucket`, `sla_state`, `scenario_code` (16 scenarios), `assignment_state`.
 
-```ts
-type PipelineStage =
-  | 'NEW'              // 0-15s
-  | 'DOSSIER'          // 60s timer
-  | 'MATCHED'          // P1/P2/P3 pinned
-  | 'TOUR_SCHEDULED'
-  | 'TOUR_CONFIRMED'
-  | 'TOUR_IN_PROGRESS'
-  | 'POST_VISIT'
-  | 'QUOTED'           // 15-min SLA after tour
-  | 'NEGOTIATION'
-  | 'BOOKED'
-  | 'CHECKED_IN'
-  | 'LOST'
+Tables (all in `public`, with GRANTs, RLS, `has_role()` security-definer function, and `updated_at` triggers):
 
-interface StageGate {
-  enteredAt: string
-  slaDeadline?: string      // when this stage breaches
-  breached: boolean
-  requiredFields: string[]  // must be filled to exit
-  completedFields: string[]
-}
+- `profiles` (user_id, name, phone, zone_id, is_clocked_in, is_available, is_restricted)
+- `user_roles` (user_id, role) — separate roles table per security rules
+- `zones` (code, name, inventory_strength)
+- `zone_membership` (user_id, zone_id, is_primary)
+- `whatsapp_sources` (number, label, campaign)
+- `inbound_conversations` (source_id, wa_name, phone, first_msg, last_msg, conversation_link, received_at, captured_at, captured_by, lead_id nullable)
+- `leads` (phone unique-ish, wa_name, current_owner, current_zone, current_priority, current_scenario, score, location_score, movein_score, movein_bucket, movein_date, location_text, status)
+- `lead_cycles` (lead_id, cycle_no, opened_at, closed_at, reason) — for returning leads
+- `assignments` (lead_id, cycle_id, owner_id, assigned_at, accepted_at, first_action_at, state, sla_deadline_accept, sla_deadline_first_action, reassign_reason, previous_owner)
+- `lead_scenarios_log` (lead_id, scenario, notes, created_by, created_at)
+- `next_actions` (lead_id, kind, due_at, done_at, owner_id, notes)
+- `sla_breaches` (assignment_id, kind, breached_at, resolved_at)
+- `workload_points` (user_id snapshot: points, uncontacted, overdue_followups, tours_no_outcome, positive_no_quote, active_no_next_action, updated_at)
+- `performance_scores` (user_id, window_days, conv_rate, sla_rate, tour_conv, followup_rate, crm_discipline, attendance, category, computed_at)
+- `duplicate_matches` (phone, existing_lead_id, new_conversation_id, resolution)
+- `audit_logs` (actor, entity, entity_id, action, prev, next, reason, at)
+- `hourly_reports`, `eod_reports` (materialized snapshots)
 
-interface Dossier {
-  feasibility: {...}       // move date, budget, area, gender, occupation, food, sharing, duration
-  locationFeasibility: {...} // office, college, travelTime, preferred, alt
-  movingFeasibility: 'immediate'|'7d'|'15d'|'30d'|'researching'
-  decisionMaker: 'self'|'parents'|'friends'|'company'
-  competition: 'visiting'|'booked'|'comparing'|'none'
-  objection: ObjectionTag
-  propertiesSent: { p1?, p2?, p3?, p4?, pdfSent, videoSent, locationSent }
-  completionPct: number   // 0-100, stage cannot advance below 100
-}
-```
+RLS: operators & sales read/write scoped by role via `has_role()`; managers/admins broad access; `service_role` full.
 
-## 2. The Stage Gate Engine
+## Phase 2 — Server logic (createServerFn)
 
-New file `src/lib/pipeline/stage-engine.ts`:
-- `canAdvance(lead, toStage)` — enforces entry/exit criteria per stage
-- `advanceStage(leadId, toStage)` — throws if gate fails, logs to audit
-- `computeSlaState(lead)` — returns `ok|warning|breached|escalated` per active stage
-- Stage rules table (SLAs):
-  - `NEW → DOSSIER`: 60 seconds
-  - `TOUR_SCHEDULED → TOUR_CONFIRMED`: 24h/6h/2h/30m reminder cascade
-  - `POST_VISIT → QUOTED`: **15 minutes mandatory** (breach = red)
-  - `QUOTED → NEGOTIATION/BOOKED`: 2h → 24h → 48h → 72h → 7d follow-up ladder
-  - No booking after 7d → Revival at 30/60/90d
+- `captureConversation` — insert `inbound_conversations`.
+- `checkDuplicate({phone})` — returns existing lead + cycles + history.
+- `createAndAssign({conversation_id, location, movein_bucket, movein_date?})`:
+  1. duplicate check → attach or open new cycle
+  2. score = location_score + movein_score → priority bucket
+  3. zone map from location
+  4. eligible pool (active, clocked-in, zone, under cap, not restricted, category-matched)
+  5. fair-distribution filter (≤40% super-hot share, no 3-in-a-row)
+  6. pick best by (uncontacted↑, overdue↑, workload↑, conv↑, recency↑)
+  7. insert `assignments` with SLA deadlines, audit log
+- `acceptAssignment`, `declineAssignment(reason)`, `logFirstAction`.
+- `setScenario({scenario, payload})` — always creates a `next_actions` row (per-scenario template).
+- `reassign({lead_id, reason})` — preserves owner history.
+- `recomputeWorkload(user_id)` and `recomputePerformance()` (also runnable by pg_cron nightly).
+- `slaSweep()` — cron every minute: mark breaches, auto-reassign when deadline crossed.
+- `hourlyReport()` and `eodReport()` — cron.
+- `staffingRecommendation()` — reads last 3d volume & utilization.
 
-## 3. The 60-Second Dossier Timer (Stage 2)
+All privileged fns use `requireSupabaseAuth` + `has_role()` check; `supabaseAdmin` only inside handlers when needed.
 
-New component `src/components/pipeline/DossierTimer.tsx`:
-- Fires immediately on lead creation
-- Red pulsing banner with countdown `60 → 0`
-- Progress bar showing dossier completion % (e.g. 72%, 3 fields remaining)
-- On expiry: SLA badge turns red, manager notified via `escalation.ts`, lead moves to bottom of TCM's queue
-- Cannot dismiss until all mandatory fields filled OR manager overrides with reason
+pg_cron:
+- SLA sweep: `* * * * *`
+- Workload recompute: `*/5 * * * *`
+- Hourly report: `0 * * * *`
+- Performance recompute: `0 3 * * *`
 
-New `src/components/pipeline/DossierForm.tsx`: single tight form covering all Stage 2 mandatory fields, grouped into 6 sections, live completion %.
+## Phase 3 — Auth & shell
 
-## 4. Stage-Gated Lead Dossier Panel
+- Google + Email sign-in (Cloud defaults).
+- `_authenticated` layout gates the whole app.
+- Roles bootstrapped: first user = admin; admin assigns others via Admin screen.
 
-Refactor lead detail to show **the 11-stage stepper** (replaces current 5-block layout):
-- Each stage = clickable pill showing state (`done | active | locked | breached`)
-- Active stage exposes its action panel (dossier form / tour scheduler / quote builder / etc.)
-- Locked stages show entry criteria not yet met
-- Breach stages pulse red with time-since-breach
+## Phase 4 — UI (TanStack routes under `_authenticated`)
 
-Files:
-- `src/components/pipeline/StageStepper.tsx`
-- `src/components/pipeline/StagePanel.tsx` (routes to per-stage sub-panel)
-- Per-stage panels: `Dossier`, `PropertyMatch`, `TourSchedule`, `TourConfirm`, `VisitExecution`, `PostVisit`, `Quotation`, `Negotiation`, `Booking`, `CheckIn`
+- `/tower` — **Control Tower**: Incoming queue (all 8 numbers), Fast-Entry Panel (Location + Move-in only + Create&Assign), Exceptions Queue, Completion Counter. Live via Supabase Realtime.
+- `/my-leads` — Sales owner view: pending accept (SLA countdown), active, scenario picker, mandatory next-action modal.
+- `/team` — Workload dashboard: per-user category, points, caps, states.
+- `/dashboard` — KPI cards + filters (date/hour/number/zone/priority/owner/SLA).
+- `/reports/hourly`, `/reports/eod` — with **Zero Lead Left Behind** gate.
+- `/admin` — scoring, workload limits, SLA, zones, roles, WhatsApp sources, staffing recommendations.
+- `/leads/$id` — full lead detail: cycles, assignment history, scenarios log, next actions, audit trail.
 
-## 5. Automation Rules (Rule 1–8 in spec)
+Shared components: `SLACountdown`, `PriorityBadge`, `ScenarioPicker`, `NextActionModal`, `DuplicateResolver`, `CapacityChip`, `ExceptionCard`.
 
-`src/lib/pipeline/automation-rules.ts` — pure functions run on every store mutation:
-- R1: Lead created → start 60s timer
-- R2: Timer expired → red alert + manager notify
-- R3: No tour in 24h → move to Action Queue
-- R4: Tour today → auto-fire confirmation cascade (6h/2h/30m)
-- R5: Tour completed → mandatory quote within 15min or SLA breach
-- R6: Quote sent → schedule 2h/24h/48h/72h/7d follow-ups
-- R7: No booking after ladder → Negotiation queue
-- R8: Lead cold → Revival 30/60/90d
+## Phase 5 — Tests & verification
 
-Ticks run via `useAutomationTicker` hook (every 30s, cheap client-side pass).
+Playwright end-to-end walking the 17 test cases in section 22 against the live preview with an authenticated session.
 
-## 6. Activity Monitoring & Manager Sheet
+---
 
-New store `src/lib/monitoring/activity-store.ts` — logs every action (button click, stage change, message sent) with `{time, userId, leadId, action, stageFrom, stageTo, feature}`.
+## Sequencing (what I'll ship this turn)
 
-New route `/monitoring` (Owner/Manager only) with 6 tabs mirroring the sheet spec:
-1. **Raw Activity Log** — live scrolling table
-2. **30-Min Dashboard** — per-person: leads added, clicks, scheduled, quotes, inactive flag, stuck lead count
-3. **Lead Stage Matrix** — per-person × per-stage counts
-4. **Low Activity Alerts** — anyone idle >30min or stuck at a stage
-5. **Feature Usage Analytics** — most-clicked buttons, unique users
-6. **End-of-Day Scoreboard** — vs targets (20 scheduled, 3 quotes per person)
+Because this is very large, I'll ship it in this order and stop for review only if you want:
 
-Auto-refresh every 30s. Export-to-CSV button for the manager report.
+1. **Migration** (all tables, enums, RLS, GRANTs, triggers, seed WhatsApp sources & zones, `has_role`, initial admin bootstrap trigger).
+2. **Server functions** (`*.functions.ts`) for capture → assign → accept → scenario → next-action → reassign → SLA sweep + cron.
+3. **Auth wiring** (Google + Email, `_authenticated` gate).
+4. **Control Tower + My Leads + Team + Dashboard + Admin** screens wired to real data.
+5. **Reports + EOD gate + Staffing alerts**.
+6. Playwright smoke of the golden path.
 
-## 7. Live KPI Strip (visible to every TCM)
+Existing screens from earlier phases (Closing OS, Zones, Live Activity) stay in place; the Tower is added alongside and becomes the default landing route for operators.
 
-Replace top strip in Flow-Ops / Today with the spec's 20 KPIs, color-coded vs target:
-Leads Added · Dossiers % · Avg Dossier Time · Timer Violations · Match Accuracy · Tours Scheduled · Show Rate · No-Show Rate · Rescheduled · Tours Completed · Quotes Sent · Quote SLA % · Negotiations · Booking Conv · Revenue · Avg Closing Time · Active Follow-ups · Stuck · Escalated · Daily Target Progress
+## Technical notes / risks
 
-## 8. Deliverables (files)
+- Fair-distribution counters need a rolling window table (`assignment_stats_daily`) — included in the migration.
+- Auto-reassignment cron uses `SECURITY DEFINER` SQL function to avoid needing a service session.
+- Realtime enabled on `inbound_conversations`, `assignments`, `next_actions` for the Tower.
+- `supabaseAdmin` only for the SLA sweep cron endpoint (verified via `apikey` header per scheduled-jobs pattern).
 
-**Create (~15):**
-- `src/lib/pipeline/stage-engine.ts`
-- `src/lib/pipeline/automation-rules.ts`
-- `src/lib/pipeline/stage-config.ts` (SLAs, required fields)
-- `src/lib/monitoring/activity-store.ts`
-- `src/hooks/useAutomationTicker.ts`
-- `src/components/pipeline/DossierTimer.tsx`
-- `src/components/pipeline/DossierForm.tsx`
-- `src/components/pipeline/StageStepper.tsx`
-- `src/components/pipeline/StagePanel.tsx`
-- `src/components/pipeline/panels/*.tsx` (10 per-stage panels — thin wrappers around existing UI where possible)
-- `src/components/monitoring/ActivityLogTable.tsx`
-- `src/components/monitoring/TeamDashboard.tsx`
-- `src/components/monitoring/StageMatrix.tsx`
-- `src/components/monitoring/KpiStrip.tsx`
-- `src/routes/monitoring.tsx`
-
-**Edit (~6):**
-- `src/lib/lead-identity/types.ts` — add PipelineStage, StageGate, Dossier
-- `src/lib/lead-identity/store.ts` — add `advanceStage`, `updateDossier`, `logActivity`
-- `src/lib/crm10x/execution-engine.ts` — hook new SLA rules
-- `src/components/leads/LeadDossierPanel.tsx` — swap to StageStepper
-- `src/components/AppShell.tsx` — add /monitoring nav for Owner
-- Add lead flow — trigger 60s timer on create
-
-## Scope note
-
-This is a large build (~20 files). I'll ship it as one atomic set so the pipeline is consistent end-to-end. Existing screens (Flow-Ops board, Impact Queue, Execution Queue) stay as they are — they'll read from the new stage field automatically since stage transitions flow through the existing store.
-
-Ready to build?
+Approve and I'll execute Phase 1 (migration) first, then stream the rest in the same turn.
