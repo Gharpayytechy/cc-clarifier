@@ -23,6 +23,7 @@ import { PictureInPictureProvider, PipMount, usePip } from "./pip/PipProvider";
 import { PipButton } from "./pip/PipButton";
 import { usePipRouteSync } from "./pip/usePipSync";
 import { LiveActivityDock } from "./live/LiveActivityDock";
+import { runLifecycleSeed } from "@/lib/pipeline/seed-lifecycle";
 
 function PipRouteSyncBridge() {
   const { active } = usePip();
