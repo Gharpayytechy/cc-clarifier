@@ -15,6 +15,7 @@ import { ObjectionLogger } from "./ObjectionLogger";
 import { LeadDeepProfile } from "./LeadDeepProfile";
 import { SmartWaLayer } from "./SmartWaLayer";
 import { ClosingEngineCard } from "@/components/pipeline/ClosingEngineCard";
+import { LifecyclePanel } from "@/components/pipeline/LifecyclePanel";
 
 /**
  * The "Dossier" tab — booking probability, best-call-time, deep profile,
@@ -73,6 +74,9 @@ export function LeadDossierPanel({ lead }: { lead: Lead }) {
     <div className="space-y-4">
       {/* 11-stage Closing Engine — mandatory pipeline gates */}
       <ClosingEngineCard leadId={lead.id} />
+
+      {/* Returning-lead journey, group size, re-claims, revival cycles, follow-up engine */}
+      <LifecyclePanel leadId={lead.id} totalBudget={lead.budget} />
 
       {/* Probability card */}
       <div className={`rounded-lg border p-3 ${tone}`}>
