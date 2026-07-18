@@ -94,6 +94,39 @@ export interface LeadCycle {
     status: "available" | "gone" | "price-up" | "price-down" | "unknown";
     priceDeltaPct?: number;
   }>;
+  /** Full, drillable per-cycle history — every real event that happened. */
+  events?: CycleEvent[];
+  /** Snapshot of what this lead asked for during this cycle. */
+  snapshot?: {
+    budget?: number;
+    area?: string;
+    moveInDate?: string;
+    food?: string;
+    sharing?: string;
+    persona?: string;
+    groupSize?: number;
+  };
+  /** Money numbers, for admin drilldowns. */
+  quote?: { amount: number; discount?: number; deposit?: number; sentAt: string };
+  booking?: { amount: number; ref: string; at: string; refundedAt?: string; refundReason?: string };
+}
+
+/** One atomic thing that happened inside a cycle. */
+export type CycleEventType =
+  | "opened" | "call" | "wa" | "sms" | "email"
+  | "tour-scheduled" | "tour-visited" | "tour-noshow" | "tour-cancelled"
+  | "objection" | "quote-sent" | "commitment" | "commitment-broken"
+  | "booking" | "refund" | "reassigned" | "note" | "evidence"
+  | "revived" | "closed";
+
+export interface CycleEvent {
+  id: string;
+  ts: string;
+  type: CycleEventType;
+  actor: string;         // tcm id or system
+  summary: string;       // one line
+  detail?: string;       // paragraph / verbatim quote
+  meta?: Record<string, string | number | boolean | undefined>;
 }
 
 export type CommitmentType =
