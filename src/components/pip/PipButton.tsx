@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { PictureInPicture2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -5,20 +6,26 @@ import { usePip } from "./PipProvider";
 
 export function PipButton({ className }: { className?: string }) {
   const { open, close, active, supported } = usePip();
+  // Avoid SSR/client hydration mismatch: `supported` is only knowable in the
+  // browser. Render the "unsupported" state on the server & first client
+  // paint, then flip after mount.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const effectiveSupported = mounted ? supported : false;
 
   return (
     <Button
       variant={active ? "secondary" : "default"}
       size="sm"
       onClick={() => (active ? close() : open())}
-      disabled={!supported && !active}
+      disabled={!effectiveSupported && !active}
       className={cn(
         "gap-1.5 h-8 text-xs font-medium shadow-sm",
         active && "bg-primary/15 text-primary hover:bg-primary/20",
         className,
       )}
       title={
-        !supported
+        !effectiveSupported
           ? "PiP needs Chrome, Edge, Brave or Opera on desktop"
           : active
           ? "Close the floating dashboard window"

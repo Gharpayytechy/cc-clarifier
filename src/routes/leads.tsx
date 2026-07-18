@@ -176,9 +176,17 @@ function LeadsPage() {
               const tcm = tcms.find((t) => t.id === l.assignedTcmId);
               return (
                 <div key={l.id}>
-                  <button
+                  <div
+                    role="button"
+                    tabIndex={0}
                     onClick={() => selectLead(l.id)}
-                    className="w-full text-left grid grid-cols-12 px-4 py-3 items-center hover:bg-accent/5 transition-colors"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        selectLead(l.id);
+                      }
+                    }}
+                    className="w-full text-left grid grid-cols-12 px-4 py-3 items-center hover:bg-accent/5 transition-colors cursor-pointer"
                   >
                     <div className="col-span-3">
                       <div className="font-medium text-sm">{l.name}</div>
@@ -220,7 +228,7 @@ function LeadsPage() {
                         ? formatDistanceToNow(new Date(l.updatedAt), { addSuffix: true })
                         : "—"}
                     </div>
-                  </button>
+                  </div>
                 </div>
               );
             })}
