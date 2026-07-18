@@ -7,7 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PRIORITY_COLORS, PRIORITY_LABELS, SCENARIOS, type ScenarioCode } from "@/lib/tower/scoring";
-import { logFirstAction, reassign, setScenarioAndNextAction, acceptAssignment } from "@/lib/tower/engine";
+import { logFirstAction, reassign, setScenarioAndNextAction, acceptAssignment, reopenCycle, closeCycle, claimCowork } from "@/lib/tower/engine";
+import { Input } from "@/components/ui/input";
+import { MOVE_IN_LABELS, type MoveInBucket } from "@/lib/tower/scoring";
 import { useTowerAuth } from "@/lib/tower/auth";
 import { toast } from "sonner";
 
@@ -24,6 +26,11 @@ function LeadDetail() {
   const [scen, setScen] = useState<ScenarioCode | "">("");
   const [notes, setNotes] = useState("");
   const [reason, setReason] = useState("");
+  const [reopenReason, setReopenReason] = useState("");
+  const [reopenBucket, setReopenBucket] = useState<MoveInBucket | "">("");
+  const [reopenLocation, setReopenLocation] = useState("");
+  const [closeReason, setCloseReason] = useState("");
+  const [coworkReason, setCoworkReason] = useState("");
 
   const load = async () => {
     const [l, a, s, n, c] = await Promise.all([
@@ -40,6 +47,19 @@ function LeadDetail() {
   if (!lead) return <div>Loading…</div>;
   const openAsg = assignments.find((a) => a.state === "pending_accept" || a.state === "accepted");
   const isOwner = openAsg && auth.user?.id === openAsg.owner_id;
+  const isClosed = lead.status !== "open";
+  const currentCycleNo = cycles[0]?.cycle_no ?? 1;
+  // Group history by cycle for the "15+ enquiries" timeline.
+  const historyByCycle = cycles.map((c) => ({
+    cycle: c,
+    assignments: assignments.filter((a) => a.cycle_id === c.id),
+    scenarios: scenarios.filter((s) => {
+      const cs = new Date(s.created_at).getTime();
+      const o = new Date(c.opened_at).getTime();
+      const cl = c.closed_at ? new Date(c.closed_at).getTime() : Infinity;
+      return cs >= o && cs <= cl;
+    }),
+  }));
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-4">
@@ -49,6 +69,8 @@ function LeadDetail() {
             {lead.priority && <Badge className={PRIORITY_COLORS[lead.priority as keyof typeof PRIORITY_COLORS]}>{PRIORITY_LABELS[lead.priority as keyof typeof PRIORITY_LABELS]}</Badge>}
             <h1 className="text-xl font-bold">{lead.wa_name ?? "Unknown"} · {lead.phone}</h1>
             <span className="text-sm text-muted-foreground">{lead.zones?.name} · Score {lead.score} · {lead.movein_bucket}</span>
+            <Badge variant="outline">Cycle #{currentCycleNo} of {cycles.length}</Badge>
+            {isClosed && <Badge variant="destructive">Closed</Badge>}
           </div>
           {lead.current_scenario && <div className="text-sm mt-2">Current scenario: <span className="font-medium">{SCENARIOS.find((s) => s.code === lead.current_scenario)?.label}</span></div>}
         </Card>
@@ -77,6 +99,55 @@ function LeadDetail() {
           </Card>
         )}
 
+        {/* Reopen — for returning leads (Jan → Apr → Jun → …) */}
+        {isClosed && (
+          <Card className="p-4 space-y-3 border-primary/50">
+            <div className="font-semibold">Returning enquiry — reopen as Cycle #{currentCycleNo + 1}</div>
+            <p className="text-xs text-muted-foreground">Full history from all {cycles.length} prior cycles stays intact. This creates a fresh assignment, ownership, and SLA clock.</p>
+            <Input placeholder="Why is the lead back? (e.g. 6-month stay ended, changed city, wants BHK now)" value={reopenReason} onChange={(e) => setReopenReason(e.target.value)} />
+            <Input placeholder="New location (optional)" value={reopenLocation} onChange={(e) => setReopenLocation(e.target.value)} />
+            <Select value={reopenBucket} onValueChange={(v) => setReopenBucket(v as MoveInBucket)}>
+              <SelectTrigger><SelectValue placeholder="New move-in urgency" /></SelectTrigger>
+              <SelectContent>{(Object.keys(MOVE_IN_LABELS) as MoveInBucket[]).map((b) => <SelectItem key={b} value={b}>{MOVE_IN_LABELS[b]}</SelectItem>)}</SelectContent>
+            </Select>
+            <Button disabled={!reopenReason} onClick={async () => {
+              const r = await reopenCycle({
+                leadId: id, reason: reopenReason,
+                moveinBucket: reopenBucket || undefined,
+                locationText: reopenLocation || undefined,
+              });
+              if (!r.ok) toast.error(r.error); else toast.success(`Reopened as Cycle #${currentCycleNo + 1} — routed to owner`);
+              setReopenReason(""); setReopenBucket(""); setReopenLocation(""); load();
+            }}>Reopen cycle & re-route</Button>
+          </Card>
+        )}
+
+        {/* Close current cycle */}
+        {!isClosed && isOwner && (
+          <Card className="p-3 space-y-2">
+            <div className="font-semibold text-sm">Close this cycle</div>
+            <p className="text-xs text-muted-foreground">Preserves all history. Lead can be reopened later as Cycle #{currentCycleNo + 1}.</p>
+            <Input placeholder="Close reason (booked / not interested / no-show / etc.)" value={closeReason} onChange={(e) => setCloseReason(e.target.value)} />
+            <Button size="sm" variant="secondary" disabled={!closeReason} onClick={async () => {
+              await closeCycle(id, closeReason); toast.success("Cycle closed"); setCloseReason(""); load();
+            }}>Close cycle</Button>
+          </Card>
+        )}
+
+        {/* Co-work claim on an actively owned lead */}
+        {!isClosed && !isOwner && openAsg && (
+          <Card className="p-3 space-y-2 border-accent/50">
+            <div className="font-semibold text-sm">Claim & work in parallel</div>
+            <p className="text-xs text-muted-foreground">Primary owner keeps the lead. You get a tracked shadow assignment so nothing collides.</p>
+            <Input placeholder="Why claim now? (owner unavailable, live call, WA reply, etc.)" value={coworkReason} onChange={(e) => setCoworkReason(e.target.value)} />
+            <Button size="sm" variant="outline" disabled={!coworkReason} onClick={async () => {
+              const r = await claimCowork(id, coworkReason);
+              if (!r.ok) toast.error(r.error); else toast.success("Co-work claim recorded");
+              setCoworkReason(""); load();
+            }}>Claim & work</Button>
+          </Card>
+        )}
+
         <Card className="p-4">
           <div className="font-semibold mb-2">Next actions</div>
           {next.length === 0 && <div className="text-sm text-muted-foreground">No next action yet — pick a scenario above.</div>}
@@ -94,13 +165,31 @@ function LeadDetail() {
         </Card>
 
         <Card className="p-4">
-          <div className="font-semibold mb-2">Scenario history</div>
-          {scenarios.map((s) => (
-            <div key={s.id} className="text-sm border-b py-1">
-              <span className="font-medium">{SCENARIOS.find((x) => x.code === s.scenario)?.label}</span> · {new Date(s.created_at).toLocaleString()}
-              {s.notes && <div className="text-xs text-muted-foreground">{s.notes}</div>}
-            </div>
-          ))}
+          <div className="font-semibold mb-3">Full journey — {cycles.length} enquiry cycle{cycles.length === 1 ? "" : "s"}</div>
+          <div className="space-y-3">
+            {historyByCycle.map(({ cycle, assignments: cAsg, scenarios: cScen }) => (
+              <div key={cycle.id} className="border-l-2 border-primary/40 pl-3">
+                <div className="text-sm font-semibold">
+                  Cycle #{cycle.cycle_no}
+                  <span className="text-xs text-muted-foreground ml-2">
+                    opened {new Date(cycle.opened_at).toLocaleDateString()}
+                    {cycle.closed_at && ` → closed ${new Date(cycle.closed_at).toLocaleDateString()}`}
+                  </span>
+                </div>
+                {cycle.open_reason && <div className="text-xs text-muted-foreground">Opened: {cycle.open_reason}</div>}
+                {cycle.close_reason && <div className="text-xs text-amber-600">Closed: {cycle.close_reason}</div>}
+                {cAsg.length > 0 && (
+                  <div className="mt-1 text-xs">{cAsg.length} assignment{cAsg.length === 1 ? "" : "s"} · {cAsg.filter((a) => a.reassign_reason).length} reassign{cAsg.filter((a) => a.reassign_reason).length === 1 ? "" : "s"}</div>
+                )}
+                {cScen.map((s) => (
+                  <div key={s.id} className="text-xs mt-1">
+                    → <span className="font-medium">{SCENARIOS.find((x) => x.code === s.scenario)?.label}</span> · {new Date(s.created_at).toLocaleString()}
+                    {s.notes && <div className="text-muted-foreground pl-3">{s.notes}</div>}
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
         </Card>
       </div>
 
