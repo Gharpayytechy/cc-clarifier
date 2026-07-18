@@ -23,6 +23,7 @@ import { PictureInPictureProvider, PipMount, usePip } from "./pip/PipProvider";
 import { PipButton } from "./pip/PipButton";
 import { usePipRouteSync } from "./pip/usePipSync";
 import { LiveActivityDock } from "./live/LiveActivityDock";
+import { runLifecycleSeed } from "@/lib/pipeline/seed-lifecycle";
 
 function PipRouteSyncBridge() {
   const { active } = usePip();
@@ -76,6 +77,13 @@ export function AppShell({ children }: { children: ReactNode }) {
     if (!mounted) return;
     bookings.forEach((b) => markMessageBookedAfter(b.leadId, b.id, b.ts));
   }, [bookings, mounted, markMessageBookedAfter]);
+
+  // One-time lifecycle seed so returning-lead history + co-work claims are visible
+  // without any clicks. Idempotent (keyed in localStorage).
+  useEffect(() => {
+    if (!mounted) return;
+    runLifecycleSeed();
+  }, [mounted]);
 
   const navByRole: Record<typeof role, NavItem[]> = {
     hr: [

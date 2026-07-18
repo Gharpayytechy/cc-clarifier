@@ -23,6 +23,9 @@ import { ObjectionTag } from "./crm10x/ObjectionLogger";
 import { LeadDossierPanel } from "./crm10x/LeadDossierPanel";
 import { LeadLiveStrip } from "./live/LeadLiveStrip";
 import { LeadAdminStrip } from "./admin/LeadAdminStrip";
+import { useLifecycle } from "@/lib/pipeline/lifecycle";
+import { useLiveActivity } from "@/lib/live-activity";
+import { History, Users as UsersIcon } from "lucide-react";
 import {
   Phone, MessageSquare, Calendar as CalendarIcon, Tag, ClipboardCheck,
   AlertTriangle, CheckCircle2, X, Activity as ActivityIcon, MapPin,
@@ -132,6 +135,7 @@ export function LeadControlPanel() {
             <IntentChip intent={lead.intent} />
             <ConfidenceBar value={lead.confidence} />
             <ObjectionTag leadId={lead.id} />
+            <LeadHistoryChips leadId={lead.id} onOpenHistory={() => setTab("dossier")} />
           </div>
           <div className="grid grid-cols-3 gap-2 pt-1 text-xs">
             <Meta icon={CalendarIcon} label="Move-in" value={format(new Date(lead.moveInDate), "MMM d")} />
@@ -164,7 +168,7 @@ export function LeadControlPanel() {
         )}
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto scrollbar-thin">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-thin">
           <Tabs value={tab} onValueChange={setTab} className="px-5 py-4">
             <TabsList className="grid h-auto w-full grid-cols-4 gap-1 sm:grid-cols-7">
               <TabsTrigger value="best-fit" className="text-xs">Best Fit</TabsTrigger>
@@ -719,6 +723,40 @@ function toLocal(iso: string) {
   const d = new Date(iso);
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function LeadHistoryChips({ leadId, onOpenHistory }: { leadId: string; onOpenHistory: () => void }) {
+  const cycles = useLifecycle((s) => s.cycles[leadId]) ?? [];
+  const claims = useLiveActivity((s) => s.claims).filter(
+    (c) => c.leadId === leadId && c.state === "active",
+  );
+  if (cycles.length === 0 && claims.length === 0) return null;
+  const openCycle = cycles.find((c) => !c.closedAt);
+  return (
+    <>
+      {cycles.length > 0 && (
+        <button
+          type="button"
+          onClick={onOpenHistory}
+          title="Open full journey · cycles, revivals, and reasons"
+          className="inline-flex items-center gap-1 rounded-full border border-amber-300/60 bg-amber-50 text-amber-800 px-2 py-0.5 text-[10px] font-medium hover:bg-amber-100"
+        >
+          <History className="h-3 w-3" />
+          {cycles.length}× returning · view journey
+          {openCycle ? ` · cycle ${openCycle.cycleNumber} open` : ""}
+        </button>
+      )}
+      {claims.length > 0 && (
+        <span
+          title={claims.map((c) => `${c.claimerName}: ${c.reason}`).join("\n")}
+          className="inline-flex items-center gap-1 rounded-full border border-emerald-300/60 bg-emerald-50 text-emerald-800 px-2 py-0.5 text-[10px] font-medium"
+        >
+          <UsersIcon className="h-3 w-3" />
+          {claims.length} co-working now
+        </span>
+      )}
+    </>
+  );
 }
 
 function priorityFor(c: number): FollowUpPriority {
