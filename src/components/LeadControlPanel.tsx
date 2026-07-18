@@ -725,6 +725,40 @@ function toLocal(iso: string) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+function LeadHistoryChips({ leadId, onOpenHistory }: { leadId: string; onOpenHistory: () => void }) {
+  const cycles = useLifecycle((s) => s.cycles[leadId]) ?? [];
+  const claims = useLiveActivity((s) => s.claims).filter(
+    (c) => c.leadId === leadId && c.state === "active",
+  );
+  if (cycles.length === 0 && claims.length === 0) return null;
+  const openCycle = cycles.find((c) => !c.closedAt);
+  return (
+    <>
+      {cycles.length > 0 && (
+        <button
+          type="button"
+          onClick={onOpenHistory}
+          title="Open full journey · cycles, revivals, and reasons"
+          className="inline-flex items-center gap-1 rounded-full border border-amber-300/60 bg-amber-50 text-amber-800 px-2 py-0.5 text-[10px] font-medium hover:bg-amber-100"
+        >
+          <History className="h-3 w-3" />
+          {cycles.length}× returning · view journey
+          {openCycle ? ` · cycle ${openCycle.cycleNumber} open` : ""}
+        </button>
+      )}
+      {claims.length > 0 && (
+        <span
+          title={claims.map((c) => `${c.claimerName}: ${c.reason}`).join("\n")}
+          className="inline-flex items-center gap-1 rounded-full border border-emerald-300/60 bg-emerald-50 text-emerald-800 px-2 py-0.5 text-[10px] font-medium"
+        >
+          <UsersIcon className="h-3 w-3" />
+          {claims.length} co-working now
+        </span>
+      )}
+    </>
+  );
+}
+
 function priorityFor(c: number): FollowUpPriority {
   return c >= 75 ? "high" : c >= 50 ? "medium" : "low";
 }
