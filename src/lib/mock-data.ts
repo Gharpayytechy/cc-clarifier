@@ -1,4 +1,7 @@
-import type { TCM, Property, Lead, Tour, ActivityLog, FollowUp, HandoffMessage, ActiveSequence } from "./types";
+import type {
+  TCM, Property, Lead, Tour, ActivityLog, FollowUp, HandoffMessage, ActiveSequence,
+  LeadStage, Intent,
+} from "./types";
 
 const now = new Date();
 const iso = (d: Date) => d.toISOString();
