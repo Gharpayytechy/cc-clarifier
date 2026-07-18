@@ -112,9 +112,9 @@ export function LeadControlPanel() {
 
   return (
     <Sheet open={!!selectedLeadId} onOpenChange={(o) => !o && selectLead(null)}>
-      <SheetContent side="right" className="w-full sm:max-w-[560px] p-0 flex flex-col">
+      <SheetContent side="right" className="h-dvh max-h-dvh w-full gap-0 overflow-hidden p-0 sm:max-w-[640px] flex flex-col">
         {/* Header block */}
-        <SheetHeader className="px-5 py-4 border-b border-border space-y-2">
+        <SheetHeader className="shrink-0 px-5 py-4 border-b border-border space-y-2">
           <div className="flex items-start justify-between gap-3">
             <div>
               <SheetTitle className="font-display text-lg leading-tight">{lead.name}</SheetTitle>
@@ -146,16 +146,20 @@ export function LeadControlPanel() {
         </SheetHeader>
 
         {/* Per-lead Live Activity Dock — calls, chats, claim & work */}
-        <LeadLiveStrip lead={lead} />
-        <LeadAdminStrip lead={lead} />
+        <div className="shrink-0">
+          <LeadLiveStrip lead={lead} />
+          <LeadAdminStrip lead={lead} />
+        </div>
 
         {/* CRM 10x — commitment banner + 48h post-visit gate */}
-        <CommitmentBanner lead={lead} />
-        <PostVisitGate lead={lead} />
+        <div className="shrink-0">
+          <CommitmentBanner lead={lead} />
+          <PostVisitGate lead={lead} />
+        </div>
 
         {/* Stale alert */}
         {pendingPostTour && (
-          <div className="mx-5 mt-3 rounded-lg border border-destructive/30 bg-destructive/5 p-3 flex items-start gap-2">
+          <div className="mx-5 mt-3 shrink-0 rounded-lg border border-destructive/30 bg-destructive/5 p-3 flex items-start gap-2">
             <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
             <div className="text-xs">
               <div className="font-semibold text-destructive">Post-tour update missing</div>
@@ -168,7 +172,7 @@ export function LeadControlPanel() {
         )}
 
         {/* Body */}
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-thin">
+        <div data-testid="lead-drawer-scroll" className="lead-drawer-scroll flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-thin pb-8">
           <Tabs value={tab} onValueChange={setTab} className="px-5 py-4">
             <TabsList className="grid h-auto w-full grid-cols-4 gap-1 sm:grid-cols-7">
               <TabsTrigger value="best-fit" className="text-xs">Best Fit</TabsTrigger>
