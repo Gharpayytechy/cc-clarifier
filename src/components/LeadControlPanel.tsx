@@ -164,7 +164,7 @@ export function LeadControlPanel() {
         )}
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto scrollbar-thin">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-thin">
           <Tabs value={tab} onValueChange={setTab} className="px-5 py-4">
             <TabsList className="grid h-auto w-full grid-cols-4 gap-1 sm:grid-cols-7">
               <TabsTrigger value="best-fit" className="text-xs">Best Fit</TabsTrigger>
