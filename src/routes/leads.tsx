@@ -189,8 +189,17 @@ function LeadsPage() {
                           {l.phone} · {l.source}
                         </span>
 
-                        <button
+                        <span
+                          role="button"
+                          tabIndex={0}
                           onClick={(e) => {
+                            e.stopPropagation();
+                            navigator.clipboard.writeText(l.phone);
+                            alert("Phone Number Copied!");
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key !== "Enter" && e.key !== " ") return;
+                            e.preventDefault();
                             e.stopPropagation();
                             navigator.clipboard.writeText(l.phone);
                             alert("Phone Number Copied!");
@@ -198,9 +207,9 @@ function LeadsPage() {
                           className="rounded border px-2 py-0.5 text-[10px] text-blue-600 hover:bg-blue-50"
                         >
                           Copy
-                        </button>
+                        </span>
                       </div>
-                    </button>
+                    </div>
                     <div className="col-span-2">
                       <StageBadge stage={l.stage} />
                     </div>
@@ -221,7 +230,7 @@ function LeadsPage() {
                         ? formatDistanceToNow(new Date(l.updatedAt), { addSuffix: true })
                         : "—"}
                     </div>
-                  </div>
+                  </button>
                 </div>
               );
             })}
