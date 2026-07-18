@@ -317,3 +317,146 @@ export async function simulateIncoming(sourceId: string, waName: string, phone: 
     source_id: sourceId, wa_name: waName, phone, first_message: firstMessage, latest_message: firstMessage, conversation_link: link,
   }).select("id").single();
 }
+
+// ============================================================================
+// Multi-cycle lifecycle: a single lead (phone) can enquire 15+ times over
+// months/years. Each enquiry = one cycle with its own assignment, ownership,
+// scenarios, and next actions. History is preserved forever; the lead row
+// carries the "current" pointer only.
+// ============================================================================
+
+export async function closeCycle(leadId: string, reason: string) {
+  // Close open cycle
+  const { data: openCycle } = await supabase
+    .from("lead_cycles").select("id").eq("lead_id", leadId).is("closed_at", null)
+    .order("cycle_no", { ascending: false }).limit(1).maybeSingle();
+  if (openCycle) {
+    await supabase.from("lead_cycles").update({
+      closed_at: new Date().toISOString(), close_reason: reason,
+    }).eq("id", openCycle.id);
+  }
+  // Close any live assignment + free workload
+  const { data: openAsg } = await supabase.from("assignments")
+    .select("id, owner_id").eq("lead_id", leadId)
+    .in("state", ["pending_accept", "accepted"]).maybeSingle();
+  if (openAsg) {
+    await supabase.from("assignments").update({ state: "completed", reassign_reason: reason }).eq("id", openAsg.id);
+    await bumpWorkload(openAsg.owner_id, -4);
+  }
+  await supabase.from("leads").update({ status: "closed", current_owner: null, current_scenario: null }).eq("id", leadId);
+  await supabase.from("audit_logs").insert({ entity: "lead", entity_id: leadId, action: "cycle_closed", reason });
+}
+
+export type ReopenInput = {
+  leadId: string;
+  reason: string; // "returning after 6 months", "changed mind", "new search", etc.
+  zoneId?: string; // if location changed
+  locationText?: string;
+  moveinBucket?: MoveInBucket; // fresh urgency
+  moveinDate?: string | null;
+};
+
+export async function reopenCycle(input: ReopenInput): Promise<AssignResult> {
+  const { data: lead } = await supabase.from("leads").select("*").eq("id", input.leadId).single();
+  if (!lead) return { ok: false, leadId: input.leadId, priority: "nurture", score: 0, error: "lead not found" };
+
+  // Make sure any prior cycle is closed first (idempotent).
+  await closeCycle(input.leadId, `superseded by reopen: ${input.reason}`);
+
+  const zoneId = input.zoneId ?? lead.zone_id;
+  const moveinBucket = input.moveinBucket ?? lead.movein_bucket ?? "not_confirmed";
+  const { data: zone } = zoneId
+    ? await supabase.from("zones").select("inventory_strength, is_serviceable").eq("id", zoneId).single()
+    : { data: null };
+  const locationScore = locationScoreFor(zone?.inventory_strength, zone?.is_serviceable ?? true);
+  const moveinScore = MOVE_IN_SCORE[moveinBucket];
+  const score = locationScore + moveinScore;
+  const priority = priorityFor(score);
+
+  // Bump cycle_no
+  const { data: last } = await supabase.from("lead_cycles").select("cycle_no")
+    .eq("lead_id", input.leadId).order("cycle_no", { ascending: false }).limit(1).maybeSingle();
+  const cycleNo = (last?.cycle_no ?? 0) + 1;
+  const cyc = await supabase.from("lead_cycles").insert({
+    lead_id: input.leadId, cycle_no: cycleNo, open_reason: input.reason,
+  }).select("id").single();
+  const cycleId = cyc.data?.id ?? null;
+
+  // Refresh lead pointers
+  await supabase.from("leads").update({
+    status: "open",
+    zone_id: zoneId,
+    location_text: input.locationText ?? lead.location_text,
+    movein_bucket: moveinBucket,
+    movein_date: input.moveinDate ?? lead.movein_date,
+    location_score: locationScore,
+    movein_score: moveinScore,
+    score,
+    priority,
+    current_scenario: null,
+    current_owner: null,
+  }).eq("id", input.leadId);
+
+  await supabase.from("audit_logs").insert({
+    entity: "lead", entity_id: input.leadId, action: "cycle_reopened",
+    reason: input.reason, next: { cycleNo, priority, score },
+  });
+
+  // Route to a fresh owner via the same pool logic used on first entry.
+  if (!zoneId) {
+    return { ok: true, leadId: input.leadId, assignmentId: null, priority, score, ownerId: null, reason: "No zone — queued" };
+  }
+  const pool = await buildEligiblePool(zoneId, priority);
+  if (pool.length === 0) {
+    return { ok: true, leadId: input.leadId, assignmentId: null, priority, score, ownerId: null, reason: "No eligible owner — queued" };
+  }
+  const best = pool[0];
+  const sla = SLA_CONFIG[priority];
+  const now = Date.now();
+  const asg = await supabase.from("assignments").insert({
+    lead_id: input.leadId, cycle_id: cycleId, owner_id: best.user_id, priority,
+    sla_deadline_accept: new Date(now + sla.accept * 1000).toISOString(),
+    sla_deadline_first_action: new Date(now + sla.firstAction * 1000).toISOString(),
+    state: "pending_accept",
+    reassign_reason: `Cycle #${cycleNo}: ${input.reason}`,
+  }).select("id").single();
+  await supabase.from("leads").update({ current_owner: best.user_id }).eq("id", input.leadId);
+  await bumpWorkload(best.user_id, 4);
+  return { ok: true, leadId: input.leadId, assignmentId: asg.data?.id ?? null, priority, score, ownerId: best.user_id };
+}
+
+// Helper: fetch grouped cycle history for the detail view.
+export async function loadCycleHistory(leadId: string) {
+  const [cycles, asg, scen, na] = await Promise.all([
+    supabase.from("lead_cycles").select("*").eq("lead_id", leadId).order("cycle_no", { ascending: false }),
+    supabase.from("assignments").select("*").eq("lead_id", leadId).order("assigned_at", { ascending: false }),
+    supabase.from("lead_scenarios_log").select("*").eq("lead_id", leadId).order("created_at", { ascending: false }),
+    supabase.from("next_actions").select("*").eq("lead_id", leadId).order("due_at", { ascending: false }),
+  ]);
+  return { cycles: cycles.data ?? [], assignments: asg.data ?? [], scenarios: scen.data ?? [], nextActions: na.data ?? [] };
+}
+
+// Co-work claim on an already-owned lead: creates a shadow assignment so a
+// second operator can work in parallel while the primary is on call/WA.
+export async function claimCowork(leadId: string, reason: string) {
+  const me = (await supabase.auth.getUser()).data.user;
+  if (!me) return { ok: false as const, error: "not signed in" };
+  const { data: lead } = await supabase.from("leads").select("priority, current_owner").eq("id", leadId).single();
+  if (!lead?.priority) return { ok: false as const, error: "lead missing priority" };
+  const sla = SLA_CONFIG[lead.priority];
+  const now = Date.now();
+  const asg = await supabase.from("assignments").insert({
+    lead_id: leadId, owner_id: me.id, previous_owner: lead.current_owner,
+    priority: lead.priority,
+    sla_deadline_accept: new Date(now + sla.accept * 1000).toISOString(),
+    sla_deadline_first_action: new Date(now + sla.firstAction * 1000).toISOString(),
+    state: "accepted",
+    accepted_at: new Date().toISOString(),
+    reassign_reason: `Co-work claim: ${reason}`,
+  }).select("id").single();
+  await supabase.from("audit_logs").insert({
+    entity: "lead", entity_id: leadId, action: "cowork_claimed",
+    reason, next: { claimer: me.id, primary: lead.current_owner },
+  });
+  return { ok: true as const, assignmentId: asg.data?.id ?? null };
+}
