@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
  */
 export function CoachWidget() {
   const role         = useApp((s) => s.role);
+  const selectedLeadId = useApp((s) => s.selectedLeadId);
   const currentTcmId = useApp((s) => s.currentTcmId);
   const tcms         = useApp((s) => s.tcms);
   const leads        = useApp((s) => s.leads);
@@ -63,6 +64,11 @@ export function CoachWidget() {
     if (mounted) rolloverIfNeeded(who);
   }, [mounted, who, rolloverIfNeeded]);
 
+  // Never stack Coach over the lead drawer; it blocks the drawer's visible scroll area.
+  useEffect(() => {
+    if (selectedLeadId) setOpen(false);
+  }, [selectedLeadId]);
+
   // Keyboard shortcut: press "Shift+C" to toggle the coach.
   // (Bare "c" is reserved for log-call on the selected lead.)
   useEffect(() => {
@@ -78,7 +84,7 @@ export function CoachWidget() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  if (!mounted || !report) return null;
+  if (!mounted || !report || selectedLeadId) return null;
 
   const missed = report.missed.length;
   const pct = report.mission.pct;
