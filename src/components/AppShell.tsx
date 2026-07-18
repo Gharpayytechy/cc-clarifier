@@ -78,6 +78,13 @@ export function AppShell({ children }: { children: ReactNode }) {
     bookings.forEach((b) => markMessageBookedAfter(b.leadId, b.id, b.ts));
   }, [bookings, mounted, markMessageBookedAfter]);
 
+  // One-time lifecycle seed so returning-lead history + co-work claims are visible
+  // without any clicks. Idempotent (keyed in localStorage).
+  useEffect(() => {
+    if (!mounted) return;
+    runLifecycleSeed();
+  }, [mounted]);
+
   const navByRole: Record<typeof role, NavItem[]> = {
     hr: [
       { to: "/os", label: "Closing OS", icon: Sparkles, accent: true },
