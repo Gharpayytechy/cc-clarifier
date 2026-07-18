@@ -176,16 +176,9 @@ function LeadsPage() {
               const tcm = tcms.find((t) => t.id === l.assignedTcmId);
               return (
                 <div key={l.id}>
-                  <div
-                    role="button"
-                    tabIndex={0}
+                  <button
+                    type="button"
                     onClick={() => selectLead(l.id)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        selectLead(l.id);
-                      }
-                    }}
                     className="w-full text-left grid grid-cols-12 px-4 py-3 items-center hover:bg-accent/5 transition-colors cursor-pointer"
                   >
                     <div className="col-span-3">
@@ -207,7 +200,7 @@ function LeadsPage() {
                           Copy
                         </button>
                       </div>
-                    </div>
+                    </button>
                     <div className="col-span-2">
                       <StageBadge stage={l.stage} />
                     </div>
