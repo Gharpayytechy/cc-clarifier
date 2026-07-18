@@ -340,7 +340,7 @@ export async function closeCycle(leadId: string, reason: string) {
     .select("id, owner_id").eq("lead_id", leadId)
     .in("state", ["pending_accept", "accepted"]).maybeSingle();
   if (openAsg) {
-    await supabase.from("assignments").update({ state: "closed", reassign_reason: reason }).eq("id", openAsg.id);
+    await supabase.from("assignments").update({ state: "completed", reassign_reason: reason }).eq("id", openAsg.id);
     await bumpWorkload(openAsg.owner_id, -4);
   }
   await supabase.from("leads").update({ status: "closed", current_owner: null, current_scenario: null }).eq("id", leadId);
