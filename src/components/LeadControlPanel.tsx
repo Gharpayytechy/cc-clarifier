@@ -114,35 +114,37 @@ export function LeadControlPanel() {
     <Sheet open={!!selectedLeadId} onOpenChange={(o) => !o && selectLead(null)}>
       <SheetContent side="right" className="h-dvh max-h-dvh w-full gap-0 overflow-hidden p-0 sm:max-w-[640px] flex flex-col">
         {/* Header block */}
-        <SheetHeader className="shrink-0 px-5 py-4 border-b border-border space-y-2">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <SheetTitle className="font-display text-lg leading-tight">{lead.name}</SheetTitle>
-              <SheetDescription className="text-xs">
-                {lead.phone} · via {lead.source}
+        <SheetHeader className="shrink-0 px-5 py-4 border-b border-border space-y-3">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+            <div className="min-w-0">
+              <SheetTitle className="font-display text-lg leading-tight truncate">{lead.name}</SheetTitle>
+              <SheetDescription className="text-xs truncate">
+                {lead.phone} · via {lead.source} · assigned {tcm?.name ?? "—"} ({tcm?.zone ?? "—"})
               </SheetDescription>
             </div>
             <button
               onClick={() => selectLead(null)}
-              className="h-7 w-7 rounded-md hover:bg-muted flex items-center justify-center"
+              className="h-7 w-7 shrink-0 rounded-md hover:bg-muted flex items-center justify-center"
               aria-label="Close"
             >
               <X className="h-4 w-4" />
             </button>
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5 flex-wrap">
             <StageBadge stage={lead.stage} />
             <IntentChip intent={lead.intent} />
-            <ConfidenceBar value={lead.confidence} />
             <ObjectionTag leadId={lead.id} />
             <LeadHistoryChips leadId={lead.id} onOpenHistory={() => setTab("dossier")} />
+          </div>
+          <div className="flex items-center gap-2">
+            <ConfidenceBar value={lead.confidence} />
+            <span className="text-[10px] text-muted-foreground shrink-0">confidence</span>
           </div>
           <div className="grid grid-cols-3 gap-2 pt-1 text-xs">
             <Meta icon={CalendarIcon} label="Move-in" value={format(new Date(lead.moveInDate), "MMM d")} />
             <Meta icon={Wallet} label="Budget" value={`₹${(lead.budget / 1000).toFixed(0)}k`} />
             <Meta icon={MapPin} label="Area" value={lead.preferredArea} />
           </div>
-          <div className="text-[11px] text-muted-foreground">Assigned · {tcm?.name ?? "—"} ({tcm?.zone ?? "—"})</div>
         </SheetHeader>
 
         {/* Per-lead Live Activity Dock — calls, chats, claim & work */}

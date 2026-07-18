@@ -3,10 +3,10 @@
 // plus a few cycles + a live co-work claim on other leads so QA can see
 // the returning-lead history + parallel-owner claim UI without clicks.
 // Idempotent — runs once, marked by a version key.
-import { useLifecycle, type LeadCycle, type CycleCloseReason, type RevivalReason } from "./lifecycle";
+import { useLifecycle, type LeadCycle, type CycleCloseReason, type RevivalReason, type CycleEvent } from "./lifecycle";
 import { useLiveActivity } from "@/lib/live-activity";
 
-const SEED_VERSION = "gharpayy-lifecycle-seed-v3";
+const SEED_VERSION = "gharpayy-lifecycle-seed-v5";
 
 const day = 86_400_000;
 const iso = (ms: number) => new Date(ms).toISOString();
@@ -82,8 +82,142 @@ function buildCycles(specs: CycleSpec[], originalTcm: string): LeadCycle[] {
       notes: s.notes,
       reusedFromCycle: i === 0 ? undefined : i,
       reusedFields: s.reused,
+      snapshot: buildSnapshot(i, s),
+      quote: buildQuote(i, s, openedMs),
+      booking: buildBooking(i, s, openedMs, closedMs),
+      events: buildEvents(i, s, openedMs, closedMs, isOpen),
     };
   });
+}
+
+// Deterministic per-cycle snapshot of the ask.
+function buildSnapshot(i: number, s: CycleSpec) {
+  const budgets = [15500, 16000, 14500, 17000, 15000, 16500, 18000, 14000, 15800, 16200, 14800, 17500, 15300, 16800, 15900];
+  const areas = ["Koramangala", "HSR", "BTM", "Indiranagar", "Whitefield", "Marathahalli"];
+  const foods = ["veg", "any", "jain", "non-veg", "veg"];
+  const sharings = ["single", "double", "triple", "double"];
+  return {
+    budget: budgets[i % budgets.length],
+    area: areas[i % areas.length],
+    moveInDate: iso(Date.now() - (s.daysAgo - 4) * day).slice(0, 10),
+    food: foods[i % foods.length],
+    sharing: sharings[i % sharings.length],
+    persona: i % 3 === 0 ? "working-pro" : i % 3 === 1 ? "student" : "couple",
+    groupSize: 1 + (i % 3),
+  };
+}
+
+function buildQuote(i: number, s: CycleSpec, openedMs: number) {
+  if (s.closeReason === "unqualified" || s.closeReason === "ghosted") return undefined;
+  const amount = 14500 + ((i * 350) % 4000);
+  return {
+    amount,
+    discount: (i % 4) * 250,
+    deposit: amount * 2,
+    sentAt: iso(openedMs + Math.min(3, s.durationDays) * day),
+  };
+}
+
+function buildBooking(i: number, s: CycleSpec, openedMs: number, closedMs?: number) {
+  if (s.closeReason !== "booked" && s.closeReason !== "cancelled-after-book") return undefined;
+  const at = openedMs + Math.max(1, s.durationDays - 1) * day;
+  const amount = 15500 + ((i * 400) % 3500);
+  return {
+    amount,
+    ref: `BK-${1000 + i}-${(i * 17) % 9999}`,
+    at: iso(at),
+    refundedAt: s.closeReason === "cancelled-after-book" && closedMs ? iso(closedMs) : undefined,
+    refundReason: s.closeReason === "cancelled-after-book" ? "Cancelled within 48h — full refund" : undefined,
+  };
+}
+
+// Realistic events for a cycle: opening, calls, WA, tour, objection, quote, commit, close/revive.
+function buildEvents(i: number, s: CycleSpec, openedMs: number, closedMs: number | undefined, isOpen: boolean): CycleEvent[] {
+  const evs: CycleEvent[] = [];
+  const eid = (n: number) => `evt_${i}_${n}`;
+  const shift = (frac: number) => iso(openedMs + Math.max(1, s.durationDays) * day * frac);
+
+  // Opening
+  if (i === 0) {
+    evs.push({ id: eid(1), ts: iso(openedMs), type: "opened", actor: "system",
+      summary: "New enquiry received via WhatsApp Business",
+      detail: `First message: "Hi, looking for PG in ${["Koramangala","HSR","BTM"][i % 3]} — budget around 15k, veg food."`,
+      meta: { source: "wa-koramangala", channel: "whatsapp" } });
+  } else {
+    evs.push({ id: eid(1), ts: iso(openedMs), type: "revived", actor: "system",
+      summary: `Cycle #${i + 1} reopened — ${s.revivalReason ?? "returning"}`,
+      detail: `Lead reappeared after ${Math.max(0, Math.round((openedMs - (Date.now() - (s.daysAgo) * day)) / day))}d. Reused: ${(s.reused ?? []).join(", ") || "nothing yet"}.`,
+      meta: { revivalReason: s.revivalReason, reused: (s.reused ?? []).join(",") } });
+  }
+
+  // Call attempt 1
+  evs.push({ id: eid(2), ts: shift(0.1), type: "call", actor: s.tcm,
+    summary: `Call attempt 1 — ${["answered","not-answered","answered","busy"][i % 4]}`,
+    detail: i % 4 === 0
+      ? "Lead answered. Confirmed budget, veg food, move-in in ~2 weeks. Language: Hindi. Best time: after 7 PM."
+      : "No answer — voicemail left, WA follow-up queued.",
+    meta: { durationSec: i % 4 === 0 ? 262 : 0, language: "hindi" } });
+
+  // WA message
+  evs.push({ id: eid(3), ts: shift(0.2), type: "wa", actor: s.tcm,
+    summary: "WhatsApp — 3 property options sent (PDF + location pins)",
+    detail: `Sent: Koramangala 8B (₹15.5k), HSR Silverline (₹14.8k), BTM Skyline (₹15k). Read at ${new Date(openedMs + s.durationDays * day * 0.22).toLocaleTimeString()}. Reply: "Will check tonight."`,
+    meta: { read: true, replied: true } });
+
+  // Tour
+  {
+    const noShow = s.closeReason === "ghosted" && i % 2 === 0;
+    evs.push({ id: eid(4), ts: shift(0.35), type: "tour-scheduled", actor: s.tcm,
+      summary: `Tour scheduled — Koramangala 8B, 6:30 PM`,
+      detail: `Coordinator: ${s.tcm}. Meeting point: near Sony Signal. Confirmed on WA.` });
+    evs.push({ id: eid(5), ts: shift(0.5), type: noShow ? "tour-noshow" : "tour-visited", actor: s.tcm,
+      summary: noShow ? "Tour NO-SHOW — did not respond to reminders" : `Tour completed — reaction: ${["loved","liked","mixed","disappointed"][i % 4]}`,
+      detail: noShow
+        ? "Called twice at meeting time, then again at +30 min. Phone off. Auto-scheduled retry for +24h."
+        : `Walked 3 rooms. Comment: "Room-fit good, but ₹15.5k is 15% over what I planned." Photo evidence uploaded.`,
+      meta: { propertyId: "p1", durationMin: noShow ? 0 : 42 } });
+  }
+
+  // Objection
+  if (s.closeReason === "lost-price" || s.closeReason === "lost-food" || s.closeReason === "lost-location") {
+    evs.push({ id: eid(6), ts: shift(0.6), type: "objection", actor: s.tcm,
+      summary: `Objection logged — ${s.closeReason.replace("lost-","")}`,
+      detail: s.closeReason === "lost-price"
+        ? `Lead words: "I saw a ₹13k one on OLX, why pay 15?" Handling: showed inclusion breakdown (food, wifi, laundry) → still not convinced.`
+        : s.closeReason === "lost-food"
+        ? `Lead words: "You said Jain but the menu has onion." Handling: escalated to owner, no separate Jain kitchen. Lost.`
+        : `Lead words: "My office moved to Whitefield last week." Handling: offered Whitefield alternatives, lead wanted Koramangala. Lost.` });
+  }
+
+  // Quote sent
+  evs.push({ id: eid(7), ts: shift(0.65), type: "quote-sent", actor: s.tcm,
+    summary: `Quote sent — ₹${14500 + (i * 350) % 4000} + ₹${(i % 4) * 250} discount, 6mo lock`,
+    detail: `Deposit: ₹${(14500 + (i * 350) % 4000) * 2}. Included: veg meals, wifi, weekly cleaning. Expiry: ${new Date(openedMs + (s.durationDays + 3) * day).toLocaleDateString()}.` });
+
+  // Commitment
+  evs.push({ id: eid(8), ts: shift(0.75), type: "commitment", actor: s.tcm,
+    summary: `Callback promised — "will decide by ${["Friday","weekend","Monday","tomorrow"][i % 4]}"`,
+    detail: `Set commitment ledger entry. Auto-reminder queued 2h before deadline.` });
+
+  // Close / booking
+  if (!isOpen && closedMs) {
+    if (s.closeReason === "booked") {
+      evs.push({ id: eid(9), ts: iso(closedMs - day/2), type: "booking", actor: s.tcm,
+        summary: `BOOKED — ₹${15500 + (i * 400) % 3500} paid, ref BK-${1000 + i}` });
+    }
+    if (s.closeReason === "cancelled-after-book") {
+      evs.push({ id: eid(9), ts: iso(closedMs - day), type: "booking", actor: s.tcm,
+        summary: `Booked — ₹${15500 + (i * 400) % 3500} paid` });
+      evs.push({ id: eid(10), ts: iso(closedMs), type: "refund", actor: "system",
+        summary: `REFUND — cancelled within 48h`,
+        detail: `Reason (verbatim): "${s.notes}"` });
+    }
+    evs.push({ id: eid(11), ts: iso(closedMs), type: "closed", actor: s.tcm,
+      summary: `Cycle closed — ${s.closeReason}`,
+      detail: s.notes });
+  }
+
+  return evs.sort((a, b) => +new Date(a.ts) - +new Date(b.ts));
 }
 
 // Short 3-cycle journey for another lead so the "returning" UI isn't only on one row.

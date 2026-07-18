@@ -17,6 +17,7 @@ import {
 } from "@/lib/pipeline/lifecycle";
 import { usePipeline } from "@/lib/pipeline/store";
 import { WhyCaption, WhySectionBanner } from "@/components/common/WhyCaption";
+import type { LeadCycle, CycleEvent } from "@/lib/pipeline/lifecycle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,6 +28,10 @@ import {
 import {
   Users, RefreshCw, Bell, HandshakeIcon, Zap, ShieldAlert,
   Trash2, UserPlus, ArrowUpRight, Clock, CheckCircle2, XCircle,
+} from "lucide-react";
+import {
+  ChevronDown, ChevronRight, Phone, MessageSquare, MapPin,
+  IndianRupee, FileText, CheckCircle, XOctagon, RotateCcw, PlayCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -45,8 +50,8 @@ export function LifecyclePanel({ leadId, totalBudget }: Props) {
         Every lead can return, bring more people, and change plans. This layer keeps ALL of it evident.
       </p>
 
-      <GroupSection leadId={leadId} totalBudget={totalBudget ?? dossier?.budget} />
       <CyclesSection leadId={leadId} />
+      <GroupSection leadId={leadId} totalBudget={totalBudget ?? dossier?.budget} />
       <Next7Section leadId={leadId} />
       <CommitmentSection leadId={leadId} />
       <AutomationSection />
@@ -253,61 +258,15 @@ function CyclesSection({ leadId }: { leadId: string }) {
 
       <div className="space-y-2">
         {cycles.map((c) => (
-          <div key={c.id} className={cn("rounded border p-2 space-y-1", c.closedAt ? "border-border bg-muted/40" : "border-primary/40 bg-primary/5")}>
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-semibold">Cycle #{c.cycleNumber}</span>
-              <span className="text-[10px] text-muted-foreground">
-                {new Date(c.openedAt).toLocaleDateString()}
-                {c.closedAt && ` → ${new Date(c.closedAt).toLocaleDateString()}`}
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-1 text-[10px]">
-              {c.closeReason && <Tag tone="danger">{CLOSE_REASON_LABELS[c.closeReason]}</Tag>}
-              {c.revivalReason && <Tag tone="success">Revived: {REVIVAL_REASON_LABELS[c.revivalReason]}</Tag>}
-              {c.gapDays !== undefined && c.gapDays > 0 && <Tag tone="info">Gap: {c.gapDays}d</Tag>}
-              {c.reusedFromCycle && <Tag tone="info">Reused from #{c.reusedFromCycle}: {c.reusedFields?.join(", ")}</Tag>}
-              {c.predictedNextRevival && <Tag tone="warn">Next revival ~{new Date(c.predictedNextRevival).toLocaleDateString()}</Tag>}
-              {c.originalTcmId && c.currentTcmId && c.originalTcmId !== c.currentTcmId && (
-                <Tag tone="warn">Original TCM: {c.originalTcmId} · Current: {c.currentTcmId}</Tag>
-              )}
-              {c.reclaimRequestedBy && <Tag tone="danger">Reclaim requested by {c.reclaimRequestedBy}</Tag>}
-            </div>
-            {c.oldShortlistStatus && c.oldShortlistStatus.length > 0 && (
-              <div className="text-[10px] space-y-0.5">
-                <div className="font-semibold text-muted-foreground">Old shortlist:</div>
-                {c.oldShortlistStatus.map((s, i) => (
-                  <div key={i} className="pl-2">• {s.label}: <span className={cn(
-                    s.status === "available" && "text-success",
-                    s.status === "gone" && "text-destructive",
-                    s.status === "price-up" && "text-warning",
-                    s.status === "price-down" && "text-primary",
-                  )}>{s.status}{s.priceDeltaPct ? ` (${s.priceDeltaPct > 0 ? "+" : ""}${s.priceDeltaPct}%)` : ""}</span></div>
-                ))}
-              </div>
-            )}
-            {!c.closedAt && cycles.length > 0 && (
-              <div className="flex items-center gap-1 flex-wrap pt-1 border-t border-border/50">
-                <Select value={closeReason} onValueChange={(v) => setCloseReason(v as CycleCloseReason)}>
-                  <SelectTrigger className="h-6 text-[10px] w-40"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(CLOSE_REASON_LABELS).map(([k, v]) => (
-                      <SelectItem key={k} value={k}>{v}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button size="sm" variant="outline" className="h-6 text-[10px]"
-                  onClick={() => closeCycle(leadId, closeReason)}>Close cycle</Button>
-                <Button size="sm" variant="ghost" className="h-6 text-[10px]"
-                  onClick={() => reclaim(leadId, c.id, "current-user")}>Request reclaim</Button>
-                <Button size="sm" variant="ghost" className="h-6 text-[10px]"
-                  onClick={() => refresh(leadId, c.id, [
-                    { propertyId: "p1", label: "Old option A", status: "available" },
-                    { propertyId: "p2", label: "Old option B", status: "price-up", priceDeltaPct: 8 },
-                    { propertyId: "p3", label: "Old option C", status: "gone" },
-                  ])}>Refresh old shortlist</Button>
-              </div>
-            )}
-          </div>
+          <CycleCard key={c.id} cycle={c} isOnlyOpen={!c.closedAt} totalCycles={cycles.length}
+            onCloseCycle={(r) => closeCycle(leadId, r)}
+            onReclaim={() => reclaim(leadId, c.id, "current-user")}
+            onRefresh={() => refresh(leadId, c.id, [
+              { propertyId: "p1", label: "Old option A", status: "available" },
+              { propertyId: "p2", label: "Old option B", status: "price-up", priceDeltaPct: 8 },
+              { propertyId: "p3", label: "Old option C", status: "gone" },
+            ])}
+            closeReasonState={closeReason} setCloseReasonState={setCloseReason} />
         ))}
       </div>
 
@@ -353,6 +312,227 @@ function CyclesSection({ leadId }: { leadId: string }) {
 }
 
 // ─────────────────── Next-7 Touches ────────────────────
+
+// ─────────── Cycle card — full drillable per-cycle history ───────────
+
+const EVENT_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
+  opened: PlayCircle, revived: RotateCcw, call: Phone, wa: MessageSquare,
+  sms: MessageSquare, email: MessageSquare,
+  "tour-scheduled": MapPin, "tour-visited": MapPin, "tour-noshow": XOctagon, "tour-cancelled": XOctagon,
+  objection: ShieldAlert, "quote-sent": IndianRupee, commitment: HandshakeIcon,
+  "commitment-broken": XOctagon, booking: CheckCircle, refund: IndianRupee,
+  reassigned: ArrowUpRight, note: FileText, evidence: FileText, closed: XCircle,
+};
+
+const EVENT_TONE: Record<string, string> = {
+  opened: "text-primary", revived: "text-primary",
+  call: "text-foreground", wa: "text-emerald-500",
+  "tour-visited": "text-emerald-500", "tour-scheduled": "text-foreground",
+  "tour-noshow": "text-destructive", "tour-cancelled": "text-destructive",
+  objection: "text-amber-500", "quote-sent": "text-foreground",
+  commitment: "text-emerald-500", "commitment-broken": "text-destructive",
+  booking: "text-emerald-600", refund: "text-destructive",
+  closed: "text-muted-foreground",
+};
+
+function CycleCard({
+  cycle: c, isOnlyOpen, totalCycles, onCloseCycle, onReclaim, onRefresh,
+  closeReasonState, setCloseReasonState,
+}: {
+  cycle: LeadCycle;
+  isOnlyOpen: boolean;
+  totalCycles: number;
+  onCloseCycle: (reason: CycleCloseReason) => void;
+  onReclaim: () => void;
+  onRefresh: () => void;
+  closeReasonState: CycleCloseReason;
+  setCloseReasonState: (v: CycleCloseReason) => void;
+}) {
+  const [expanded, setExpanded] = useState(!c.closedAt); // open cycle expanded by default
+  const events = c.events ?? [];
+  const durationDays = c.closedAt
+    ? Math.max(1, Math.round((+new Date(c.closedAt) - +new Date(c.openedAt)) / 86_400_000))
+    : Math.max(1, Math.round((Date.now() - +new Date(c.openedAt)) / 86_400_000));
+
+  return (
+    <div className={cn("rounded border overflow-hidden",
+      c.closedAt ? "border-border bg-muted/30" : "border-primary/40 bg-primary/5")}>
+      {/* Header — always visible, click to expand */}
+      <button type="button" onClick={() => setExpanded((v) => !v)}
+        className="w-full px-2.5 py-2 flex items-center gap-2 text-left hover:bg-muted/40 transition-colors">
+        {expanded ? <ChevronDown className="h-3.5 w-3.5 shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 shrink-0" />}
+        <span className="text-xs font-semibold shrink-0">Cycle #{c.cycleNumber}</span>
+        {!c.closedAt && <Tag tone="success">OPEN</Tag>}
+        <span className="text-[10px] text-muted-foreground truncate flex-1">
+          {new Date(c.openedAt).toLocaleDateString()}
+          {c.closedAt ? ` → ${new Date(c.closedAt).toLocaleDateString()}` : " → now"}
+          {` · ${durationDays}d · ${events.length} events`}
+        </span>
+        {c.closeReason && <Tag tone={c.closeReason === "booked" ? "success" : "danger"}>{CLOSE_REASON_LABELS[c.closeReason]}</Tag>}
+      </button>
+
+      {expanded && (
+        <div className="px-2.5 pb-2.5 space-y-2 border-t border-border/50">
+          {/* Meta chips */}
+          <div className="flex flex-wrap gap-1 text-[10px] pt-2">
+            {c.revivalReason && <Tag tone="success">Revived: {REVIVAL_REASON_LABELS[c.revivalReason]}</Tag>}
+            {c.gapDays !== undefined && c.gapDays > 0 && <Tag tone="info">Gap: {c.gapDays}d since last cycle</Tag>}
+            {c.reusedFromCycle && <Tag tone="info">Reused from #{c.reusedFromCycle}: {c.reusedFields?.join(", ")}</Tag>}
+            {c.predictedNextRevival && <Tag tone="warn">Next revival ~{new Date(c.predictedNextRevival).toLocaleDateString()}</Tag>}
+            {c.originalTcmId && c.currentTcmId && c.originalTcmId !== c.currentTcmId && (
+              <Tag tone="warn">Original TCM: {c.originalTcmId} → Current: {c.currentTcmId}</Tag>
+            )}
+            {c.originalTcmId === c.currentTcmId && c.currentTcmId && (
+              <Tag tone="info">TCM: {c.currentTcmId}</Tag>
+            )}
+            {c.reclaimRequestedBy && <Tag tone="danger">Reclaim requested by {c.reclaimRequestedBy}</Tag>}
+          </div>
+
+          {/* Snapshot */}
+          {c.snapshot && (
+            <div className="rounded bg-background/60 border border-border/50 p-2 text-[10px] grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-0.5">
+              <SnapshotRow k="Budget" v={c.snapshot.budget ? `₹${c.snapshot.budget.toLocaleString()}` : "—"} />
+              <SnapshotRow k="Area" v={c.snapshot.area ?? "—"} />
+              <SnapshotRow k="Move-in" v={c.snapshot.moveInDate ?? "—"} />
+              <SnapshotRow k="Food" v={c.snapshot.food ?? "—"} />
+              <SnapshotRow k="Sharing" v={c.snapshot.sharing ?? "—"} />
+              <SnapshotRow k="Persona" v={`${c.snapshot.persona ?? "—"}${c.snapshot.groupSize ? ` · ${c.snapshot.groupSize}p` : ""}`} />
+            </div>
+          )}
+
+          {/* Quote / Booking summary */}
+          {(c.quote || c.booking) && (
+            <div className="flex flex-wrap gap-2 text-[10px]">
+              {c.quote && (
+                <span className="rounded bg-background/60 border border-border/50 px-1.5 py-0.5">
+                  Quote: ₹{c.quote.amount.toLocaleString()}
+                  {c.quote.discount ? ` (-₹${c.quote.discount})` : ""}
+                  {` · dep ₹${c.quote.deposit?.toLocaleString() ?? "—"}`}
+                </span>
+              )}
+              {c.booking && (
+                <span className={cn("rounded border px-1.5 py-0.5",
+                  c.booking.refundedAt ? "border-destructive/40 bg-destructive/5 text-destructive"
+                    : "border-success/40 bg-success/5 text-success")}>
+                  {c.booking.refundedAt ? "REFUNDED" : "BOOKED"}: ₹{c.booking.amount.toLocaleString()} · {c.booking.ref}
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Old shortlist status */}
+          {c.oldShortlistStatus && c.oldShortlistStatus.length > 0 && (
+            <div className="text-[10px] space-y-0.5 rounded bg-background/60 border border-border/50 p-2">
+              <div className="font-semibold text-muted-foreground uppercase tracking-wider text-[9px]">Old shortlist status</div>
+              {c.oldShortlistStatus.map((s, i) => (
+                <div key={i} className="pl-1">• {s.label}:{" "}
+                  <span className={cn(
+                    s.status === "available" && "text-success",
+                    s.status === "gone" && "text-destructive",
+                    s.status === "price-up" && "text-warning",
+                    s.status === "price-down" && "text-primary",
+                  )}>{s.status}{s.priceDeltaPct ? ` (${s.priceDeltaPct > 0 ? "+" : ""}${s.priceDeltaPct}%)` : ""}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* EVENT TIMELINE — the "100% info" */}
+          {events.length > 0 && (
+            <div className="space-y-1">
+              <div className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">
+                Full journey ({events.length})
+              </div>
+              <ol className="space-y-1">
+                {events.map((e) => <EventRow key={e.id} e={e} />)}
+              </ol>
+            </div>
+          )}
+
+          {/* Free-text notes fallback */}
+          {c.notes && (
+            <div className="text-[10px] italic text-muted-foreground border-l-2 border-border pl-2">
+              {c.notes}
+            </div>
+          )}
+
+          {/* Cycle actions */}
+          {isOnlyOpen && totalCycles > 0 && (
+            <div className="flex items-center gap-1 flex-wrap pt-2 border-t border-border/50">
+              <Select value={closeReasonState} onValueChange={(v) => setCloseReasonState(v as CycleCloseReason)}>
+                <SelectTrigger className="h-6 text-[10px] w-40"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Object.entries(CLOSE_REASON_LABELS).map(([k, v]) => (
+                    <SelectItem key={k} value={k}>{v}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button size="sm" variant="outline" className="h-6 text-[10px]"
+                onClick={() => onCloseCycle(closeReasonState)}>Close cycle</Button>
+              <Button size="sm" variant="ghost" className="h-6 text-[10px]" onClick={onReclaim}>Request reclaim</Button>
+              <Button size="sm" variant="ghost" className="h-6 text-[10px]" onClick={onRefresh}>Refresh old shortlist</Button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SnapshotRow({ k, v }: { k: string; v: string }) {
+  return (
+    <div className="flex items-center gap-1 min-w-0">
+      <span className="text-muted-foreground uppercase tracking-wider text-[9px]">{k}</span>
+      <span className="truncate font-medium">{v}</span>
+    </div>
+  );
+}
+
+function EventRow({ e }: { e: CycleEvent }) {
+  const [open, setOpen] = useState(false);
+  const Icon = EVENT_ICON[e.type] ?? FileText;
+  const tone = EVENT_TONE[e.type] ?? "text-foreground";
+  const canExpand = !!(e.detail || (e.meta && Object.keys(e.meta).length));
+  return (
+    <li className="text-[11px] rounded border border-border/50 bg-background/60">
+      <button type="button" onClick={() => canExpand && setOpen((v) => !v)}
+        className={cn("w-full flex items-start gap-2 px-2 py-1 text-left",
+          canExpand && "hover:bg-muted/50 cursor-pointer")}>
+        <Icon className={cn("h-3 w-3 mt-0.5 shrink-0", tone)} />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline gap-1.5">
+            <span className="truncate font-medium">{e.summary}</span>
+            {canExpand && (
+              <span className="text-[9px] text-muted-foreground shrink-0">
+                {open ? "hide" : "click for full detail"}
+              </span>
+            )}
+          </div>
+          <div className="text-[9px] text-muted-foreground">
+            {new Date(e.ts).toLocaleString()} · {e.actor}
+          </div>
+        </div>
+      </button>
+      {open && (
+        <div className="px-2 pb-2 pt-0.5 border-t border-border/40 text-[10px] space-y-1">
+          {e.detail && <div className="text-foreground whitespace-pre-wrap">{e.detail}</div>}
+          {e.meta && Object.keys(e.meta).length > 0 && (
+            <div className="flex flex-wrap gap-1 pt-0.5">
+              {Object.entries(e.meta).map(([k, v]) => (
+                v == null || v === "" ? null : (
+                  <span key={k} className="text-[9px] px-1 py-0.5 rounded bg-muted border border-border/40 font-mono">
+                    {k}: {String(v)}
+                  </span>
+                )
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </li>
+  );
+}
+
 
 function Next7Section({ leadId }: { leadId: string }) {
   const touches = useLifecycle((s) => s.touches[leadId]) ?? EMPTY_ARR;
