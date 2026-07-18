@@ -23,6 +23,9 @@ import { ObjectionTag } from "./crm10x/ObjectionLogger";
 import { LeadDossierPanel } from "./crm10x/LeadDossierPanel";
 import { LeadLiveStrip } from "./live/LeadLiveStrip";
 import { LeadAdminStrip } from "./admin/LeadAdminStrip";
+import { useLifecycle } from "@/lib/pipeline/lifecycle";
+import { useLiveActivity } from "@/lib/live-activity";
+import { History, Users as UsersIcon } from "lucide-react";
 import {
   Phone, MessageSquare, Calendar as CalendarIcon, Tag, ClipboardCheck,
   AlertTriangle, CheckCircle2, X, Activity as ActivityIcon, MapPin,
@@ -132,6 +135,7 @@ export function LeadControlPanel() {
             <IntentChip intent={lead.intent} />
             <ConfidenceBar value={lead.confidence} />
             <ObjectionTag leadId={lead.id} />
+            <LeadHistoryChips leadId={lead.id} onOpenHistory={() => setTab("dossier")} />
           </div>
           <div className="grid grid-cols-3 gap-2 pt-1 text-xs">
             <Meta icon={CalendarIcon} label="Move-in" value={format(new Date(lead.moveInDate), "MMM d")} />
