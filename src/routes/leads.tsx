@@ -179,12 +179,17 @@ function LeadsPage() {
                   <div
                     role="button"
                     tabIndex={0}
+                    data-testid={`lead-row-${l.id}`}
+                    onPointerDownCapture={(e) => {
+                      const target = e.target as HTMLElement;
+                      if (target.closest('[data-copy-phone="true"]')) return;
+                      selectLead(l.id);
+                    }}
                     onClick={() => selectLead(l.id)}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        selectLead(l.id);
-                      }
+                      if (e.key !== "Enter" && e.key !== " ") return;
+                      e.preventDefault();
+                      selectLead(l.id);
                     }}
                     className="w-full text-left grid grid-cols-12 px-4 py-3 items-center hover:bg-accent/5 transition-colors cursor-pointer"
                   >
@@ -196,8 +201,18 @@ function LeadsPage() {
                           {l.phone} · {l.source}
                         </span>
 
-                        <button
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          data-copy-phone="true"
                           onClick={(e) => {
+                            e.stopPropagation();
+                            navigator.clipboard.writeText(l.phone);
+                            alert("Phone Number Copied!");
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key !== "Enter" && e.key !== " ") return;
+                            e.preventDefault();
                             e.stopPropagation();
                             navigator.clipboard.writeText(l.phone);
                             alert("Phone Number Copied!");
@@ -205,7 +220,7 @@ function LeadsPage() {
                           className="rounded border px-2 py-0.5 text-[10px] text-blue-600 hover:bg-blue-50"
                         >
                           Copy
-                        </button>
+                        </span>
                       </div>
                     </div>
                     <div className="col-span-2">

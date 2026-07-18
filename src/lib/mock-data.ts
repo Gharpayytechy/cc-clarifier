@@ -1,4 +1,7 @@
-import type { TCM, Property, Lead, Tour, ActivityLog, FollowUp, HandoffMessage, ActiveSequence } from "./types";
+import type {
+  TCM, Property, Lead, Tour, ActivityLog, FollowUp, HandoffMessage, ActiveSequence,
+  LeadStage, Intent,
+} from "./types";
 
 const now = new Date();
 const iso = (d: Date) => d.toISOString();
@@ -42,7 +45,7 @@ export const PROPERTIES: Property[] = [
 /*    tcm-3 Rohan (improving):  cold + overdue follow-ups               */
 /*    tcm-4 Neha (hot streak):  back-to-back high-confidence tours      */
 /* ------------------------------------------------------------------ */
-export const LEADS: Lead[] = [
+const CORE_LEADS: Lead[] = [
   /* ====== tcm-1 Aarav · Koramangala · closer ====== */
   { id: "l-1", name: "Karthik R.", phone: "+91 98xxx 12345", source: "Instagram",
     budget: 14000, moveInDate: iso(addDays(now, 3)), preferredArea: "Koramangala",
@@ -166,6 +169,49 @@ export const LEADS: Lead[] = [
     tags: ["upgrade-room"], nextFollowUpAt: iso(addHours(now, 9)), responseSpeedMins: 4,
     createdAt: iso(addDays(now, -2)), updatedAt: iso(addHours(now, -3)) },
 ];
+
+const DEMO_NAMES = [
+  "Raghav Menon", "Ira Kapoor", "Naman Jain", "Sara Thomas", "Adil Khan",
+  "Mehul Shah", "Pooja Rao", "Kevin Dsouza", "Tara Singh", "Vivaan Das",
+  "Anika Nair", "Kunal Sethi", "Mira Bose", "Yuvraj Bhat", "Naina Gill",
+  "Kabir Arora", "Tanvi Iyer", "Joel Mathew", "Rhea Malhotra", "Sahil Reddy",
+];
+
+const DEMO_AREAS = ["Koramangala", "Indiranagar", "HSR Layout", "Whitefield", "BTM"];
+const DEMO_SOURCES = ["WhatsApp 1", "WhatsApp 2", "WhatsApp 3", "WhatsApp 4", "WhatsApp 5", "WhatsApp 6", "WhatsApp 7", "WhatsApp 8"];
+const DEMO_STAGES: LeadStage[] = ["new", "contacted", "tour-scheduled", "tour-done", "negotiation", "booked", "dropped"];
+const DEMO_INTENTS: Intent[] = ["hot", "warm", "cold"];
+
+function buildDemoLeads(count = 100): Lead[] {
+  return Array.from({ length: count }, (_, idx) => {
+    const n = idx + 1;
+    const area = DEMO_AREAS[idx % DEMO_AREAS.length];
+    const tcm = TCMS[idx % TCMS.length];
+    const cycleCount = 2 + (idx % 14);
+    const stage = DEMO_STAGES[idx % DEMO_STAGES.length];
+    const intent = DEMO_INTENTS[idx % DEMO_INTENTS.length];
+    return {
+      id: `l-demo-${n}`,
+      name: `${DEMO_NAMES[idx % DEMO_NAMES.length]} · Return ${cycleCount}x`,
+      phone: `+91 88${String(70000000 + n).padStart(8, "0")}`,
+      source: DEMO_SOURCES[idx % DEMO_SOURCES.length],
+      budget: 8500 + (idx % 13) * 750,
+      moveInDate: iso(addDays(now, idx % 21)),
+      preferredArea: area,
+      assignedTcmId: tcm.id,
+      stage,
+      intent,
+      confidence: Math.min(96, 42 + ((idx * 7) % 55)),
+      tags: ["demo-100", `returning-${cycleCount}x`, area.toLowerCase().replace(/\s+/g, "-")],
+      nextFollowUpAt: iso(addHours(now, (idx % 18) - 6)),
+      responseSpeedMins: 2 + (idx % 29),
+      createdAt: iso(addDays(now, -(idx % 45))),
+      updatedAt: iso(addHours(now, -(idx % 36))),
+    };
+  });
+}
+
+export const LEADS: Lead[] = [...CORE_LEADS, ...buildDemoLeads(100)];
 
 function addMinutes(d: Date, n: number) { const x = new Date(d); x.setMinutes(d.getMinutes() + n); return x; }
 

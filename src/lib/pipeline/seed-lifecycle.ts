@@ -6,7 +6,7 @@
 import { useLifecycle, type LeadCycle, type CycleCloseReason, type RevivalReason } from "./lifecycle";
 import { useLiveActivity } from "@/lib/live-activity";
 
-const SEED_VERSION = "gharpayy-lifecycle-seed-v2";
+const SEED_VERSION = "gharpayy-lifecycle-seed-v3";
 
 const day = 86_400_000;
 const iso = (ms: number) => new Date(ms).toISOString();
@@ -96,6 +96,33 @@ const TANYA_3: CycleSpec[] = [
     notes: "Back again, tour booked for tomorrow." },
 ];
 
+const DEMO_CLOSE_REASONS: CycleCloseReason[] = [
+  "lost-price", "ghosted", "lost-own-arrangement", "deferred", "lost-competitor",
+  "cancelled-after-book", "health-emergency", "lost-location", "job-loss", "lost-food",
+];
+const DEMO_REVIVAL_REASONS: RevivalReason[] = [
+  "budget-ready", "family-approved", "season-change", "price-drop-seen", "returning-customer",
+  "new-city", "lost-job-earlier-now-ok", "referral-nudge", "old-option-gone",
+];
+
+function demoCycleSpecs(index: number): CycleSpec[] {
+  const cycleCount = 2 + ((index - 1) % 14);
+  return Array.from({ length: cycleCount }, (_, i) => {
+    const isOpen = i === cycleCount - 1;
+    return {
+      daysAgo: (cycleCount - i) * 38 + (index % 9),
+      durationDays: isOpen ? 0 : 3 + ((index + i) % 9),
+      closeReason: DEMO_CLOSE_REASONS[(index + i) % DEMO_CLOSE_REASONS.length],
+      revivalReason: i === 0 ? undefined : DEMO_REVIVAL_REASONS[(index + i) % DEMO_REVIVAL_REASONS.length],
+      tcm: `tcm-${((index + i) % 4) + 1}`,
+      notes: isOpen
+        ? `Current return cycle ${cycleCount} — active again, verify location/date, claim owner, and set next action.`
+        : `Past cycle ${i + 1} — realistic lost/deferred journey preserved for audit and reassignment context.`,
+      reused: i === 0 ? undefined : ["budget", "preferredArea", "food", "idCollected"].slice(0, 1 + ((index + i) % 4)),
+    };
+  });
+}
+
 export function runLifecycleSeed() {
   if (typeof window === "undefined") return;
   try {
@@ -112,6 +139,10 @@ export function runLifecycleSeed() {
     "l-11": buildCycles(AAKASH_15, "tcm-3"),
     "l-12": buildCycles(TANYA_3, "tcm-2"),
   };
+
+  for (let i = 1; i <= 100; i += 1) {
+    seeded[`l-demo-${i}`] = buildCycles(demoCycleSpecs(i), `tcm-${((i - 1) % 4) + 1}`);
+  }
 
   useLifecycle.setState({ cycles: seeded });
 
@@ -137,6 +168,20 @@ export function runLifecycleSeed() {
       primaryOwnerName: "Priya Shah",
       reason: "Priya is on WA — I'm dialing the parent in parallel.",
     });
+  }
+
+  for (let i = 1; i <= 12; i += 1) {
+    const leadId = `l-demo-${i}`;
+    const already = live.claims.some((c) => c.leadId === leadId && c.state === "active");
+    if (!already) {
+      live.claimCowork({
+        leadId,
+        claimerId: `tcm-${(i % 4) + 1}`,
+        claimerName: ["Aarav Mehta", "Priya Shah", "Rohan Iyer", "Neha Verma"][i % 4],
+        primaryOwnerName: ["Priya Shah", "Rohan Iyer", "Neha Verma", "Aarav Mehta"][i % 4],
+        reason: "Demo co-work claim: parallel callback / guardian check while primary owner continues WhatsApp.",
+      });
+    }
   }
 
   try { window.localStorage.setItem(SEED_VERSION, "done"); } catch { /* ignore */ }

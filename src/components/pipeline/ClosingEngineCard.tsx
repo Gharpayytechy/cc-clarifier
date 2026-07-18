@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePipeline } from "@/lib/pipeline/store";
 import { useIdentityStore } from "@/lib/lead-identity/store";
 import { STAGE_CONFIG } from "@/lib/pipeline/stage-config";
@@ -24,8 +24,11 @@ export function ClosingEngineCard({ leadId }: Props) {
   const now = useAutomationTicker(1000);
   const state = usePipeline((s) => s.states[leadId]);
   const ensure = usePipeline((s) => s.ensure);
+  useEffect(() => {
+    if (!state) ensure(leadId);
+  }, [state, ensure, leadId]);
+
   if (!state) {
-    ensure(leadId);
     return null;
   }
   const sla = computeSlaState(state, now);
