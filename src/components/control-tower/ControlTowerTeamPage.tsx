@@ -321,7 +321,7 @@ function GatesTab() {
           <Select value={leadId} onValueChange={setLeadId}>
             <SelectTrigger className="h-8 w-72 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
-              {app.leads.slice(0, 60).map((l) => <SelectItem key={l.id} value={l.id}>{l.name} · {l.area}</SelectItem>)}
+              {app.leads.slice(0, 60).map((l) => <SelectItem key={l.id} value={l.id}>{l.name} · {l.preferredArea}</SelectItem>)}
             </SelectContent>
           </Select>
           <Badge variant={green ? "default" : "destructive"} className="text-[10px] ml-auto">
