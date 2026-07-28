@@ -93,10 +93,7 @@ function VolumeTab() {
           <h3 className="font-semibold text-sm">Total Leads — the CT team calls this out FIRST every day</h3>
           <Badge variant={status === "at-risk" ? "destructive" : status === "on-target" ? "default" : "secondary"} className="text-[10px]">{status}</Badge>
         </div>
-        <WhyCaption
-          why="If we don't know volume, no number after that makes sense. CT must raise the flag before operators do."
-          benefits={["ADMIN", "TCM"]}
-        />
+        <WhyCaption why="If we don't know volume, no number after that makes sense. CT must raise the flag before operators do." admin="Visibility + accountability" tcm="Clear next step, no ambiguity" />
         <div className="mt-3 grid grid-cols-3 gap-3 text-center">
           <Metric big={volume.leadsToday} label={`Today (target ${volume.targetToday})`} />
           <Metric big={volume.leads7d} label="Last 7 days" />
@@ -155,10 +152,7 @@ function TeamTab() {
   const { members } = useControlTower();
   return (
     <div className="space-y-3">
-      <WhyCaption
-        why="Multiple CT members rotate so the CRM never depends on one operator. Each guarantees a minimum daily worklist."
-        benefits={["ADMIN", "TCM", "CLIENT"]}
-      />
+      <WhyCaption why="Multiple CT members rotate so the CRM never depends on one operator. Each guarantees a minimum daily worklist." admin="Visibility + accountability" tcm="Clear next step, no ambiguity" client="Same experience every time" />
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
         {members.map((m) => (
           <Card key={m.id} className={cn("p-4", !m.present && "opacity-60")}>
@@ -215,10 +209,7 @@ function WorklistTab() {
 
   return (
     <div className="space-y-3">
-      <WhyCaption
-        why="No more 'I was short of leads'. Every CT member gets a pre-assigned list mixing today + 7d + 30d leads. Completion is tracked."
-        benefits={["ADMIN", "TCM"]}
-      />
+      <WhyCaption why="No more 'I was short of leads'. Every CT member gets a pre-assigned list mixing today + 7d + 30d leads. Completion is tracked." admin="Visibility + accountability" tcm="Clear next step, no ambiguity" />
       <Card className="p-4">
         <div className="flex flex-wrap items-center gap-2">
           <Label className="text-xs">CT member</Label>
@@ -289,10 +280,7 @@ function OwnershipTab() {
   ];
   return (
     <div className="space-y-3">
-      <WhyCaption
-        why="Single owner means 100% accountability. No 'this guy told me… that guy told me…'. If a CT member can't own it clearly, they don't fit."
-        benefits={["ADMIN", "TCM", "CLIENT"]}
-      />
+      <WhyCaption why="Single owner means 100% accountability. No 'this guy told me… that guy told me…'. If a CT member can't own it clearly, they don't fit." admin="Visibility + accountability" tcm="Clear next step, no ambiguity" client="Same experience every time" />
       <div className="grid gap-3 md:grid-cols-3">
         {opts.map((o) => (
           <Card key={o.key} className={cn("p-4 cursor-pointer border-2", ownershipMode === o.key ? "border-primary" : "border-transparent hover:border-muted-foreground/30")} onClick={() => setOwnershipMode(o.key)}>
@@ -326,17 +314,14 @@ function GatesTab() {
   const green = gates.every((g) => g.status === "green");
   return (
     <div className="space-y-3">
-      <WhyCaption
-        why="Tour + Quotation is a menu with no pay button unless all 4 gates are green. This blocks 'let's just schedule and see' from happening."
-        benefits={["ADMIN", "TCM", "CLIENT"]}
-      />
+      <WhyCaption why="Tour + Quotation is a menu with no pay button unless all 4 gates are green. This blocks 'let's just schedule and see' from happening." admin="Visibility + accountability" tcm="Clear next step, no ambiguity" client="Same experience every time" />
       <Card className="p-4">
         <div className="flex flex-wrap items-center gap-2">
           <Label className="text-xs">Lead</Label>
           <Select value={leadId} onValueChange={setLeadId}>
             <SelectTrigger className="h-8 w-72 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
-              {app.leads.slice(0, 60).map((l) => <SelectItem key={l.id} value={l.id}>{l.name} · {l.location}</SelectItem>)}
+              {app.leads.slice(0, 60).map((l) => <SelectItem key={l.id} value={l.id}>{l.name} · {l.area}</SelectItem>)}
             </SelectContent>
           </Select>
           <Badge variant={green ? "default" : "destructive"} className="text-[10px] ml-auto">
@@ -415,10 +400,7 @@ function InventoryTab() {
 
   return (
     <div className="space-y-4">
-      <WhyCaption
-        why="Without inventory knowledge no BBD is possible. CT owns the daily 'what to sell today / this week / this month' board so every operator opens the app already knowing which beds to push."
-        benefits={["ADMIN", "TCM", "CLIENT"]}
-      />
+      <WhyCaption why="Without inventory knowledge no BBD is possible. CT owns the daily 'what to sell today / this week / this month' board so every operator opens the app already knowing which beds to push." admin="Visibility + accountability" tcm="Clear next step, no ambiguity" client="Same experience every time" />
 
       {HORIZONS.map((h) => (
         <Card key={h.key} className="p-4">
@@ -496,10 +478,7 @@ function LineupTab() {
 
   return (
     <div className="space-y-3">
-      <WhyCaption
-        why="Like cricket: openers face the new hot leads at day-open; finishers close negotiation at day-end. No random allocation."
-        benefits={["ADMIN", "TCM"]}
-      />
+      <WhyCaption why="Like cricket: openers face the new hot leads at day-open; finishers close negotiation at day-end. No random allocation." admin="Visibility + accountability" tcm="Clear next step, no ambiguity" />
       <Card className="p-4 flex items-center justify-between">
         <div>
           <div className="text-sm font-semibold">Today's BBD lineup</div>
@@ -570,10 +549,7 @@ function ChatReviewTab() {
 
   return (
     <div className="space-y-3">
-      <WhyCaption
-        why="Every chat should feel like the same Domino's burger — same process, no random 'extra cheese' from a new operator. Deep review catches this."
-        benefits={["ADMIN", "TCM", "CLIENT"]}
-      />
+      <WhyCaption why="Every chat should feel like the same Domino's burger — same process, no random 'extra cheese' from a new operator. Deep review catches this." admin="Visibility + accountability" tcm="Clear next step, no ambiguity" client="Same experience every time" />
       <Card className="p-4 space-y-3">
         <div className="flex flex-wrap items-center gap-2">
           <Label className="text-xs">Lead being reviewed</Label>
