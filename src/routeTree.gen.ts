@@ -32,6 +32,7 @@ import { Route as HealthRouteImport } from './routes/health'
 import { Route as HandoffsRouteImport } from './routes/handoffs'
 import { Route as FollowUpsRouteImport } from './routes/follow-ups'
 import { Route as ExecutionRouteImport } from './routes/execution'
+import { Route as ControlTowerTeamRouteImport } from './routes/control-tower-team'
 import { Route as CoachRouteImport } from './routes/coach'
 import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -196,6 +197,11 @@ const FollowUpsRoute = FollowUpsRouteImport.update({
 const ExecutionRoute = ExecutionRouteImport.update({
   id: '/execution',
   path: '/execution',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ControlTowerTeamRoute = ControlTowerTeamRouteImport.update({
+  id: '/control-tower-team',
+  path: '/control-tower-team',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CoachRoute = CoachRouteImport.update({
@@ -455,6 +461,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/calendar': typeof CalendarRoute
   '/coach': typeof CoachRoute
+  '/control-tower-team': typeof ControlTowerTeamRoute
   '/execution': typeof ExecutionRoute
   '/follow-ups': typeof FollowUpsRoute
   '/handoffs': typeof HandoffsRoute
@@ -530,6 +537,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/calendar': typeof CalendarRoute
   '/coach': typeof CoachRoute
+  '/control-tower-team': typeof ControlTowerTeamRoute
   '/execution': typeof ExecutionRoute
   '/follow-ups': typeof FollowUpsRoute
   '/handoffs': typeof HandoffsRoute
@@ -605,6 +613,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/calendar': typeof CalendarRoute
   '/coach': typeof CoachRoute
+  '/control-tower-team': typeof ControlTowerTeamRoute
   '/execution': typeof ExecutionRoute
   '/follow-ups': typeof FollowUpsRoute
   '/handoffs': typeof HandoffsRoute
@@ -682,6 +691,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/calendar'
     | '/coach'
+    | '/control-tower-team'
     | '/execution'
     | '/follow-ups'
     | '/handoffs'
@@ -757,6 +767,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/calendar'
     | '/coach'
+    | '/control-tower-team'
     | '/execution'
     | '/follow-ups'
     | '/handoffs'
@@ -831,6 +842,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/calendar'
     | '/coach'
+    | '/control-tower-team'
     | '/execution'
     | '/follow-ups'
     | '/handoffs'
@@ -907,6 +919,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   CalendarRoute: typeof CalendarRoute
   CoachRoute: typeof CoachRoute
+  ControlTowerTeamRoute: typeof ControlTowerTeamRoute
   ExecutionRoute: typeof ExecutionRoute
   FollowUpsRoute: typeof FollowUpsRoute
   HandoffsRoute: typeof HandoffsRoute
@@ -1127,6 +1140,13 @@ declare module '@tanstack/react-router' {
       path: '/execution'
       fullPath: '/execution'
       preLoaderRoute: typeof ExecutionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/control-tower-team': {
+      id: '/control-tower-team'
+      path: '/control-tower-team'
+      fullPath: '/control-tower-team'
+      preLoaderRoute: typeof ControlTowerTeamRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/coach': {
@@ -1545,6 +1565,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   CalendarRoute: CalendarRoute,
   CoachRoute: CoachRoute,
+  ControlTowerTeamRoute: ControlTowerTeamRoute,
   ExecutionRoute: ExecutionRoute,
   FollowUpsRoute: FollowUpsRoute,
   HandoffsRoute: HandoffsRoute,
