@@ -24,7 +24,8 @@ export type ZoneRoleKey =
   | "visit-scheduler"
   | "field-executive"
   | "booking-closer"
-  | "zone-lead";
+  | "zone-lead"
+  | "control-tower";
 
 export interface ZoneRoleDef {
   key: ZoneRoleKey;
@@ -76,6 +77,13 @@ export const ZONE_ROLES: ZoneRoleDef[] = [
     primary: "Performance · WA allocation · escalations · reporting",
     backup: "Floats to any function during peak load",
     backupOf: "booking-closer",
+  },
+  {
+    key: "control-tower",
+    title: "Control Tower Team",
+    primary: "Aligns everyone · watches inbound · works old leads (7d/30d) · guards the flawless process · single-owner enforcement",
+    backup: "Floats between zones to cover any absent role and re-balance load",
+    backupOf: "zone-lead",
   },
 ];
 
