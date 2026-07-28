@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,21 +9,41 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   useControlTower,
   inventoryByHorizon,
-  suggestLineup,
   chatScore,
+  computeLeaderboard,
   BBD_TARGET_PER_DAY,
+  SLA_TARGETS,
   type OwnershipMode,
   type InventoryHorizon,
   type LineupSlot,
   type ChatReview,
+  type WorklistItem,
+  type SLAKind,
+  type EscalationLevel,
+  type ReviewQueueKind,
+  type ExceptionKind,
+  type CTShift,
 } from "@/lib/control-tower/team";
+import {
+  planAutoAssign,
+  planRebalance,
+  scoreChatNarrative,
+  autoDetectGates,
+  optimizeLineup,
+  detectReviewFlags,
+} from "@/lib/control-tower/automation";
 import { WhyCaption } from "@/components/common/WhyCaption";
 import { useApp } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { AlertTriangle, CheckCircle2, ShieldCheck, Users, Boxes, Trophy, MessageSquare, ClipboardList, Activity, Plus, X } from "lucide-react";
+import {
+  AlertTriangle, CheckCircle2, ShieldCheck, Users, Boxes, Trophy,
+  MessageSquare, ClipboardList, Activity, Plus, X, Timer, Flame,
+  ArrowLeftRight, Inbox, Star, Bug, ScrollText, Sparkles, Search,
+} from "lucide-react";
 
 const HORIZONS: { key: InventoryHorizon; label: string; hint: string }[] = [
   { key: "today",      label: "Today",      hint: "Fill first — beds ready NOW" },
@@ -32,11 +52,37 @@ const HORIZONS: { key: InventoryHorizon; label: string; hint: string }[] = [
   { key: "later",      label: "Later",      hint: "Long-tail / hidden inventory" },
 ];
 
-const SHIFTS = ["morning", "afternoon", "evening", "night"] as const;
+const SHIFTS: CTShift[] = ["morning", "afternoon", "evening", "night"];
+
+// ─────────────────────────────────────────────────────────────
+// Root
+// ─────────────────────────────────────────────────────────────
 
 export function ControlTowerTeamPage() {
   const ct = useControlTower();
-  const app = useApp();
+  const [tab, setTab] = useState("volume");
+
+  // Keyboard shortcuts (1-9, 0, q-y for the tail tabs).
+  useEffect(() => {
+    const map: Record<string, string> = {
+      "1": "volume", "2": "team", "3": "worklist", "4": "ownership",
+      "5": "gates", "6": "inventory", "7": "lineup", "8": "chat",
+      "9": "sla", "0": "escalations",
+      "q": "handover", "w": "review-queue", "e": "leaderboard",
+      "r": "exceptions", "t": "audit",
+    };
+    const h = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLElement && ["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName)) return;
+      const v = map[e.key.toLowerCase()];
+      if (v) { setTab(v); e.preventDefault(); }
+    };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, []);
+
+  const openBreaches = ct.slaBreaches.filter((b) => !b.resolved).length;
+  const openEsc = ct.escalations.filter((e) => e.status !== "resolved").length;
+  const pendingReview = ct.reviewQueue.filter((r) => r.status === "pending").length;
 
   return (
     <div className="space-y-4">
@@ -45,26 +91,37 @@ export function ControlTowerTeamPage() {
           <h1 className="text-2xl font-display font-semibold">Control Tower Team</h1>
           <p className="text-sm text-muted-foreground max-w-2xl">
             The alignment layer above zones. No CRM is solo-dependent. Every lead has exactly one owner.
-            The 4-gate process is mandatory. Inventory focus, BBD lineup and chat-depth reviews live here.
+            The 4-gate process is mandatory. Inventory focus, BBD lineup, chat-depth reviews, SLA timers, escalations, shift handover and full audit live here.
           </p>
+          <p className="text-[10px] text-muted-foreground mt-1">Shortcuts: <b>1</b>–<b>9</b>/<b>0</b> and <b>Q W E R T</b> switch tabs.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="outline" className="text-xs">{ct.members.filter((m) => m.present).length}/{ct.members.length} on-shift</Badge>
           <Badge variant="outline" className="text-xs">Ownership: {ct.ownershipMode}</Badge>
-          <Badge variant="outline" className="text-xs">Inventory active: {ct.inventory.filter((i) => i.active).length}</Badge>
+          <Badge variant="outline" className="text-xs">Inv active: {ct.inventory.filter((i) => i.active).length}</Badge>
+          {openBreaches > 0 && <Badge variant="destructive" className="text-xs">{openBreaches} SLA</Badge>}
+          {openEsc > 0 && <Badge variant="destructive" className="text-xs">{openEsc} escalations</Badge>}
+          {pendingReview > 0 && <Badge variant="secondary" className="text-xs">{pendingReview} review pending</Badge>}
         </div>
       </header>
 
-      <Tabs defaultValue="volume">
+      <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="volume"><Activity className="h-3.5 w-3.5 mr-1" />Volume</TabsTrigger>
           <TabsTrigger value="team"><Users className="h-3.5 w-3.5 mr-1" />CT Team</TabsTrigger>
-          <TabsTrigger value="worklist"><ClipboardList className="h-3.5 w-3.5 mr-1" />Assigned Worklist</TabsTrigger>
+          <TabsTrigger value="worklist"><ClipboardList className="h-3.5 w-3.5 mr-1" />Worklist</TabsTrigger>
           <TabsTrigger value="ownership"><ShieldCheck className="h-3.5 w-3.5 mr-1" />Single-Owner</TabsTrigger>
-          <TabsTrigger value="gates"><CheckCircle2 className="h-3.5 w-3.5 mr-1" />4-Gate Process</TabsTrigger>
-          <TabsTrigger value="inventory"><Boxes className="h-3.5 w-3.5 mr-1" />Inventory Focus</TabsTrigger>
+          <TabsTrigger value="gates"><CheckCircle2 className="h-3.5 w-3.5 mr-1" />4-Gate</TabsTrigger>
+          <TabsTrigger value="inventory"><Boxes className="h-3.5 w-3.5 mr-1" />Inventory</TabsTrigger>
           <TabsTrigger value="lineup"><Trophy className="h-3.5 w-3.5 mr-1" />BBD Lineup</TabsTrigger>
           <TabsTrigger value="chat"><MessageSquare className="h-3.5 w-3.5 mr-1" />Chat Review</TabsTrigger>
+          <TabsTrigger value="sla"><Timer className="h-3.5 w-3.5 mr-1" />SLA</TabsTrigger>
+          <TabsTrigger value="escalations"><Flame className="h-3.5 w-3.5 mr-1" />Escalations</TabsTrigger>
+          <TabsTrigger value="handover"><ArrowLeftRight className="h-3.5 w-3.5 mr-1" />Handover</TabsTrigger>
+          <TabsTrigger value="review-queue"><Inbox className="h-3.5 w-3.5 mr-1" />Review Q</TabsTrigger>
+          <TabsTrigger value="leaderboard"><Star className="h-3.5 w-3.5 mr-1" />Leaderboard</TabsTrigger>
+          <TabsTrigger value="exceptions"><Bug className="h-3.5 w-3.5 mr-1" />Exceptions</TabsTrigger>
+          <TabsTrigger value="audit"><ScrollText className="h-3.5 w-3.5 mr-1" />Audit</TabsTrigger>
         </TabsList>
 
         <TabsContent value="volume"><VolumeTab /></TabsContent>
@@ -75,6 +132,13 @@ export function ControlTowerTeamPage() {
         <TabsContent value="inventory"><InventoryTab /></TabsContent>
         <TabsContent value="lineup"><LineupTab /></TabsContent>
         <TabsContent value="chat"><ChatReviewTab /></TabsContent>
+        <TabsContent value="sla"><SLATab /></TabsContent>
+        <TabsContent value="escalations"><EscalationsTab /></TabsContent>
+        <TabsContent value="handover"><HandoverTab /></TabsContent>
+        <TabsContent value="review-queue"><ReviewQueueTab /></TabsContent>
+        <TabsContent value="leaderboard"><LeaderboardTab /></TabsContent>
+        <TabsContent value="exceptions"><ExceptionsTab /></TabsContent>
+        <TabsContent value="audit"><AuditTab /></TabsContent>
       </Tabs>
     </div>
   );
@@ -137,9 +201,9 @@ function VolumeTab() {
         <p className="text-[11px] text-muted-foreground mb-3">Wire to Cloud next turn. Local edit for now.</p>
         <div className="space-y-2">
           <NumField label="Leads today" value={volume.leadsToday} onChange={(v) => setVolume({ leadsToday: v })} />
-          <NumField label="Target/day" value={volume.targetToday} onChange={(v) => setVolume({ targetToday: v })} />
-          <NumField label="Leads 7d"   value={volume.leads7d}    onChange={(v) => setVolume({ leads7d: v })} />
-          <NumField label="Leads 30d"  value={volume.leads30d}   onChange={(v) => setVolume({ leads30d: v })} />
+          <NumField label="Target/day"  value={volume.targetToday} onChange={(v) => setVolume({ targetToday: v })} />
+          <NumField label="Leads 7d"    value={volume.leads7d}    onChange={(v) => setVolume({ leads7d: v })} />
+          <NumField label="Leads 30d"   value={volume.leads30d}   onChange={(v) => setVolume({ leads30d: v })} />
         </div>
       </Card>
     </div>
@@ -149,24 +213,64 @@ function VolumeTab() {
 /* ───────────────────────── Team ───────────────────────── */
 
 function TeamTab() {
-  const { members } = useControlTower();
+  const { members, toggleMemberPresence, updateMember } = useControlTower();
+  const [shift, setShift] = useState<"all" | CTShift>("all");
+  const [tier, setTier] = useState<"all" | "A" | "B" | "C" | "D">("all");
+  const filtered = members.filter((m) => (shift === "all" || m.shift === shift) && (tier === "all" || m.tier === tier));
+
   return (
     <div className="space-y-3">
       <WhyCaption why="Multiple CT members rotate so the CRM never depends on one operator. Each guarantees a minimum daily worklist." admin="Visibility + accountability" tcm="Clear next step, no ambiguity" client="Same experience every time" />
+
+      <Card className="p-3 flex flex-wrap items-center gap-2">
+        <Label className="text-xs">Shift</Label>
+        <Select value={shift} onValueChange={(v) => setShift(v as "all" | CTShift)}>
+          <SelectTrigger className="h-8 w-32 text-xs"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All shifts</SelectItem>
+            {SHIFTS.map((s) => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Label className="text-xs ml-2">Tier</Label>
+        <Select value={tier} onValueChange={(v) => setTier(v as "all" | "A" | "B" | "C" | "D")}>
+          <SelectTrigger className="h-8 w-24 text-xs"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All</SelectItem>
+            <SelectItem value="A">A</SelectItem>
+            <SelectItem value="B">B</SelectItem>
+            <SelectItem value="C">C</SelectItem>
+            <SelectItem value="D">D</SelectItem>
+          </SelectContent>
+        </Select>
+        <div className="ml-auto text-xs text-muted-foreground">{filtered.length} shown · {members.filter((m) => m.present).length} present</div>
+      </Card>
+
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-        {members.map((m) => (
+        {filtered.map((m) => (
           <Card key={m.id} className={cn("p-4", !m.present && "opacity-60")}>
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-mono text-sm">{m.initials}</div>
               <div className="flex-1 min-w-0">
                 <div className="font-medium text-sm truncate">{m.name}</div>
-                <div className="text-[11px] text-muted-foreground capitalize">{m.shift} shift · covers {m.zonesCovered.join(", ")}</div>
+                <div className="text-[11px] text-muted-foreground capitalize">{m.shift} · tier {m.tier} · covers {m.zonesCovered.join(", ")}</div>
               </div>
-              <Badge variant={m.present ? "default" : "outline"} className="text-[10px]">{m.present ? "On" : "Off"}</Badge>
+              <Switch checked={m.present} onCheckedChange={() => toggleMemberPresence(m.id)} />
             </div>
-            <div className="mt-3 grid grid-cols-2 gap-2 text-center">
-              <Metric big={m.minLeadsPerDay} label="Min leads/day" small />
-              <Metric big={m.minOldLeadTouches} label="Old-lead touches" small />
+            <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+              <Metric big={m.minLeadsPerDay} label="Min/day" small />
+              <Metric big={m.minOldLeadTouches} label="Old touch" small />
+              <Metric big={`${m.performance}`} label="Perf 7d" small />
+            </div>
+            <div className="mt-3 flex items-center gap-2">
+              <Label className="text-[10px] text-muted-foreground">Backup</Label>
+              <Select value={m.backupId ?? ""} onValueChange={(v) => updateMember(m.id, { backupId: v })}>
+                <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  {members.filter((b) => b.id !== m.id).map((b) => (
+                    <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </Card>
         ))}
@@ -178,39 +282,56 @@ function TeamTab() {
 /* ───────────────────────── Worklist ───────────────────────── */
 
 function WorklistTab() {
-  const { members, worklist, assignWorklist, markWorklist } = useControlTower();
+  const { members, worklist, assignWorklist, markWorklist, bulkMarkWorklist, clearCompletedWorklist } = useControlTower();
   const app = useApp();
   const [selectedMember, setSelectedMember] = useState(members[0]?.id ?? "");
+  const [statusFilter, setStatusFilter] = useState<"all" | WorklistItem["status"]>("all");
+  const [bucketFilter, setBucketFilter] = useState<"all" | WorklistItem["bucket"]>("all");
+  const [q, setQ] = useState("");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [preview, setPreview] = useState<ReturnType<typeof planAutoAssign> | null>(null);
 
-  function autoAssign() {
-    if (!selectedMember) return;
-    const member = members.find((m) => m.id === selectedMember);
+  const member = members.find((m) => m.id === selectedMember);
+
+  function computePreview() {
     if (!member) return;
-    // Pull recent + stale leads from the app store
-    const now = Date.now();
-    const candidates = app.leads
-      .map((l) => ({
-        lead: l,
-        ageDays: Math.max(0, Math.round((now - +new Date(l.createdAt)) / 86400000)),
-      }))
-      .sort((a, b) => a.ageDays - b.ageDays);
-    const today = candidates.filter((c) => c.ageDays === 0).slice(0, 5);
-    const seven = candidates.filter((c) => c.ageDays > 0 && c.ageDays <= 7).slice(0, member.minOldLeadTouches);
-    const thirty = candidates.filter((c) => c.ageDays > 7 && c.ageDays <= 30).slice(0, Math.max(0, member.minLeadsPerDay - today.length - seven.length));
+    setPreview(planAutoAssign(member, app.leads, worklist));
+  }
+  function commitPreview() {
+    if (!member || !preview) return;
     const items = [
-      ...today.map((c) => ({ ctMemberId: member.id, leadId: c.lead.id, leadName: c.lead.name, ageDays: c.ageDays, bucket: "today" as const, reason: "Fresh inbound — first response" })),
-      ...seven.map((c) => ({ ctMemberId: member.id, leadId: c.lead.id, leadName: c.lead.name, ageDays: c.ageDays, bucket: "7d" as const, reason: "Nudge — reheat before it goes cold" })),
-      ...thirty.map((c) => ({ ctMemberId: member.id, leadId: c.lead.id, leadName: c.lead.name, ageDays: c.ageDays, bucket: "30d" as const, reason: "Revival — check if they're searching again" })),
+      ...preview.today.map((l) => ({ ctMemberId: member.id, leadId: l.id, leadName: l.name, ageDays: 0, bucket: "today" as const, reason: "Fresh inbound — first response", priority: "high" as const })),
+      ...preview.seven.map((l) => ({ ctMemberId: member.id, leadId: l.id, leadName: l.name, ageDays: Math.max(1, Math.round((Date.now() - +new Date(l.createdAt)) / 86400000)), bucket: "7d" as const, reason: "Nudge — reheat before it goes cold", priority: "medium" as const })),
+      ...preview.thirty.map((l) => ({ ctMemberId: member.id, leadId: l.id, leadName: l.name, ageDays: Math.max(8, Math.round((Date.now() - +new Date(l.createdAt)) / 86400000)), bucket: "30d" as const, reason: "Revival — check if they're searching again", priority: "low" as const })),
     ];
     assignWorklist(items);
+    setPreview(null);
   }
 
-  const rows = worklist.filter((w) => !selectedMember || w.ctMemberId === selectedMember).slice(0, 60);
+  const rows = useMemo(() => {
+    return worklist.filter((w) => {
+      if (selectedMember && w.ctMemberId !== selectedMember) return false;
+      if (statusFilter !== "all" && w.status !== statusFilter) return false;
+      if (bucketFilter !== "all" && w.bucket !== bucketFilter) return false;
+      if (q && !w.leadName.toLowerCase().includes(q.toLowerCase())) return false;
+      return true;
+    }).slice(0, 120);
+  }, [worklist, selectedMember, statusFilter, bucketFilter, q]);
+
+  const allChecked = rows.length > 0 && rows.every((r) => selected.has(r.id));
+  const toggleAll = () => {
+    setSelected((s) => {
+      const next = new Set(s);
+      if (allChecked) rows.forEach((r) => next.delete(r.id));
+      else rows.forEach((r) => next.add(r.id));
+      return next;
+    });
+  };
 
   return (
     <div className="space-y-3">
       <WhyCaption why="No more 'I was short of leads'. Every CT member gets a pre-assigned list mixing today + 7d + 30d leads. Completion is tracked." admin="Visibility + accountability" tcm="Clear next step, no ambiguity" />
-      <Card className="p-4">
+      <Card className="p-4 space-y-3">
         <div className="flex flex-wrap items-center gap-2">
           <Label className="text-xs">CT member</Label>
           <Select value={selectedMember} onValueChange={setSelectedMember}>
@@ -219,10 +340,53 @@ function WorklistTab() {
               {members.map((m) => <SelectItem key={m.id} value={m.id}>{m.name} · {m.shift}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Button size="sm" onClick={autoAssign}><Plus className="h-3.5 w-3.5 mr-1" />Auto-assign today's worklist</Button>
+          <Button size="sm" variant="outline" onClick={computePreview}><Sparkles className="h-3.5 w-3.5 mr-1" />Preview</Button>
+          {preview && <Button size="sm" onClick={commitPreview}><Plus className="h-3.5 w-3.5 mr-1" />Commit ({preview.today.length + preview.seven.length + preview.thirty.length})</Button>}
+          <Button size="sm" variant="ghost" onClick={clearCompletedWorklist}>Clear done/skipped</Button>
           <div className="text-xs text-muted-foreground ml-auto">
-            Total open: <b>{worklist.filter((w) => w.status === "pending").length}</b> · Done: <b>{worklist.filter((w) => w.status === "done").length}</b>
+            Open: <b>{worklist.filter((w) => w.status === "pending").length}</b> · Done: <b>{worklist.filter((w) => w.status === "done").length}</b>
           </div>
+        </div>
+
+        {preview && (
+          <div className="rounded-md border p-3 text-xs bg-muted/30 space-y-1">
+            <div className="font-semibold">Auto-assign preview for {member?.name}</div>
+            <div>Today: <b>{preview.today.length}</b> · 7d: <b>{preview.seven.length}</b> · 30d: <b>{preview.thirty.length}</b></div>
+            {preview.reasons.map((r, i) => <div key={i} className="text-muted-foreground">• {r}</div>)}
+          </div>
+        )}
+
+        <div className="flex flex-wrap items-center gap-2 pt-2 border-t">
+          <div className="relative">
+            <Search className="h-3 w-3 absolute left-2 top-2.5 text-muted-foreground" />
+            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search lead" className="h-8 pl-6 text-xs w-48" />
+          </div>
+          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
+            <SelectTrigger className="h-8 w-32 text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All statuses</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="in-progress">In progress</SelectItem>
+              <SelectItem value="done">Done</SelectItem>
+              <SelectItem value="skipped">Skipped</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={bucketFilter} onValueChange={(v) => setBucketFilter(v as typeof bucketFilter)}>
+            <SelectTrigger className="h-8 w-28 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All buckets</SelectItem>
+              <SelectItem value="today">Today</SelectItem>
+              <SelectItem value="7d">7d</SelectItem>
+              <SelectItem value="30d">30d</SelectItem>
+            </SelectContent>
+          </Select>
+          {selected.size > 0 && (
+            <>
+              <Badge variant="secondary" className="text-[10px]">{selected.size} selected</Badge>
+              <Button size="sm" variant="outline" onClick={() => { bulkMarkWorklist(Array.from(selected), "done"); setSelected(new Set()); }}>Mark done</Button>
+              <Button size="sm" variant="ghost" onClick={() => { bulkMarkWorklist(Array.from(selected), "skipped"); setSelected(new Set()); }}>Mark skip</Button>
+            </>
+          )}
         </div>
       </Card>
 
@@ -230,8 +394,10 @@ function WorklistTab() {
         <table className="w-full text-xs">
           <thead className="bg-muted/50">
             <tr>
+              <th className="p-2 w-6"><Checkbox checked={allChecked} onCheckedChange={toggleAll} /></th>
               <th className="p-2 text-left">Lead</th>
               <th className="p-2 text-left">Bucket</th>
+              <th className="p-2 text-left">Priority</th>
               <th className="p-2 text-left">Age</th>
               <th className="p-2 text-left">Reason</th>
               <th className="p-2 text-left">Status</th>
@@ -240,21 +406,22 @@ function WorklistTab() {
           </thead>
           <tbody>
             {rows.length === 0 && (
-              <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">No worklist yet — pick a member and auto-assign.</td></tr>
+              <tr><td colSpan={8} className="p-6 text-center text-muted-foreground">No worklist rows match — try Preview to build one.</td></tr>
             )}
             {rows.map((w) => (
               <tr key={w.id} className="border-t">
-                <td className="p-2 font-medium">{w.leadName}</td>
                 <td className="p-2">
-                  <Badge variant="outline" className="text-[10px]">
-                    {w.bucket === "today" ? "Today" : w.bucket === "7d" ? "Last 7d" : "Last 30d"}
-                  </Badge>
+                  <Checkbox
+                    checked={selected.has(w.id)}
+                    onCheckedChange={(v) => setSelected((s) => { const n = new Set(s); if (v) n.add(w.id); else n.delete(w.id); return n; })}
+                  />
                 </td>
+                <td className="p-2 font-medium">{w.leadName}</td>
+                <td className="p-2"><Badge variant="outline" className="text-[10px]">{w.bucket === "today" ? "Today" : w.bucket === "7d" ? "7d" : "30d"}</Badge></td>
+                <td className="p-2"><Badge variant={w.priority === "high" ? "destructive" : w.priority === "medium" ? "default" : "secondary"} className="text-[10px] capitalize">{w.priority}</Badge></td>
                 <td className="p-2 text-muted-foreground">{w.ageDays}d</td>
                 <td className="p-2 text-muted-foreground">{w.reason}</td>
-                <td className="p-2">
-                  <Badge variant={w.status === "done" ? "default" : w.status === "skipped" ? "destructive" : "secondary"} className="text-[10px] capitalize">{w.status}</Badge>
-                </td>
+                <td className="p-2"><Badge variant={w.status === "done" ? "default" : w.status === "skipped" ? "destructive" : "secondary"} className="text-[10px] capitalize">{w.status}</Badge></td>
                 <td className="p-2 flex gap-1">
                   <Button size="sm" variant="outline" onClick={() => markWorklist(w.id, "in-progress")}>Start</Button>
                   <Button size="sm" variant="outline" onClick={() => markWorklist(w.id, "done", "Completed via CT")}>Done</Button>
@@ -265,7 +432,39 @@ function WorklistTab() {
           </tbody>
         </table>
       </div>
+
+      <RebalancePanel />
     </div>
+  );
+}
+
+function RebalancePanel() {
+  const { members, worklist, bulkMarkWorklist, audit_push } = useControlTower();
+  const moves = useMemo(() => planRebalance(members, worklist), [members, worklist]);
+  if (moves.length === 0) return (
+    <Card className="p-3 text-xs text-muted-foreground">
+      Rebalancer: no moves needed — load is even and everyone assigned is present.
+    </Card>
+  );
+  return (
+    <Card className="p-3">
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-xs font-semibold flex items-center gap-1"><ArrowLeftRight className="h-3.5 w-3.5" />Rebalancer suggests {moves.length} move(s)</div>
+        <Button size="sm" onClick={() => {
+          // In the local store we don't have a per-item reassign; log audit + skip old rows.
+          bulkMarkWorklist(moves.map((m) => m.itemId), "skipped");
+          audit_push({ actor: "ct-rebalancer", entity: "worklist", action: `rebalanced ${moves.length} items` });
+        }}>Apply</Button>
+      </div>
+      <div className="max-h-40 overflow-auto text-xs space-y-1">
+        {moves.slice(0, 20).map((m) => (
+          <div key={m.itemId} className="flex justify-between border-b pb-1 last:border-0">
+            <span className="font-mono text-[10px]">{m.itemId.slice(-6)}</span>
+            <span className="text-muted-foreground">{m.reason}</span>
+          </div>
+        ))}
+      </div>
+    </Card>
   );
 }
 
@@ -274,13 +473,13 @@ function WorklistTab() {
 function OwnershipTab() {
   const { ownershipMode, setOwnershipMode } = useControlTower();
   const opts: { key: OwnershipMode; label: string; desc: string }[] = [
-    { key: "hard-lock",       label: "Hard lock",       desc: "Only the assigned owner can act. Anyone else must request reassignment. No shared edits, no shadow." },
-    { key: "shadow-allowed",  label: "Hard lock + shadow view", desc: "Owner-only edits. Others can VIEW read-only for training/handover. This is the recommended default." },
-    { key: "cowork-legacy",   label: "Legacy co-work",  desc: "Previous behaviour — multiple people could touch the same lead. Not recommended." },
+    { key: "hard-lock", label: "Hard lock", desc: "Only the assigned owner can act. Anyone else must request reassignment." },
+    { key: "shadow-allowed", label: "Hard lock + shadow view", desc: "Owner-only edits. Others can VIEW read-only for training/handover. Recommended default." },
+    { key: "cowork-legacy", label: "Legacy co-work", desc: "Previous behaviour — multiple people could touch the same lead. Not recommended." },
   ];
   return (
     <div className="space-y-3">
-      <WhyCaption why="Single owner means 100% accountability. No 'this guy told me… that guy told me…'. If a CT member can't own it clearly, they don't fit." admin="Visibility + accountability" tcm="Clear next step, no ambiguity" client="Same experience every time" />
+      <WhyCaption why="Single owner means 100% accountability. No 'this guy told me… that guy told me…'." admin="Visibility + accountability" tcm="Clear next step, no ambiguity" client="Same experience every time" />
       <div className="grid gap-3 md:grid-cols-3">
         {opts.map((o) => (
           <Card key={o.key} className={cn("p-4 cursor-pointer border-2", ownershipMode === o.key ? "border-primary" : "border-transparent hover:border-muted-foreground/30")} onClick={() => setOwnershipMode(o.key)}>
@@ -292,14 +491,6 @@ function OwnershipTab() {
           </Card>
         ))}
       </div>
-      <Card className="p-4 bg-muted/30">
-        <div className="text-xs font-semibold mb-1">How this is enforced across the app</div>
-        <ul className="text-xs text-muted-foreground list-disc pl-5 space-y-1">
-          <li><b>Hard lock:</b> non-owner action returns <code>{"{ allowed: false, requestReassign: true }"}</code> from <code>canEditLead()</code>. Buttons/inputs are disabled and show a reassignment prompt.</li>
-          <li><b>Shadow view:</b> read is allowed; write returns the same block. Used for training and handover only.</li>
-          <li>Every override is logged into the lead's audit trail with actor + reason + timestamp.</li>
-        </ul>
-      </Card>
     </div>
   );
 }
@@ -308,13 +499,20 @@ function OwnershipTab() {
 
 function GatesTab() {
   const app = useApp();
-  const { gatesByLead, getGates, setGate } = useControlTower();
+  const { getGates, setGate, bulkSetGates, inventory } = useControlTower();
   const [leadId, setLeadId] = useState(app.leads[0]?.id ?? "");
   const gates = getGates(leadId);
   const green = gates.every((g) => g.status === "green");
+  const lead = app.leads.find((l) => l.id === leadId);
+
+  function autoFill() {
+    if (!lead) return;
+    bulkSetGates(leadId, autoDetectGates(lead, inventory, gates));
+  }
+
   return (
     <div className="space-y-3">
-      <WhyCaption why="Tour + Quotation is a menu with no pay button unless all 4 gates are green. This blocks 'let's just schedule and see' from happening." admin="Visibility + accountability" tcm="Clear next step, no ambiguity" client="Same experience every time" />
+      <WhyCaption why="Tour + Quotation is a menu with no pay button unless all 4 gates are green." admin="Visibility + accountability" tcm="Clear next step, no ambiguity" client="Same experience every time" />
       <Card className="p-4">
         <div className="flex flex-wrap items-center gap-2">
           <Label className="text-xs">Lead</Label>
@@ -324,6 +522,7 @@ function GatesTab() {
               {app.leads.slice(0, 60).map((l) => <SelectItem key={l.id} value={l.id}>{l.name} · {l.preferredArea}</SelectItem>)}
             </SelectContent>
           </Select>
+          <Button size="sm" variant="outline" onClick={autoFill}><Sparkles className="h-3.5 w-3.5 mr-1" />Auto-detect from activity</Button>
           <Badge variant={green ? "default" : "destructive"} className="text-[10px] ml-auto">
             {green ? "ALL GATES GREEN — tour + quote allowed" : `${gates.filter(g => g.status === "green").length}/4 green — tour BLOCKED`}
           </Badge>
@@ -335,7 +534,10 @@ function GatesTab() {
           <Card key={g.key} className="p-4">
             <div className="flex items-start justify-between gap-2">
               <div>
-                <div className="font-semibold text-sm">{g.label}</div>
+                <div className="font-semibold text-sm flex items-center gap-1">
+                  {g.label}
+                  {g.autoDetected && <Sparkles className="h-3 w-3 text-primary" />}
+                </div>
                 <p className="text-xs text-muted-foreground mt-0.5">{g.question}</p>
               </div>
               <StatusPill status={g.status} />
@@ -350,15 +552,7 @@ function GatesTab() {
               />
               <div className="mt-2 flex gap-1">
                 {(["green", "amber", "red"] as const).map((s) => (
-                  <Button
-                    key={s}
-                    size="sm"
-                    variant={g.status === s ? "default" : "outline"}
-                    onClick={() => setGate(leadId, g.key, { status: s })}
-                    className="capitalize"
-                  >
-                    {s}
-                  </Button>
+                  <Button key={s} size="sm" variant={g.status === s ? "default" : "outline"} onClick={() => setGate(leadId, g.key, { status: s, autoDetected: false })} className="capitalize">{s}</Button>
                 ))}
               </div>
             </div>
@@ -395,12 +589,23 @@ function StatusPill({ status }: { status: "green" | "amber" | "red" | "unknown" 
 
 function InventoryTab() {
   const { inventory, toggleInventory, addInventory, removeInventory } = useControlTower();
-  const grouped = useMemo(() => inventoryByHorizon(inventory), [inventory]);
+  const [q, setQ] = useState("");
+  const filtered = useMemo(
+    () => inventory.filter((i) => !q || i.propertyName.toLowerCase().includes(q.toLowerCase()) || i.area.toLowerCase().includes(q.toLowerCase())),
+    [inventory, q],
+  );
+  const grouped = useMemo(() => inventoryByHorizon(filtered), [filtered]);
   const [draft, setDraft] = useState({ propertyName: "", area: "", bedType: "Single AC", price: 12000, horizon: "today" as InventoryHorizon, whyChoose: "", bedsAvailable: 1, photosCount: 0, active: true });
 
   return (
     <div className="space-y-4">
-      <WhyCaption why="Without inventory knowledge no BBD is possible. CT owns the daily 'what to sell today / this week / this month' board so every operator opens the app already knowing which beds to push." admin="Visibility + accountability" tcm="Clear next step, no ambiguity" client="Same experience every time" />
+      <WhyCaption why="Without inventory knowledge no BBD is possible. CT owns the daily 'what to sell today / this week / this month' board." admin="Visibility + accountability" tcm="Clear next step, no ambiguity" client="Same experience every time" />
+
+      <Card className="p-3 flex items-center gap-2">
+        <Search className="h-3 w-3 text-muted-foreground" />
+        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Filter by property or area" className="h-8 text-xs max-w-sm" />
+        <div className="ml-auto text-xs text-muted-foreground">{filtered.length}/{inventory.length} listings</div>
+      </Card>
 
       {HORIZONS.map((h) => (
         <Card key={h.key} className="p-4">
@@ -428,7 +633,7 @@ function InventoryTab() {
               </div>
             ))}
             {grouped[h.key].length === 0 && (
-              <div className="col-span-full text-center text-muted-foreground py-6 text-xs">No listings yet in this horizon.</div>
+              <div className="col-span-full text-center text-muted-foreground py-6 text-xs">No listings match.</div>
             )}
           </div>
         </Card>
@@ -462,15 +667,9 @@ function InventoryTab() {
 /* ───────────────────────── Lineup ───────────────────────── */
 
 function LineupTab() {
-  const { lineup, setLineup, updatePick } = useControlTower();
-  const app = useApp();
+  const { lineup, setLineup, updatePick, members } = useControlTower();
 
-  function autoLineup() {
-    const picks = suggestLineup(
-      app.tcms.map((t, i) => ({ id: t.id, name: t.name, role: "TCM", performance: 80 - i * 3 })),
-    );
-    setLineup(picks);
-  }
+  function autoLineup() { setLineup(optimizeLineup(members)); }
 
   const total = lineup.reduce((a, b) => a + b.targetBookings, 0);
   const bySlot: Record<LineupSlot, typeof lineup> = { opener: [], middle: [], finisher: [], bench: [] };
@@ -484,7 +683,7 @@ function LineupTab() {
           <div className="text-sm font-semibold">Today's BBD lineup</div>
           <div className="text-[11px] text-muted-foreground">Target: <b>{BBD_TARGET_PER_DAY} BBD/day</b> · Committed: <b>{total}</b></div>
         </div>
-        <Button size="sm" onClick={autoLineup}>Auto-suggest from TCM roster</Button>
+        <Button size="sm" onClick={autoLineup}><Sparkles className="h-3.5 w-3.5 mr-1" />Optimize from present CT team</Button>
       </Card>
 
       {(["opener", "middle", "finisher", "bench"] as LineupSlot[]).map((slot) => (
@@ -536,20 +735,29 @@ function ChatReviewTab() {
   const [draft, setDraft] = useState<Omit<ChatReview, "id" | "reviewedAt">>({
     leadId: app.leads[0]?.id ?? "",
     reviewerId: "ct-1",
-    responseSpeed: 3,
-    acknowledgment: 3,
-    realProblemFocus: 3,
-    valueDrivenAnswer: 3,
-    advancedNextStep: 3,
-    stillLooking: "unknown",
-    whatActuallyHappened: "",
-    overall: 3,
+    responseSpeed: 3, acknowledgment: 3, realProblemFocus: 3,
+    valueDrivenAnswer: 3, advancedNextStep: 3,
+    stillLooking: "unknown", whatActuallyHappened: "", overall: 3,
   });
   const score = chatScore({ ...draft, id: "", reviewedAt: "" } as ChatReview);
+  const ai = useMemo(() => scoreChatNarrative(draft.whatActuallyHappened), [draft.whatActuallyHappened]);
+  const flags = useMemo(() => detectReviewFlags(reviews), [reviews]);
+
+  function save() {
+    addReview({ ...draft, aiScore: ai.score, aiFlags: ai.flags });
+  }
 
   return (
     <div className="space-y-3">
-      <WhyCaption why="Every chat should feel like the same Domino's burger — same process, no random 'extra cheese' from a new operator. Deep review catches this." admin="Visibility + accountability" tcm="Clear next step, no ambiguity" client="Same experience every time" />
+      <WhyCaption why="Every chat should feel like the same Domino's burger — same process, no random 'extra cheese' from a new operator." admin="Visibility + accountability" tcm="Clear next step, no ambiguity" client="Same experience every time" />
+
+      {flags.flags.length > 0 && (
+        <Card className="p-3 border-amber-500/40 bg-amber-500/10 text-xs">
+          <div className="font-semibold mb-1">Trend flags — {flags.avgScore} avg score · {flags.poorRate}% poor</div>
+          {flags.flags.map((f, i) => <div key={i}>• {f}</div>)}
+        </Card>
+      )}
+
       <Card className="p-4 space-y-3">
         <div className="flex flex-wrap items-center gap-2">
           <Label className="text-xs">Lead being reviewed</Label>
@@ -559,14 +767,14 @@ function ChatReviewTab() {
               {app.leads.slice(0, 60).map((l) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Badge className="ml-auto text-[10px]">Score {score}/100</Badge>
+          <Badge className="ml-auto text-[10px]">Manual {score}/100 · AI {ai.score}/100</Badge>
         </div>
         <div className="grid gap-3 md:grid-cols-2">
-          <ScoreSlider label="Response speed"     hint="5 = under 1 minute · 1 = >1 hour"       value={draft.responseSpeed}    onChange={(v) => setDraft({ ...draft, responseSpeed: v })} />
-          <ScoreSlider label="Acknowledgment"     hint="Did we recognise their pain?"          value={draft.acknowledgment}   onChange={(v) => setDraft({ ...draft, acknowledgment: v })} />
-          <ScoreSlider label="Real problem focus" hint="Solved real issue, not surface fluff"  value={draft.realProblemFocus} onChange={(v) => setDraft({ ...draft, realProblemFocus: v })} />
-          <ScoreSlider label="Value-driven answer" hint="Concrete, not vague"                  value={draft.valueDrivenAnswer} onChange={(v) => setDraft({ ...draft, valueDrivenAnswer: v })} />
-          <ScoreSlider label="Advanced next step" hint="Did the chat move forward?"            value={draft.advancedNextStep} onChange={(v) => setDraft({ ...draft, advancedNextStep: v })} />
+          <ScoreSlider label="Response speed" hint="5 = under 1 min · 1 = >1 hr"      value={draft.responseSpeed}    onChange={(v) => setDraft({ ...draft, responseSpeed: v })} />
+          <ScoreSlider label="Acknowledgment" hint="Did we recognise their pain?"     value={draft.acknowledgment}   onChange={(v) => setDraft({ ...draft, acknowledgment: v })} />
+          <ScoreSlider label="Real problem focus" hint="Real issue, not surface fluff" value={draft.realProblemFocus} onChange={(v) => setDraft({ ...draft, realProblemFocus: v })} />
+          <ScoreSlider label="Value-driven answer" hint="Concrete, not vague"          value={draft.valueDrivenAnswer} onChange={(v) => setDraft({ ...draft, valueDrivenAnswer: v })} />
+          <ScoreSlider label="Advanced next step" hint="Did the chat move forward?"   value={draft.advancedNextStep} onChange={(v) => setDraft({ ...draft, advancedNextStep: v })} />
           <div>
             <Label className="text-xs">Are they still looking?</Label>
             <Select value={draft.stillLooking} onValueChange={(v) => setDraft({ ...draft, stillLooking: v as ChatReview["stillLooking"] })}>
@@ -587,8 +795,13 @@ function ChatReviewTab() {
         <div>
           <Label className="text-xs">What actually happened (verbatim, no assumptions)</Label>
           <Textarea value={draft.whatActuallyHappened} onChange={(e) => setDraft({ ...draft, whatActuallyHappened: e.target.value })} className="text-xs mt-1 min-h-[70px]" />
+          {ai.flags.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1">
+              {ai.flags.map((f, i) => <Badge key={i} variant="outline" className="text-[10px]">{f}</Badge>)}
+            </div>
+          )}
         </div>
-        <Button size="sm" onClick={() => addReview(draft)}>Save review</Button>
+        <Button size="sm" onClick={save}>Save review</Button>
       </Card>
 
       <div>
@@ -598,7 +811,11 @@ function ChatReviewTab() {
             <Card key={r.id} className="p-3 text-xs">
               <div className="flex items-center justify-between">
                 <div className="font-medium">{app.leads.find((l) => l.id === r.leadId)?.name ?? r.leadId}</div>
-                <Badge variant="outline" className="text-[10px]">Score {chatScore(r)}/100 · still {r.stillLooking}</Badge>
+                <div className="flex gap-1">
+                  <Badge variant="outline" className="text-[10px]">Manual {chatScore(r)}</Badge>
+                  {typeof r.aiScore === "number" && <Badge variant="outline" className="text-[10px]">AI {r.aiScore}</Badge>}
+                  <Badge variant="secondary" className="text-[10px]">still {r.stillLooking}</Badge>
+                </div>
               </div>
               <div className="text-muted-foreground mt-1">{r.whatActuallyHappened}</div>
               {r.tourBookedButUnbookedReason && <div className="text-[10px] mt-1"><b>Why not booked:</b> {r.tourBookedButUnbookedReason}</div>}
@@ -623,6 +840,430 @@ function ScoreSlider({ label, hint, value, onChange }: { label: string; hint: st
           <Button key={n} size="sm" variant={value === n ? "default" : "outline"} className="h-7 w-7 p-0" onClick={() => onChange(n as 1 | 2 | 3 | 4 | 5)}>{n}</Button>
         ))}
       </div>
+    </div>
+  );
+}
+
+/* ───────────────────────── SLA ───────────────────────── */
+
+function SLATab() {
+  const { slaBreaches, logSLABreach, resolveSLABreach, members } = useControlTower();
+  const app = useApp();
+  const [draft, setDraft] = useState<{ leadId: string; ownerId: string; kind: SLAKind; actualMinutes: number }>({
+    leadId: app.leads[0]?.id ?? "", ownerId: members[0]?.id ?? "", kind: "first-response", actualMinutes: 10,
+  });
+  const open = slaBreaches.filter((b) => !b.resolved);
+  return (
+    <div className="space-y-3">
+      <WhyCaption why="SLAs are the shared clock. If we don't log breaches, we can't fix the pattern." admin="Visibility + accountability" tcm="Clear next step, no ambiguity" />
+      <div className="grid gap-3 md:grid-cols-4">
+        {(Object.keys(SLA_TARGETS) as SLAKind[]).map((k) => {
+          const count = slaBreaches.filter((b) => b.kind === k && !b.resolved).length;
+          return (
+            <Card key={k} className="p-3">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{k.replace(/-/g, " ")}</div>
+              <div className="text-2xl font-display font-semibold">{count}</div>
+              <div className="text-[10px] text-muted-foreground">target ≤ {SLA_TARGETS[k]} min</div>
+            </Card>
+          );
+        })}
+      </div>
+
+      <Card className="p-4">
+        <h3 className="font-semibold text-sm mb-2">Log a breach</h3>
+        <div className="grid gap-2 md:grid-cols-4">
+          <Select value={draft.leadId} onValueChange={(v) => setDraft({ ...draft, leadId: v })}>
+            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>{app.leads.slice(0, 60).map((l) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}</SelectContent>
+          </Select>
+          <Select value={draft.ownerId} onValueChange={(v) => setDraft({ ...draft, ownerId: v })}>
+            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>{members.map((m) => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}</SelectContent>
+          </Select>
+          <Select value={draft.kind} onValueChange={(v) => setDraft({ ...draft, kind: v as SLAKind })}>
+            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {(Object.keys(SLA_TARGETS) as SLAKind[]).map((k) => <SelectItem key={k} value={k}>{k}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Input type="number" className="h-8 text-xs" value={draft.actualMinutes} onChange={(e) => setDraft({ ...draft, actualMinutes: +e.target.value })} placeholder="Actual minutes" />
+        </div>
+        <Button size="sm" className="mt-3" onClick={() => logSLABreach({ ...draft, targetMinutes: SLA_TARGETS[draft.kind] })}>Log breach</Button>
+      </Card>
+
+      <Card className="p-0 overflow-hidden">
+        <table className="w-full text-xs">
+          <thead className="bg-muted/50">
+            <tr>
+              <th className="p-2 text-left">Lead</th><th className="p-2 text-left">Owner</th><th className="p-2 text-left">Kind</th>
+              <th className="p-2 text-left">Target</th><th className="p-2 text-left">Actual</th><th className="p-2 text-left">Status</th><th />
+            </tr>
+          </thead>
+          <tbody>
+            {open.length === 0 && <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">No open SLA breaches.</td></tr>}
+            {open.map((b) => (
+              <tr key={b.id} className="border-t">
+                <td className="p-2 font-medium">{app.leads.find((l) => l.id === b.leadId)?.name ?? b.leadId}</td>
+                <td className="p-2">{members.find((m) => m.id === b.ownerId)?.name ?? b.ownerId}</td>
+                <td className="p-2 capitalize">{b.kind.replace(/-/g, " ")}</td>
+                <td className="p-2 text-muted-foreground">{b.targetMinutes}m</td>
+                <td className="p-2 text-destructive">{b.actualMinutes}m</td>
+                <td className="p-2"><Badge variant="destructive" className="text-[10px]">open</Badge></td>
+                <td className="p-2"><Button size="sm" variant="outline" onClick={() => resolveSLABreach(b.id, "Resolved via CT")}>Resolve</Button></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
+    </div>
+  );
+}
+
+/* ───────────────────────── Escalations ───────────────────────── */
+
+function EscalationsTab() {
+  const { escalations, raiseEscalation, ackEscalation, resolveEscalation, members } = useControlTower();
+  const app = useApp();
+  const [draft, setDraft] = useState({ level: "L1" as EscalationLevel, reason: "", leadId: "", memberId: "" });
+  return (
+    <div className="space-y-3">
+      <WhyCaption why="Escalations exist so nothing rots. If you can't unblock in 30 min, escalate." admin="Visibility + accountability" tcm="Clear next step, no ambiguity" />
+      <Card className="p-4">
+        <h3 className="font-semibold text-sm mb-2">Raise an escalation</h3>
+        <div className="grid gap-2 md:grid-cols-4">
+          <Select value={draft.level} onValueChange={(v) => setDraft({ ...draft, level: v as EscalationLevel })}>
+            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="L1">L1 — Team lead</SelectItem>
+              <SelectItem value="L2">L2 — Manager</SelectItem>
+              <SelectItem value="L3">L3 — Founder</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={draft.leadId} onValueChange={(v) => setDraft({ ...draft, leadId: v })}>
+            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Related lead" /></SelectTrigger>
+            <SelectContent>{app.leads.slice(0, 40).map((l) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}</SelectContent>
+          </Select>
+          <Select value={draft.memberId} onValueChange={(v) => setDraft({ ...draft, memberId: v })}>
+            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Related member" /></SelectTrigger>
+            <SelectContent>{members.map((m) => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}</SelectContent>
+          </Select>
+          <Input className="h-8 text-xs" placeholder="Reason" value={draft.reason} onChange={(e) => setDraft({ ...draft, reason: e.target.value })} />
+        </div>
+        <Button size="sm" className="mt-3" onClick={() => { if (draft.reason) { raiseEscalation({ level: draft.level, reason: draft.reason, leadId: draft.leadId || undefined, memberId: draft.memberId || undefined, raisedBy: "ct" }); setDraft({ ...draft, reason: "" }); } }}>
+          <Flame className="h-3.5 w-3.5 mr-1" />Raise
+        </Button>
+      </Card>
+
+      <div className="space-y-2">
+        {escalations.map((e) => (
+          <Card key={e.id} className="p-3 text-xs">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Badge variant={e.level === "L3" ? "destructive" : e.level === "L2" ? "default" : "secondary"} className="text-[10px]">{e.level}</Badge>
+                <span className="font-medium">{e.reason}</span>
+              </div>
+              <Badge variant="outline" className="text-[10px]">{e.status}</Badge>
+            </div>
+            <div className="text-muted-foreground mt-1">
+              {e.leadId && <>Lead: {app.leads.find((l) => l.id === e.leadId)?.name ?? e.leadId} · </>}
+              {e.memberId && <>Member: {members.find((m) => m.id === e.memberId)?.name ?? e.memberId} · </>}
+              raised {new Date(e.raisedAt).toLocaleString()}
+            </div>
+            {e.resolution && <div className="text-emerald-600 mt-1">Resolution: {e.resolution}</div>}
+            {e.status !== "resolved" && (
+              <div className="mt-2 flex gap-1">
+                {e.status === "open" && <Button size="sm" variant="outline" onClick={() => ackEscalation(e.id)}>Acknowledge</Button>}
+                <Button size="sm" onClick={() => resolveEscalation(e.id, "Resolved via CT")}>Resolve</Button>
+              </div>
+            )}
+          </Card>
+        ))}
+        {escalations.length === 0 && <div className="text-center text-muted-foreground text-xs py-6">No escalations.</div>}
+      </div>
+    </div>
+  );
+}
+
+/* ───────────────────────── Handover ───────────────────────── */
+
+function HandoverTab() {
+  const { handovers, addHandover, ackHandover, members } = useControlTower();
+  const [draft, setDraft] = useState({ fromShift: "morning" as CTShift, toShift: "afternoon" as CTShift, fromMemberId: members[0]?.id ?? "", openLeads: 0, hotFollowUps: "", blockers: "", wins: "" });
+
+  return (
+    <div className="space-y-3">
+      <WhyCaption why="Shift handover is how work doesn't fall between the seats. Every shift ends with a note; the next shift can't start blind." admin="Visibility + accountability" tcm="Clear next step, no ambiguity" client="Same experience every time" />
+      <Card className="p-4">
+        <h3 className="font-semibold text-sm mb-2">Log a handover</h3>
+        <div className="grid gap-2 md:grid-cols-4">
+          <Select value={draft.fromShift} onValueChange={(v) => setDraft({ ...draft, fromShift: v as CTShift })}>
+            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>{SHIFTS.map((s) => <SelectItem key={s} value={s} className="capitalize">from {s}</SelectItem>)}</SelectContent>
+          </Select>
+          <Select value={draft.toShift} onValueChange={(v) => setDraft({ ...draft, toShift: v as CTShift })}>
+            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>{SHIFTS.map((s) => <SelectItem key={s} value={s} className="capitalize">to {s}</SelectItem>)}</SelectContent>
+          </Select>
+          <Select value={draft.fromMemberId} onValueChange={(v) => setDraft({ ...draft, fromMemberId: v })}>
+            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>{members.map((m) => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}</SelectContent>
+          </Select>
+          <Input type="number" className="h-8 text-xs" placeholder="Open leads" value={draft.openLeads} onChange={(e) => setDraft({ ...draft, openLeads: +e.target.value })} />
+        </div>
+        <div className="grid gap-2 md:grid-cols-3 mt-2">
+          <Input className="h-8 text-xs" placeholder="Hot follow-ups (comma-sep lead names)" value={draft.hotFollowUps} onChange={(e) => setDraft({ ...draft, hotFollowUps: e.target.value })} />
+          <Input className="h-8 text-xs" placeholder="Blockers" value={draft.blockers} onChange={(e) => setDraft({ ...draft, blockers: e.target.value })} />
+          <Input className="h-8 text-xs" placeholder="Wins" value={draft.wins} onChange={(e) => setDraft({ ...draft, wins: e.target.value })} />
+        </div>
+        <Button size="sm" className="mt-3" onClick={() => {
+          addHandover({ fromShift: draft.fromShift, toShift: draft.toShift, fromMemberId: draft.fromMemberId, openLeads: draft.openLeads, hotFollowUps: draft.hotFollowUps.split(",").map((s) => s.trim()).filter(Boolean), blockers: draft.blockers, wins: draft.wins });
+          setDraft({ ...draft, hotFollowUps: "", blockers: "", wins: "", openLeads: 0 });
+        }}>Log handover</Button>
+      </Card>
+
+      <div className="space-y-2">
+        {handovers.map((h) => (
+          <Card key={h.id} className="p-3 text-xs">
+            <div className="flex items-center justify-between">
+              <div className="font-medium capitalize">{h.fromShift} → {h.toShift}</div>
+              <Badge variant={h.acknowledgedAt ? "default" : "secondary"} className="text-[10px]">{h.acknowledgedAt ? "acknowledged" : "pending"}</Badge>
+            </div>
+            <div className="text-muted-foreground">{members.find((m) => m.id === h.fromMemberId)?.name} · {h.openLeads} open · {new Date(h.createdAt).toLocaleString()}</div>
+            {h.hotFollowUps.length > 0 && <div className="mt-1"><b>Hot:</b> {h.hotFollowUps.join(", ")}</div>}
+            {h.blockers && <div className="text-destructive"><b>Blockers:</b> {h.blockers}</div>}
+            {h.wins && <div className="text-emerald-600"><b>Wins:</b> {h.wins}</div>}
+            {!h.acknowledgedAt && (
+              <div className="mt-2 flex items-center gap-2">
+                <Select onValueChange={(v) => ackHandover(h.id, v)}>
+                  <SelectTrigger className="h-7 text-xs w-40"><SelectValue placeholder="Acknowledge as…" /></SelectTrigger>
+                  <SelectContent>{members.map((m) => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            )}
+          </Card>
+        ))}
+        {handovers.length === 0 && <div className="text-center text-muted-foreground text-xs py-6">No handovers logged.</div>}
+      </div>
+    </div>
+  );
+}
+
+/* ───────────────────────── Review Queue ───────────────────────── */
+
+function ReviewQueueTab() {
+  const { reviewQueue, queueReview, decideReview, members } = useControlTower();
+  const app = useApp();
+  const [draft, setDraft] = useState({ kind: "reassignment" as ReviewQueueKind, reason: "", leadId: "", memberId: "" });
+  return (
+    <div className="space-y-3">
+      <WhyCaption why="The manager review queue is the only place reassignments, gate overrides, and SLA forgiveness get approved. No shadow overrides." admin="Visibility + accountability" tcm="Clear next step, no ambiguity" />
+      <Card className="p-4">
+        <h3 className="font-semibold text-sm mb-2">Request a manager review</h3>
+        <div className="grid gap-2 md:grid-cols-4">
+          <Select value={draft.kind} onValueChange={(v) => setDraft({ ...draft, kind: v as ReviewQueueKind })}>
+            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="reassignment">Reassignment</SelectItem>
+              <SelectItem value="escalation">Escalation</SelectItem>
+              <SelectItem value="gate-override">Gate override</SelectItem>
+              <SelectItem value="sla-forgiveness">SLA forgiveness</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={draft.leadId} onValueChange={(v) => setDraft({ ...draft, leadId: v })}>
+            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Related lead" /></SelectTrigger>
+            <SelectContent>{app.leads.slice(0, 40).map((l) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}</SelectContent>
+          </Select>
+          <Select value={draft.memberId} onValueChange={(v) => setDraft({ ...draft, memberId: v })}>
+            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Related member" /></SelectTrigger>
+            <SelectContent>{members.map((m) => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}</SelectContent>
+          </Select>
+          <Input className="h-8 text-xs" placeholder="Reason" value={draft.reason} onChange={(e) => setDraft({ ...draft, reason: e.target.value })} />
+        </div>
+        <Button size="sm" className="mt-3" onClick={() => { if (draft.reason) { queueReview({ kind: draft.kind, reason: draft.reason, leadId: draft.leadId || undefined, memberId: draft.memberId || undefined, requestedBy: "ct" }); setDraft({ ...draft, reason: "" }); } }}>
+          <Inbox className="h-3.5 w-3.5 mr-1" />Queue for review
+        </Button>
+      </Card>
+
+      <div className="space-y-2">
+        {reviewQueue.map((r) => (
+          <Card key={r.id} className="p-3 text-xs">
+            <div className="flex items-center justify-between">
+              <div className="font-medium capitalize">{r.kind.replace(/-/g, " ")} · {r.reason}</div>
+              <Badge variant={r.status === "approved" ? "default" : r.status === "rejected" ? "destructive" : "secondary"} className="text-[10px]">{r.status}</Badge>
+            </div>
+            <div className="text-muted-foreground mt-1">
+              {r.leadId && <>Lead: {app.leads.find((l) => l.id === r.leadId)?.name ?? r.leadId} · </>}
+              {r.memberId && <>Member: {members.find((m) => m.id === r.memberId)?.name ?? r.memberId} · </>}
+              requested {new Date(r.requestedAt).toLocaleString()}
+            </div>
+            {r.decisionNote && <div className="mt-1"><b>Decision:</b> {r.decisionNote}</div>}
+            {r.status === "pending" && (
+              <div className="mt-2 flex gap-1">
+                <Button size="sm" onClick={() => decideReview(r.id, "approved", "manager", "Approved")}>Approve</Button>
+                <Button size="sm" variant="outline" onClick={() => decideReview(r.id, "rejected", "manager", "Rejected")}>Reject</Button>
+              </div>
+            )}
+          </Card>
+        ))}
+        {reviewQueue.length === 0 && <div className="text-center text-muted-foreground text-xs py-6">Nothing queued.</div>}
+      </div>
+    </div>
+  );
+}
+
+/* ───────────────────────── Leaderboard ───────────────────────── */
+
+function LeaderboardTab() {
+  const { members, worklist, reviews, slaBreaches } = useControlTower();
+  const rows = useMemo(() => computeLeaderboard(members, worklist, reviews, slaBreaches), [members, worklist, reviews, slaBreaches]);
+  const max = Math.max(1, ...rows.map((r) => r.score));
+  return (
+    <div className="space-y-3">
+      <WhyCaption why="Weekly leaderboard closes the loop — CT members see their rank and where they lost points." admin="Visibility + accountability" tcm="Clear next step, no ambiguity" />
+      <Card className="p-0 overflow-hidden">
+        <table className="w-full text-xs">
+          <thead className="bg-muted/50">
+            <tr>
+              <th className="p-2 text-left w-8">#</th><th className="p-2 text-left">Member</th>
+              <th className="p-2 text-left">Tier</th><th className="p-2 text-left">Worklist done</th>
+              <th className="p-2 text-left">Reviews</th><th className="p-2 text-left">Open breaches</th>
+              <th className="p-2 text-left">Score</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r, i) => (
+              <tr key={r.member.id} className="border-t">
+                <td className="p-2 font-mono">{i + 1}</td>
+                <td className="p-2 font-medium">{r.member.name}</td>
+                <td className="p-2"><Badge variant="outline" className="text-[10px]">{r.member.tier}</Badge></td>
+                <td className="p-2">{r.worklistDone}/{r.worklistAssigned}</td>
+                <td className="p-2">{r.reviews}</td>
+                <td className="p-2 text-destructive">{r.breaches}</td>
+                <td className="p-2">
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-2 rounded bg-muted overflow-hidden max-w-[120px]">
+                      <div className="h-full bg-primary" style={{ width: `${(r.score / max) * 100}%` }} />
+                    </div>
+                    <span className="font-mono">{r.score}</span>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
+    </div>
+  );
+}
+
+/* ───────────────────────── Exceptions ───────────────────────── */
+
+function ExceptionsTab() {
+  const { exceptions, logException, updateException, members } = useControlTower();
+  const app = useApp();
+  const [draft, setDraft] = useState({ kind: "duplicate-lead" as ExceptionKind, severity: "medium" as "low" | "medium" | "high", leadId: "", memberId: "", note: "" });
+  return (
+    <div className="space-y-3">
+      <WhyCaption why="Exceptions catch what the process didn't. Every entry becomes tomorrow's process improvement." admin="Visibility + accountability" tcm="Clear next step, no ambiguity" />
+      <Card className="p-4">
+        <h3 className="font-semibold text-sm mb-2">Log an exception</h3>
+        <div className="grid gap-2 md:grid-cols-5">
+          <Select value={draft.kind} onValueChange={(v) => setDraft({ ...draft, kind: v as ExceptionKind })}>
+            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="duplicate-lead">Duplicate lead</SelectItem>
+              <SelectItem value="wrong-zone">Wrong zone</SelectItem>
+              <SelectItem value="customer-abuse">Customer abuse</SelectItem>
+              <SelectItem value="system-error">System error</SelectItem>
+              <SelectItem value="process-skip">Process skipped</SelectItem>
+              <SelectItem value="other">Other</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={draft.severity} onValueChange={(v) => setDraft({ ...draft, severity: v as "low" | "medium" | "high" })}>
+            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent><SelectItem value="low">low</SelectItem><SelectItem value="medium">medium</SelectItem><SelectItem value="high">high</SelectItem></SelectContent>
+          </Select>
+          <Select value={draft.leadId} onValueChange={(v) => setDraft({ ...draft, leadId: v })}>
+            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Related lead" /></SelectTrigger>
+            <SelectContent>{app.leads.slice(0, 40).map((l) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}</SelectContent>
+          </Select>
+          <Select value={draft.memberId} onValueChange={(v) => setDraft({ ...draft, memberId: v })}>
+            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Related member" /></SelectTrigger>
+            <SelectContent>{members.map((m) => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}</SelectContent>
+          </Select>
+          <Input className="h-8 text-xs" placeholder="Note" value={draft.note} onChange={(e) => setDraft({ ...draft, note: e.target.value })} />
+        </div>
+        <Button size="sm" className="mt-3" onClick={() => { if (draft.note) { logException({ kind: draft.kind, severity: draft.severity, leadId: draft.leadId || undefined, memberId: draft.memberId || undefined, note: draft.note, raisedBy: "ct" }); setDraft({ ...draft, note: "" }); } }}>
+          <Bug className="h-3.5 w-3.5 mr-1" />Log
+        </Button>
+      </Card>
+
+      <div className="space-y-2">
+        {exceptions.map((e) => (
+          <Card key={e.id} className="p-3 text-xs">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-[10px] capitalize">{e.kind.replace(/-/g, " ")}</Badge>
+                <Badge variant={e.severity === "high" ? "destructive" : e.severity === "medium" ? "default" : "secondary"} className="text-[10px]">{e.severity}</Badge>
+                <span className="font-medium">{e.note}</span>
+              </div>
+              <Select value={e.status} onValueChange={(v) => updateException(e.id, { status: v as ExceptionEntry_status })}>
+                <SelectTrigger className="h-7 text-xs w-32"><SelectValue /></SelectTrigger>
+                <SelectContent><SelectItem value="open">open</SelectItem><SelectItem value="investigating">investigating</SelectItem><SelectItem value="closed">closed</SelectItem></SelectContent>
+              </Select>
+            </div>
+            <div className="text-muted-foreground mt-1">
+              {e.leadId && <>Lead: {app.leads.find((l) => l.id === e.leadId)?.name ?? e.leadId} · </>}
+              {e.memberId && <>Member: {members.find((m) => m.id === e.memberId)?.name ?? e.memberId} · </>}
+              {new Date(e.raisedAt).toLocaleString()}
+            </div>
+          </Card>
+        ))}
+        {exceptions.length === 0 && <div className="text-center text-muted-foreground text-xs py-6">No exceptions logged.</div>}
+      </div>
+    </div>
+  );
+}
+type ExceptionEntry_status = "open" | "investigating" | "closed";
+
+/* ───────────────────────── Audit ───────────────────────── */
+
+function AuditTab() {
+  const { audit, clearAudit } = useControlTower();
+  const [q, setQ] = useState("");
+  const filtered = audit.filter((a) => !q || (a.action + a.actor + a.entity).toLowerCase().includes(q.toLowerCase()));
+  return (
+    <div className="space-y-3">
+      <WhyCaption why="Every meaningful action is logged. If it isn't in the audit, it didn't happen." admin="Visibility + accountability" tcm="Clear next step, no ambiguity" />
+      <Card className="p-3 flex items-center gap-2">
+        <Search className="h-3 w-3 text-muted-foreground" />
+        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Filter" className="h-8 text-xs max-w-sm" />
+        <div className="ml-auto flex items-center gap-2">
+          <div className="text-xs text-muted-foreground">{filtered.length}/{audit.length}</div>
+          <Button size="sm" variant="ghost" onClick={clearAudit}>Clear</Button>
+        </div>
+      </Card>
+      <Card className="p-0 overflow-hidden">
+        <table className="w-full text-xs">
+          <thead className="bg-muted/50">
+            <tr>
+              <th className="p-2 text-left">When</th><th className="p-2 text-left">Actor</th>
+              <th className="p-2 text-left">Entity</th><th className="p-2 text-left">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.slice(0, 300).map((a) => (
+              <tr key={a.id} className="border-t">
+                <td className="p-2 text-muted-foreground font-mono">{new Date(a.at).toLocaleTimeString()}</td>
+                <td className="p-2">{a.actor}</td>
+                <td className="p-2 capitalize">{a.entity}{a.entityId ? ` · ${a.entityId.slice(-6)}` : ""}</td>
+                <td className="p-2">{a.action}</td>
+              </tr>
+            ))}
+            {filtered.length === 0 && <tr><td colSpan={4} className="p-6 text-center text-muted-foreground">No audit entries.</td></tr>}
+          </tbody>
+        </table>
+      </Card>
     </div>
   );
 }
