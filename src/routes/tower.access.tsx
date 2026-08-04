@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -62,8 +63,8 @@ function AccessMap() {
           </thead>
           <tbody>
             {GROUPS.map((g) => (
-              <>
-                <tr key={g} className="bg-muted/30">
+              <Fragment key={g}>
+                <tr className="bg-muted/30">
                   <td colSpan={ALL_ROLES.length + 1} className="px-2 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{g}</td>
                 </tr>
                 {MODULES.filter((m) => m.group === g).map((m) => (
@@ -81,7 +82,7 @@ function AccessMap() {
                     ))}
                   </tr>
                 ))}
-              </>
+              </Fragment>
             ))}
           </tbody>
         </table>
