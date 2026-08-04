@@ -122,6 +122,33 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_quality_reports: {
+        Row: {
+          created_at: string
+          day: string
+          generated_by: string | null
+          id: string
+          metrics: Json
+          notes: string | null
+        }
+        Insert: {
+          created_at?: string
+          day: string
+          generated_by?: string | null
+          id?: string
+          metrics?: Json
+          notes?: string | null
+        }
+        Update: {
+          created_at?: string
+          day?: string
+          generated_by?: string | null
+          id?: string
+          metrics?: Json
+          notes?: string | null
+        }
+        Relationships: []
+      }
       duplicate_matches: {
         Row: {
           created_at: string
@@ -413,6 +440,88 @@ export type Database = {
           },
         ]
       }
+      lead_timeline: {
+        Row: {
+          activity: string
+          actor: string | null
+          at: string
+          created_at: string
+          customer_outcome: string | null
+          deadline: string | null
+          detail: string | null
+          feedback_status: Database["public"]["Enums"]["feedback_status"] | null
+          id: string
+          lead_id: string | null
+          new_owner: string | null
+          new_stage: string | null
+          next_action: string | null
+          prev_owner: string | null
+          prev_stage: string | null
+          review_id: string | null
+          score: number | null
+          team: Database["public"]["Enums"]["review_team"] | null
+        }
+        Insert: {
+          activity: string
+          actor?: string | null
+          at?: string
+          created_at?: string
+          customer_outcome?: string | null
+          deadline?: string | null
+          detail?: string | null
+          feedback_status?:
+            | Database["public"]["Enums"]["feedback_status"]
+            | null
+          id?: string
+          lead_id?: string | null
+          new_owner?: string | null
+          new_stage?: string | null
+          next_action?: string | null
+          prev_owner?: string | null
+          prev_stage?: string | null
+          review_id?: string | null
+          score?: number | null
+          team?: Database["public"]["Enums"]["review_team"] | null
+        }
+        Update: {
+          activity?: string
+          actor?: string | null
+          at?: string
+          created_at?: string
+          customer_outcome?: string | null
+          deadline?: string | null
+          detail?: string | null
+          feedback_status?:
+            | Database["public"]["Enums"]["feedback_status"]
+            | null
+          id?: string
+          lead_id?: string | null
+          new_owner?: string | null
+          new_stage?: string | null
+          next_action?: string | null
+          prev_owner?: string | null
+          prev_stage?: string | null
+          review_id?: string | null
+          score?: number | null
+          team?: Database["public"]["Enums"]["review_team"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_timeline_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_timeline_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leads: {
         Row: {
           created_at: string
@@ -610,6 +719,157 @@ export type Database = {
             columns: ["primary_zone_id"]
             isOneToOne: false
             referencedRelation: "zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reviews: {
+        Row: {
+          ack: Database["public"]["Enums"]["ack_choice"] | null
+          ack_at: string | null
+          assignment_id: string | null
+          band: Database["public"]["Enums"]["review_band"]
+          closed_at: string | null
+          closed_by: string | null
+          correct_approach: string | null
+          correction_note: string | null
+          corrective_action: string | null
+          created_at: string
+          critical_error: boolean
+          critical_reasons: string[]
+          customer_impact: string | null
+          deadline: string | null
+          employee_explanation: Json
+          evidence: string[]
+          id: string
+          kind: Database["public"]["Enums"]["review_kind"]
+          lead_id: string | null
+          mandatory_reason: string | null
+          occurred_at: string
+          re_review_of: string | null
+          review_day: string
+          reviewee_id: string
+          reviewer_comment: string | null
+          reviewer_id: string | null
+          scores: Json
+          source_ref: string | null
+          status: Database["public"]["Enums"]["feedback_status"]
+          submitted_at: string | null
+          tags: string[]
+          team: Database["public"]["Enums"]["review_team"]
+          total_score: number
+          transcript: string | null
+          updated_at: string
+          verification:
+            | Database["public"]["Enums"]["verification_result"]
+            | null
+          what_happened: string | null
+          what_was_missed: string | null
+        }
+        Insert: {
+          ack?: Database["public"]["Enums"]["ack_choice"] | null
+          ack_at?: string | null
+          assignment_id?: string | null
+          band?: Database["public"]["Enums"]["review_band"]
+          closed_at?: string | null
+          closed_by?: string | null
+          correct_approach?: string | null
+          correction_note?: string | null
+          corrective_action?: string | null
+          created_at?: string
+          critical_error?: boolean
+          critical_reasons?: string[]
+          customer_impact?: string | null
+          deadline?: string | null
+          employee_explanation?: Json
+          evidence?: string[]
+          id?: string
+          kind?: Database["public"]["Enums"]["review_kind"]
+          lead_id?: string | null
+          mandatory_reason?: string | null
+          occurred_at?: string
+          re_review_of?: string | null
+          review_day?: string
+          reviewee_id: string
+          reviewer_comment?: string | null
+          reviewer_id?: string | null
+          scores?: Json
+          source_ref?: string | null
+          status?: Database["public"]["Enums"]["feedback_status"]
+          submitted_at?: string | null
+          tags?: string[]
+          team?: Database["public"]["Enums"]["review_team"]
+          total_score?: number
+          transcript?: string | null
+          updated_at?: string
+          verification?:
+            | Database["public"]["Enums"]["verification_result"]
+            | null
+          what_happened?: string | null
+          what_was_missed?: string | null
+        }
+        Update: {
+          ack?: Database["public"]["Enums"]["ack_choice"] | null
+          ack_at?: string | null
+          assignment_id?: string | null
+          band?: Database["public"]["Enums"]["review_band"]
+          closed_at?: string | null
+          closed_by?: string | null
+          correct_approach?: string | null
+          correction_note?: string | null
+          corrective_action?: string | null
+          created_at?: string
+          critical_error?: boolean
+          critical_reasons?: string[]
+          customer_impact?: string | null
+          deadline?: string | null
+          employee_explanation?: Json
+          evidence?: string[]
+          id?: string
+          kind?: Database["public"]["Enums"]["review_kind"]
+          lead_id?: string | null
+          mandatory_reason?: string | null
+          occurred_at?: string
+          re_review_of?: string | null
+          review_day?: string
+          reviewee_id?: string
+          reviewer_comment?: string | null
+          reviewer_id?: string | null
+          scores?: Json
+          source_ref?: string | null
+          status?: Database["public"]["Enums"]["feedback_status"]
+          submitted_at?: string | null
+          tags?: string[]
+          team?: Database["public"]["Enums"]["review_team"]
+          total_score?: number
+          transcript?: string | null
+          updated_at?: string
+          verification?:
+            | Database["public"]["Enums"]["verification_result"]
+            | null
+          what_happened?: string | null
+          what_was_missed?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_re_review_of_fkey"
+            columns: ["re_review_of"]
+            isOneToOne: false
+            referencedRelation: "reviews"
             referencedColumns: ["id"]
           },
         ]
@@ -837,6 +1097,7 @@ export type Database = {
       }
     }
     Enums: {
+      ack_choice: "understood" | "need_clarification" | "disagree"
       app_role: "admin" | "manager" | "operator" | "sales"
       assignment_state:
         | "pending_accept"
@@ -851,6 +1112,15 @@ export type Database = {
         | "blocked"
         | "unavailable"
         | "restricted"
+      feedback_status:
+        | "new"
+        | "viewed"
+        | "acknowledged"
+        | "correction_pending"
+        | "submitted"
+        | "re_review_pending"
+        | "closed"
+        | "escalated"
       lead_priority: "super_hot" | "hot" | "active" | "future" | "nurture"
       move_in_bucket:
         | "today"
@@ -861,6 +1131,14 @@ export type Database = {
         | "more_30d"
         | "not_confirmed"
       perf_category: "A" | "B" | "C" | "D"
+      review_band: "gold" | "strong" | "coaching" | "risk" | "critical"
+      review_kind: "chat" | "call" | "lead_journey"
+      review_team:
+        | "control_tower"
+        | "flow_ops"
+        | "pcm"
+        | "closing"
+        | "cross_functional"
       scenario_code:
         | "connected_qualified"
         | "connected_incomplete"
@@ -879,6 +1157,12 @@ export type Database = {
         | "not_interested"
         | "invalid_spam"
       sla_kind: "accept" | "first_action"
+      verification_result:
+        | "closed_correctly"
+        | "partially_corrected"
+        | "correction_rejected"
+        | "customer_unreachable"
+        | "manager_intervention"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1006,6 +1290,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      ack_choice: ["understood", "need_clarification", "disagree"],
       app_role: ["admin", "manager", "operator", "sales"],
       assignment_state: [
         "pending_accept",
@@ -1022,6 +1307,16 @@ export const Constants = {
         "unavailable",
         "restricted",
       ],
+      feedback_status: [
+        "new",
+        "viewed",
+        "acknowledged",
+        "correction_pending",
+        "submitted",
+        "re_review_pending",
+        "closed",
+        "escalated",
+      ],
       lead_priority: ["super_hot", "hot", "active", "future", "nurture"],
       move_in_bucket: [
         "today",
@@ -1033,6 +1328,15 @@ export const Constants = {
         "not_confirmed",
       ],
       perf_category: ["A", "B", "C", "D"],
+      review_band: ["gold", "strong", "coaching", "risk", "critical"],
+      review_kind: ["chat", "call", "lead_journey"],
+      review_team: [
+        "control_tower",
+        "flow_ops",
+        "pcm",
+        "closing",
+        "cross_functional",
+      ],
       scenario_code: [
         "connected_qualified",
         "connected_incomplete",
@@ -1052,6 +1356,13 @@ export const Constants = {
         "invalid_spam",
       ],
       sla_kind: ["accept", "first_action"],
+      verification_result: [
+        "closed_correctly",
+        "partially_corrected",
+        "correction_rejected",
+        "customer_unreachable",
+        "manager_intervention",
+      ],
     },
   },
 } as const
