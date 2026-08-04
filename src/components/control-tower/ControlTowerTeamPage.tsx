@@ -27,6 +27,11 @@ import {
   type ReviewQueueKind,
   type ExceptionKind,
   type CTShift,
+  type DailyInteractionReview,
+  type FeedbackStatus,
+  type InteractionKind,
+  type ReviewTeam,
+  reviewQualityBand,
 } from "@/lib/control-tower/team";
 import {
   planAutoAssign,
@@ -42,7 +47,7 @@ import { cn } from "@/lib/utils";
 import {
   AlertTriangle, CheckCircle2, ShieldCheck, Users, Boxes, Trophy,
   MessageSquare, ClipboardList, Activity, Plus, X, Timer, Flame,
-  ArrowLeftRight, Inbox, Star, Bug, ScrollText, Sparkles, Search,
+  ArrowLeftRight, Inbox, Star, Bug, ScrollText, Sparkles, Search, PhoneCall,
 } from "lucide-react";
 
 const HORIZONS: { key: InventoryHorizon; label: string; hint: string }[] = [
@@ -114,7 +119,7 @@ export function ControlTowerTeamPage() {
           <TabsTrigger value="gates"><CheckCircle2 className="h-3.5 w-3.5 mr-1" />4-Gate</TabsTrigger>
           <TabsTrigger value="inventory"><Boxes className="h-3.5 w-3.5 mr-1" />Inventory</TabsTrigger>
           <TabsTrigger value="lineup"><Trophy className="h-3.5 w-3.5 mr-1" />BBD Lineup</TabsTrigger>
-          <TabsTrigger value="chat"><MessageSquare className="h-3.5 w-3.5 mr-1" />Chat Review</TabsTrigger>
+          <TabsTrigger value="chat"><MessageSquare className="h-3.5 w-3.5 mr-1" />Daily Reviews</TabsTrigger>
           <TabsTrigger value="sla"><Timer className="h-3.5 w-3.5 mr-1" />SLA</TabsTrigger>
           <TabsTrigger value="escalations"><Flame className="h-3.5 w-3.5 mr-1" />Escalations</TabsTrigger>
           <TabsTrigger value="handover"><ArrowLeftRight className="h-3.5 w-3.5 mr-1" />Handover</TabsTrigger>
@@ -131,7 +136,7 @@ export function ControlTowerTeamPage() {
         <TabsContent value="gates"><GatesTab /></TabsContent>
         <TabsContent value="inventory"><InventoryTab /></TabsContent>
         <TabsContent value="lineup"><LineupTab /></TabsContent>
-        <TabsContent value="chat"><ChatReviewTab /></TabsContent>
+        <TabsContent value="chat"><DailyReviewTab /></TabsContent>
         <TabsContent value="sla"><SLATab /></TabsContent>
         <TabsContent value="escalations"><EscalationsTab /></TabsContent>
         <TabsContent value="handover"><HandoverTab /></TabsContent>
@@ -824,6 +829,159 @@ function ChatReviewTab() {
           {reviews.length === 0 && <div className="text-center text-muted-foreground text-xs py-6">No reviews yet.</div>}
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ───────────────────────── Daily review loop ───────────────────────── */
+
+const REVIEW_TEAMS: ReviewTeam[] = ["control-tower", "flow-ops", "pcm", "specialist"];
+const REVIEW_STATUSES: FeedbackStatus[] = [
+  "review-due", "reviewer-submitted", "employee-acknowledged", "correction-started",
+  "evidence-submitted", "closed", "escalated",
+];
+
+function DailyReviewTab() {
+  const app = useApp();
+  const { dailyReviews, ensureDailyReviewCoverage, submitDailyReview, advanceDailyReview } = useControlTower();
+  const [teamFilter, setTeamFilter] = useState<"all" | ReviewTeam>("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | FeedbackStatus>("all");
+  const [kindFilter, setKindFilter] = useState<"all" | InteractionKind>("all");
+  const [selectedId, setSelectedId] = useState("");
+  const [draft, setDraft] = useState({
+    score: 75, criticalError: false, interactionSummary: "", positiveBehaviour: "", exactGap: "",
+    evidenceReference: "", customerImpact: "", revenueImpact: "medium" as DailyInteractionReview["revenueImpact"],
+    correctApproach: "", correctiveAction: "",
+  });
+
+  useEffect(() => {
+    const assignedAt = new Date().toISOString();
+    const dueAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    ensureDailyReviewCoverage(app.leads.flatMap((lead, index) => {
+      const owner = app.tcms.find((t) => t.id === lead.assignedTcmId);
+      const team: ReviewTeam = index % 4 === 0 ? "control-tower" : index % 4 === 1 ? "flow-ops" : index % 4 === 2 ? "pcm" : "specialist";
+      const common = { leadId: lead.id, employeeId: lead.assignedTcmId, employeeName: owner?.name ?? "Unassigned", team, assignedAt, dueAt };
+      return [{ ...common, kind: "chat" as const }, { ...common, kind: "call" as const }];
+    }));
+  }, [app.leads, app.tcms, ensureDailyReviewCoverage]);
+
+  const rows = dailyReviews.filter((r) =>
+    (teamFilter === "all" || r.team === teamFilter) &&
+    (statusFilter === "all" || r.status === statusFilter) &&
+    (kindFilter === "all" || r.kind === kindFilter));
+  const selected = dailyReviews.find((r) => r.id === selectedId);
+  const due = dailyReviews.filter((r) => r.status === "review-due").length;
+  const overdue = dailyReviews.filter((r) => r.status !== "closed" && Date.parse(r.dueAt) < Date.now()).length;
+  const closed = dailyReviews.filter((r) => r.status === "closed").length;
+  const coverage = dailyReviews.length ? Math.round(((dailyReviews.length - due) / dailyReviews.length) * 100) : 0;
+
+  const submit = () => {
+    if (!selected) return;
+    submitDailyReview(selected.id, { ...draft, kind: selected.kind }, "ct-quality");
+  };
+
+  return (
+    <div className="space-y-3">
+      <WhyCaption why="Every assigned lead gets chat and call review coverage within 24 hours. Feedback closes only after correction evidence is verified." admin="Complete cross-team visibility" tcm="One correction loop per lead" client="Fewer repeated mistakes" />
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+        <Card className="p-3"><Metric big={`${coverage}%`} label="24h coverage" /></Card>
+        <Card className="p-3"><Metric big={due} label="Reviews due" /></Card>
+        <Card className="p-3"><Metric big={overdue} label="Overdue" /></Card>
+        <Card className="p-3"><Metric big={closed} label="Loop closed" /></Card>
+      </div>
+
+      <Card className="p-3 flex flex-wrap gap-2 items-center">
+        <Select value={teamFilter} onValueChange={(v) => setTeamFilter(v as "all" | ReviewTeam)}>
+          <SelectTrigger className="h-8 w-40 text-xs"><SelectValue /></SelectTrigger>
+          <SelectContent><SelectItem value="all">All teams</SelectItem>{REVIEW_TEAMS.map((t) => <SelectItem key={t} value={t}>{t.replace("-", " ")}</SelectItem>)}</SelectContent>
+        </Select>
+        <Select value={kindFilter} onValueChange={(v) => setKindFilter(v as "all" | InteractionKind)}>
+          <SelectTrigger className="h-8 w-32 text-xs"><SelectValue /></SelectTrigger>
+          <SelectContent><SelectItem value="all">Chat + call</SelectItem><SelectItem value="chat">Chat</SelectItem><SelectItem value="call">Call</SelectItem></SelectContent>
+        </Select>
+        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as "all" | FeedbackStatus)}>
+          <SelectTrigger className="h-8 w-48 text-xs"><SelectValue /></SelectTrigger>
+          <SelectContent><SelectItem value="all">All statuses</SelectItem>{REVIEW_STATUSES.map((s) => <SelectItem key={s} value={s}>{s.replace(/-/g, " ")}</SelectItem>)}</SelectContent>
+        </Select>
+        <span className="ml-auto text-xs text-muted-foreground">{rows.length} interactions · visible to CT, Flow Ops, PCM and Specialists</span>
+      </Card>
+
+      <div className="grid gap-3 lg:grid-cols-[1.1fr_1fr]">
+        <Card className="p-0 overflow-hidden">
+          <div className="max-h-[620px] overflow-auto divide-y">
+            {rows.map((r) => {
+              const lead = app.leads.find((l) => l.id === r.leadId);
+              return (
+                <button key={r.id} type="button" onClick={() => setSelectedId(r.id)} className={cn("w-full p-3 text-left hover:bg-muted/50", selectedId === r.id && "bg-muted")}>
+                  <div className="flex items-center gap-2">
+                    {r.kind === "chat" ? <MessageSquare className="h-3.5 w-3.5" /> : <PhoneCall className="h-3.5 w-3.5" />}
+                    <span className="font-medium text-sm">{lead?.name ?? r.leadId}</span>
+                    <Badge variant="outline" className="text-[10px] ml-auto">{r.team.replace("-", " ")}</Badge>
+                  </div>
+                  <div className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground">
+                    <span>{r.employeeName}</span><span>·</span><span className="capitalize">{r.status.replace(/-/g, " ")}</span>
+                    {typeof r.score === "number" && <span>· {r.score}/100</span>}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </Card>
+
+        <Card className="p-4 space-y-3">
+          {!selected ? <div className="py-20 text-center text-sm text-muted-foreground">Select a chat or call to review the full lead-to-feedback loop.</div> : (
+            <>
+              <div className="flex items-center justify-between">
+                <div><div className="font-semibold">{selected.kind === "chat" ? "Chat" : "Call"} review</div><div className="text-xs text-muted-foreground">{selected.employeeName} · due within 24 hours</div></div>
+                <Badge variant={selected.criticalError ? "destructive" : "secondary"}>{reviewQualityBand(selected.score ?? draft.score, selected.criticalError || draft.criticalError)}</Badge>
+              </div>
+              {selected.status === "review-due" ? (
+                <>
+                  <div className="grid grid-cols-[1fr_auto] gap-2 items-end"><NumField label="Score / 100" value={draft.score} onChange={(score) => setDraft({ ...draft, score: Math.min(100, Math.max(0, score)) })} /><label className="flex items-center gap-2 text-xs pb-2"><Checkbox checked={draft.criticalError} onCheckedChange={(v) => setDraft({ ...draft, criticalError: v === true })} />Critical error override</label></div>
+                  <ReviewText label="Interaction summary" value={draft.interactionSummary} onChange={(v) => setDraft({ ...draft, interactionSummary: v })} />
+                  <ReviewText label="Positive behaviour" value={draft.positiveBehaviour} onChange={(v) => setDraft({ ...draft, positiveBehaviour: v })} />
+                  <ReviewText label="Exact gap" value={draft.exactGap} onChange={(v) => setDraft({ ...draft, exactGap: v })} />
+                  <ReviewText label="Evidence — message, timestamp or CRM field" value={draft.evidenceReference} onChange={(v) => setDraft({ ...draft, evidenceReference: v })} />
+                  <ReviewText label="Customer impact" value={draft.customerImpact} onChange={(v) => setDraft({ ...draft, customerImpact: v })} />
+                  <ReviewText label="Correct approach" value={draft.correctApproach} onChange={(v) => setDraft({ ...draft, correctApproach: v })} />
+                  <ReviewText label="Required corrective action" value={draft.correctiveAction} onChange={(v) => setDraft({ ...draft, correctiveAction: v })} />
+                  <Button size="sm" onClick={submit}>Submit review & notify employee</Button>
+                </>
+              ) : <FeedbackClosure review={selected} advance={advanceDailyReview} />}
+            </>
+          )}
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function ReviewText({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
+  return <div><Label className="text-xs">{label}</Label><Textarea className="mt-1 text-xs min-h-14" value={value} onChange={(e) => onChange(e.target.value)} /></div>;
+}
+
+function FeedbackClosure({ review, advance }: { review: DailyInteractionReview; advance: (id: string, patch: Partial<DailyInteractionReview> & { status: FeedbackStatus }) => void }) {
+  const [response, setResponse] = useState(review.employeeResponse ?? "");
+  const [rootCause, setRootCause] = useState(review.rootCause ?? "");
+  const [prevention, setPrevention] = useState(review.preventionAction ?? "");
+  const [evidence, setEvidence] = useState(review.correctionEvidence ?? "");
+  const [verification, setVerification] = useState(review.reviewerVerification ?? "");
+  const needsEvidence = review.status !== "closed" && review.status !== "evidence-submitted";
+  return (
+    <div className="space-y-3">
+      <div className="rounded border p-3 text-xs space-y-1"><div><b>Gap:</b> {review.exactGap || "—"}</div><div><b>Correction:</b> {review.correctiveAction || "—"}</div><div><b>Evidence cited:</b> {review.evidenceReference || "—"}</div></div>
+      {needsEvidence && <>
+        <ReviewText label="Employee response — what happened and what was missed?" value={response} onChange={setResponse} />
+        <ReviewText label="Root cause" value={rootCause} onChange={setRootCause} />
+        <ReviewText label="What will be done differently?" value={prevention} onChange={setPrevention} />
+        <ReviewText label="Correction evidence — CRM update / customer follow-up" value={evidence} onChange={setEvidence} />
+        <Button size="sm" onClick={() => advance(review.id, { status: "evidence-submitted", employeeResponse: response, rootCause, preventionAction: prevention, correctionEvidence: evidence })}>Submit correction evidence</Button>
+      </>}
+      {review.status === "evidence-submitted" && <>
+        <ReviewText label="Reviewer verification" value={verification} onChange={setVerification} />
+        <div className="flex gap-2"><Button size="sm" onClick={() => advance(review.id, { status: "closed", reviewerVerification: verification })}>Verify & close loop</Button><Button size="sm" variant="outline" onClick={() => advance(review.id, { status: "correction-started", reviewerVerification: verification })}>Return for correction</Button></div>
+      </>}
+      {review.status === "closed" && <div className="rounded border border-success/40 bg-success/10 p-3 text-xs"><CheckCircle2 className="inline h-4 w-4 mr-1 text-success" />Correction verified. Lead edit → interaction → feedback loop closed.</div>}
     </div>
   );
 }

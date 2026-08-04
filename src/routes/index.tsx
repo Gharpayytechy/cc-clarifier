@@ -37,8 +37,10 @@ function DashboardPage() {
 
   // Live, decayed view of every lead
   const liveLeads = useMemo(
-    () => leads.map((l) => ({ ...l, confidence: liveConfidence(l, tours, now), intent: intentFor(liveConfidence(l, tours, now)) })),
-    [leads, tours, now],
+    () => mounted
+      ? leads.map((l) => ({ ...l, confidence: liveConfidence(l, tours, now), intent: intentFor(liveConfidence(l, tours, now)) }))
+      : leads,
+    [leads, tours, now, mounted],
   );
   const hotLeads = liveLeads.filter((l) => l.intent === "hot" && l.stage !== "booked" && l.stage !== "dropped");
   const incompleteTours = tours.filter((t) => t.status === "completed" && !t.postTour.filledAt);

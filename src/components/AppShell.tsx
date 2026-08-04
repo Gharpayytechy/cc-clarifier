@@ -158,6 +158,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       { to: "/myt/tours", label: "All Tours", icon: CalendarPlus },
       { to: "/follow-ups", label: "Follow-ups", icon: ClipboardList, badge: overdueCount },
       { to: "/handoffs", label: "Handoffs", icon: MessageSquare, badge: unreadHandoffs },
+      { to: "/control-tower-team", label: "Daily Reviews", icon: ShieldCheck, accent: true },
       { to: "/myt/marketplace", label: "Marketplace", icon: Store },
       { to: "/supply-hub", label: "Supply Hub", icon: Layers, accent: true },
       { to: "/supply-hub/match", label: "Lead Matcher", icon: Sparkles },
