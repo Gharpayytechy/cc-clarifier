@@ -22,7 +22,7 @@ function EOD() {
         supabase.from("assignments").select("*, leads(wa_name, phone)").eq("state","pending_accept"),
         supabase.from("assignments").select("*, leads(wa_name, phone)").eq("state","accepted").is("first_action_at", null),
         supabase.from("leads").select("id, wa_name, phone").is("current_scenario", null).eq("status","open"),
-        supabase.from("sla_breaches").select("*, leads(wa_name, phone)").gte("breached_at", iso),
+        supabase.from("sla_breaches").select("*, assignments(lead_id, leads(wa_name, phone))").gte("breached_at", iso),
       ]);
       setOrphan(a.data ?? []); setPending(b.data ?? []); setNoAction(c.data ?? []); setNoScenario(d.data ?? []); setBreaches(e.data ?? []);
     })();
@@ -40,7 +40,7 @@ function EOD() {
       <Section title="Assignments awaiting accept" items={pending.map((a) => ({ id: a.lead_id, label: `${a.leads?.wa_name ?? "?"} · ${a.leads?.phone}`, badge: a.priority }))} link />
       <Section title="Accepted but no first action" items={noAction.map((a) => ({ id: a.lead_id, label: `${a.leads?.wa_name ?? "?"} · ${a.leads?.phone}` }))} link />
       <Section title="No scenario set" items={noScenario.map((l) => ({ id: l.id, label: `${l.wa_name ?? "?"} · ${l.phone}` }))} link />
-      <Section title="SLA breaches today" items={breaches.map((b) => ({ id: b.lead_id, label: `${b.leads?.wa_name ?? "?"} · ${b.leads?.phone}`, badge: b.kind }))} link />
+      <Section title="SLA breaches today" items={breaches.map((b) => ({ id: b.assignments?.lead_id, label: `${b.assignments?.leads?.wa_name ?? "?"} · ${b.assignments?.leads?.phone ?? ""}`, badge: b.kind }))} link />
     </div>
   );
 }

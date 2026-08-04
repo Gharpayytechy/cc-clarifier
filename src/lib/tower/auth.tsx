@@ -1,12 +1,28 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import type { User } from "@supabase/supabase-js";
-import type { Database } from "@/integrations/supabase/types";
 import { canAccess, modulesForRoles, primaryRole, ROLE_DEFAULT_TEAM, type ModuleId, type Role, type TowerModule } from "@/lib/tower/access";
 import type { ReviewTeam } from "@/lib/tower/review-os";
 
+/**
+ * No login. The tower is an internal shared tool: you pick who you are once
+ * and the choice is remembered on this device. Everything else (role-wise
+ * visibility, review ownership, feedback) keys off that member.
+ */
+
+const STORAGE_KEY = "gharpayy.tower.member";
+
+export type Member = {
+  id: string;
+  name: string;
+  team: ReviewTeam | null;
+  roles: Role[];
+  phone: string | null;
+};
+
 type AuthState = {
-  user: User | null;
+  /** The selected member. Kept as `user` so every module reads the same shape. */
+  user: Member | null;
+  members: Member[];
   roles: Role[];
   team: ReviewTeam | null;
   loading: boolean;
@@ -20,6 +36,8 @@ type AuthState = {
   role: Role | null;
   modules: TowerModule[];
   can: (id: ModuleId) => boolean;
+  setMember: (id: string | null) => void;
+  addMember: (input: { name: string; team: ReviewTeam; role: Role; phone?: string }) => Promise<void>;
   signOut: () => Promise<void>;
   refresh: () => Promise<void>;
 };
@@ -27,49 +45,72 @@ type AuthState = {
 const Ctx = createContext<AuthState | null>(null);
 
 export function TowerAuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [roles, setRoles] = useState<Role[]>([]);
-  const [team, setTeam] = useState<ReviewTeam | null>(null);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const loadRoles = async (uid: string) => {
-    const [r, p] = await Promise.all([
-      supabase.from("user_roles").select("role").eq("user_id", uid),
-      supabase.from("profiles").select("team").eq("user_id", uid).maybeSingle(),
+  const load = useCallback(async () => {
+    const [p, r] = await Promise.all([
+      supabase.from("profiles").select("user_id, full_name, team, phone").order("full_name"),
+      supabase.from("user_roles").select("user_id, role"),
     ]);
-    const list = (r.data ?? []).map((x) => x.role);
-    setRoles(list);
-    const fallback = list.map((x) => ROLE_DEFAULT_TEAM[x]).find(Boolean) ?? null;
-    setTeam((p.data?.team as ReviewTeam | null) ?? fallback);
-  };
-
-  const refresh = async () => {
-    const { data } = await supabase.auth.getUser();
-    setUser(data.user);
-    if (data.user) await loadRoles(data.user.id);
-    else { setRoles([]); setTeam(null); }
-  };
+    const roleMap = new Map<string, Role[]>();
+    for (const row of r.data ?? []) {
+      roleMap.set(row.user_id, [...(roleMap.get(row.user_id) ?? []), row.role as Role]);
+    }
+    const list: Member[] = (p.data ?? []).map((x) => {
+      const roles = roleMap.get(x.user_id) ?? ["sales" as Role];
+      const fallback = roles.map((k) => ROLE_DEFAULT_TEAM[k]).find(Boolean) ?? null;
+      return {
+        id: x.user_id,
+        name: x.full_name ?? "Unnamed",
+        team: (x.team as ReviewTeam | null) ?? fallback,
+        roles,
+        phone: x.phone ?? null,
+      };
+    });
+    setMembers(list);
+    return list;
+  }, []);
 
   useEffect(() => {
-    let mounted = true;
-    supabase.auth.getSession().then(async ({ data }) => {
-      if (!mounted) return;
-      setUser(data.session?.user ?? null);
-      if (data.session?.user) await loadRoles(data.session.user.id);
+    let alive = true;
+    load().then((list) => {
+      if (!alive) return;
+      const stored = typeof window !== "undefined" ? window.localStorage.getItem(STORAGE_KEY) : null;
+      const valid = stored && list.some((m) => m.id === stored) ? stored : null;
+      // First visit: land on an admin so nothing looks empty, then let them switch.
+      const fallback = list.find((m) => m.roles.includes("admin"))?.id ?? list[0]?.id ?? null;
+      setSelectedId(valid ?? fallback);
       setLoading(false);
     });
-    const { data: sub } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") {
-        setUser(session?.user ?? null);
-        if (session?.user) setTimeout(() => loadRoles(session.user.id), 0);
-        else { setRoles([]); setTeam(null); }
-      }
-    });
-    return () => {
-      mounted = false;
-      sub.subscription.unsubscribe();
-    };
+    return () => { alive = false; };
+  }, [load]);
+
+  const setMember = useCallback((id: string | null) => {
+    setSelectedId(id);
+    if (typeof window === "undefined") return;
+    if (id) window.localStorage.setItem(STORAGE_KEY, id);
+    else window.localStorage.removeItem(STORAGE_KEY);
   }, []);
+
+  const addMember = useCallback(
+    async (input: { name: string; team: ReviewTeam; role: Role; phone?: string }) => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .insert({ full_name: input.name, team: input.team, phone: input.phone ?? null })
+        .select("user_id")
+        .single();
+      if (error) throw error;
+      await supabase.from("user_roles").insert({ user_id: data.user_id, role: input.role });
+      await supabase.from("workload_points").insert({ user_id: data.user_id });
+      await load();
+    },
+    [load],
+  );
+
+  const user = useMemo(() => members.find((m) => m.id === selectedId) ?? null, [members, selectedId]);
+  const roles = user?.roles ?? [];
 
   const isAdmin = roles.includes("admin");
   const isManager = roles.includes("manager") || isAdmin;
@@ -78,8 +119,9 @@ export function TowerAuthProvider({ children }: { children: ReactNode }) {
 
   const value: AuthState = {
     user,
+    members,
     roles,
-    team,
+    team: user?.team ?? null,
     loading,
     isAdmin,
     isManager,
@@ -90,10 +132,10 @@ export function TowerAuthProvider({ children }: { children: ReactNode }) {
     role: primaryRole(roles),
     modules: modulesForRoles(roles),
     can: (id: ModuleId) => canAccess(id, roles),
-    signOut: async () => {
-      await supabase.auth.signOut();
-    },
-    refresh,
+    setMember,
+    addMember,
+    signOut: async () => setMember(null),
+    refresh: async () => { await load(); },
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

@@ -46,6 +46,7 @@ export type ModuleId =
   | "dashboard"
   | "eod"
   | "access"
+  | "guide"
   | "admin";
 
 export type TowerModule = {
@@ -130,6 +131,14 @@ export const MODULES: TowerModule[] = [
     label: "Access Map",
     group: "Management",
     purpose: "Who sees what — the role-wise visibility matrix.",
+    roles: ["admin", "manager", "control_tower", "operator", "sales"],
+  },
+  {
+    id: "guide",
+    to: "/tower/guide",
+    label: "How to use",
+    group: "Management",
+    purpose: "The daily review rhythm, step by step, for every team.",
     roles: ["admin", "manager", "control_tower", "operator", "sales"],
   },
   {

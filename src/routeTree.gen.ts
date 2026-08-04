@@ -35,7 +35,6 @@ import { Route as ExecutionRouteImport } from './routes/execution'
 import { Route as ControlTowerTeamRouteImport } from './routes/control-tower-team'
 import { Route as CoachRouteImport } from './routes/coach'
 import { Route as CalendarRouteImport } from './routes/calendar'
-import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ActivityRouteImport } from './routes/activity'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TowerIndexRouteImport } from './routes/tower.index'
@@ -45,6 +44,7 @@ import { Route as MytIndexRouteImport } from './routes/myt/index'
 import { Route as TowerTeamRouteImport } from './routes/tower.team'
 import { Route as TowerQualityRouteImport } from './routes/tower.quality'
 import { Route as TowerMyLeadsRouteImport } from './routes/tower.my-leads'
+import { Route as TowerGuideRouteImport } from './routes/tower.guide'
 import { Route as TowerFeedbackRouteImport } from './routes/tower.feedback'
 import { Route as TowerEodRouteImport } from './routes/tower.eod'
 import { Route as TowerDashboardRouteImport } from './routes/tower.dashboard'
@@ -219,11 +219,6 @@ const CalendarRoute = CalendarRouteImport.update({
   path: '/calendar',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ActivityRoute = ActivityRouteImport.update({
   id: '/activity',
   path: '/activity',
@@ -267,6 +262,11 @@ const TowerQualityRoute = TowerQualityRouteImport.update({
 const TowerMyLeadsRoute = TowerMyLeadsRouteImport.update({
   id: '/my-leads',
   path: '/my-leads',
+  getParentRoute: () => TowerRoute,
+} as any)
+const TowerGuideRoute = TowerGuideRouteImport.update({
+  id: '/guide',
+  path: '/guide',
   getParentRoute: () => TowerRoute,
 } as any)
 const TowerFeedbackRoute = TowerFeedbackRouteImport.update({
@@ -488,7 +488,6 @@ const MytTourIdReportRoute = MytTourIdReportRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/activity': typeof ActivityRoute
-  '/auth': typeof AuthRoute
   '/calendar': typeof CalendarRoute
   '/coach': typeof CoachRoute
   '/control-tower-team': typeof ControlTowerTeamRoute
@@ -549,6 +548,7 @@ export interface FileRoutesByFullPath {
   '/tower/dashboard': typeof TowerDashboardRoute
   '/tower/eod': typeof TowerEodRoute
   '/tower/feedback': typeof TowerFeedbackRoute
+  '/tower/guide': typeof TowerGuideRoute
   '/tower/my-leads': typeof TowerMyLeadsRoute
   '/tower/quality': typeof TowerQualityRoute
   '/tower/team': typeof TowerTeamRoute
@@ -569,7 +569,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/activity': typeof ActivityRoute
-  '/auth': typeof AuthRoute
   '/calendar': typeof CalendarRoute
   '/coach': typeof CoachRoute
   '/control-tower-team': typeof ControlTowerTeamRoute
@@ -629,6 +628,7 @@ export interface FileRoutesByTo {
   '/tower/dashboard': typeof TowerDashboardRoute
   '/tower/eod': typeof TowerEodRoute
   '/tower/feedback': typeof TowerFeedbackRoute
+  '/tower/guide': typeof TowerGuideRoute
   '/tower/my-leads': typeof TowerMyLeadsRoute
   '/tower/quality': typeof TowerQualityRoute
   '/tower/team': typeof TowerTeamRoute
@@ -650,7 +650,6 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/activity': typeof ActivityRoute
-  '/auth': typeof AuthRoute
   '/calendar': typeof CalendarRoute
   '/coach': typeof CoachRoute
   '/control-tower-team': typeof ControlTowerTeamRoute
@@ -711,6 +710,7 @@ export interface FileRoutesById {
   '/tower/dashboard': typeof TowerDashboardRoute
   '/tower/eod': typeof TowerEodRoute
   '/tower/feedback': typeof TowerFeedbackRoute
+  '/tower/guide': typeof TowerGuideRoute
   '/tower/my-leads': typeof TowerMyLeadsRoute
   '/tower/quality': typeof TowerQualityRoute
   '/tower/team': typeof TowerTeamRoute
@@ -733,7 +733,6 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/activity'
-    | '/auth'
     | '/calendar'
     | '/coach'
     | '/control-tower-team'
@@ -794,6 +793,7 @@ export interface FileRouteTypes {
     | '/tower/dashboard'
     | '/tower/eod'
     | '/tower/feedback'
+    | '/tower/guide'
     | '/tower/my-leads'
     | '/tower/quality'
     | '/tower/team'
@@ -814,7 +814,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/activity'
-    | '/auth'
     | '/calendar'
     | '/coach'
     | '/control-tower-team'
@@ -874,6 +873,7 @@ export interface FileRouteTypes {
     | '/tower/dashboard'
     | '/tower/eod'
     | '/tower/feedback'
+    | '/tower/guide'
     | '/tower/my-leads'
     | '/tower/quality'
     | '/tower/team'
@@ -894,7 +894,6 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/activity'
-    | '/auth'
     | '/calendar'
     | '/coach'
     | '/control-tower-team'
@@ -955,6 +954,7 @@ export interface FileRouteTypes {
     | '/tower/dashboard'
     | '/tower/eod'
     | '/tower/feedback'
+    | '/tower/guide'
     | '/tower/my-leads'
     | '/tower/quality'
     | '/tower/team'
@@ -976,7 +976,6 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ActivityRoute: typeof ActivityRoute
-  AuthRoute: typeof AuthRoute
   CalendarRoute: typeof CalendarRoute
   CoachRoute: typeof CoachRoute
   ControlTowerTeamRoute: typeof ControlTowerTeamRoute
@@ -1223,13 +1222,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CalendarRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/activity': {
       id: '/activity'
       path: '/activity'
@@ -1291,6 +1283,13 @@ declare module '@tanstack/react-router' {
       path: '/my-leads'
       fullPath: '/tower/my-leads'
       preLoaderRoute: typeof TowerMyLeadsRouteImport
+      parentRoute: typeof TowerRoute
+    }
+    '/tower/guide': {
+      id: '/tower/guide'
+      path: '/guide'
+      fullPath: '/tower/guide'
+      preLoaderRoute: typeof TowerGuideRouteImport
       parentRoute: typeof TowerRoute
     }
     '/tower/feedback': {
@@ -1613,6 +1612,7 @@ interface TowerRouteChildren {
   TowerDashboardRoute: typeof TowerDashboardRoute
   TowerEodRoute: typeof TowerEodRoute
   TowerFeedbackRoute: typeof TowerFeedbackRoute
+  TowerGuideRoute: typeof TowerGuideRoute
   TowerMyLeadsRoute: typeof TowerMyLeadsRoute
   TowerQualityRoute: typeof TowerQualityRoute
   TowerTeamRoute: typeof TowerTeamRoute
@@ -1628,6 +1628,7 @@ const TowerRouteChildren: TowerRouteChildren = {
   TowerDashboardRoute: TowerDashboardRoute,
   TowerEodRoute: TowerEodRoute,
   TowerFeedbackRoute: TowerFeedbackRoute,
+  TowerGuideRoute: TowerGuideRoute,
   TowerMyLeadsRoute: TowerMyLeadsRoute,
   TowerQualityRoute: TowerQualityRoute,
   TowerTeamRoute: TowerTeamRoute,
@@ -1667,7 +1668,6 @@ const MytTourIdRouteWithChildren = MytTourIdRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ActivityRoute: ActivityRoute,
-  AuthRoute: AuthRoute,
   CalendarRoute: CalendarRoute,
   CoachRoute: CoachRoute,
   ControlTowerTeamRoute: ControlTowerTeamRoute,
