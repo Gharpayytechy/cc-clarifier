@@ -108,6 +108,57 @@ export function chatScore(r: ChatReview): number {
   return Math.round((s / 25) * 100);
 }
 
+// ─── Daily conversation quality loop ─────────────────────────
+
+export type ReviewTeam = "control-tower" | "flow-ops" | "pcm" | "specialist";
+export type InteractionKind = "chat" | "call";
+export type FeedbackStatus =
+  | "review-due"
+  | "reviewer-submitted"
+  | "employee-acknowledged"
+  | "correction-started"
+  | "evidence-submitted"
+  | "closed"
+  | "escalated";
+
+export interface DailyInteractionReview {
+  id: string;
+  leadId: string;
+  employeeId: string;
+  employeeName: string;
+  team: ReviewTeam;
+  kind: InteractionKind;
+  assignedAt: string;
+  dueAt: string;
+  status: FeedbackStatus;
+  reviewerId?: string;
+  reviewedAt?: string;
+  score?: number;
+  criticalError: boolean;
+  interactionSummary?: string;
+  positiveBehaviour?: string;
+  exactGap?: string;
+  evidenceReference?: string;
+  customerImpact?: string;
+  revenueImpact?: "none" | "low" | "medium" | "high" | "booking-loss" | "recoverable";
+  correctApproach?: string;
+  correctiveAction?: string;
+  employeeResponse?: string;
+  rootCause?: string;
+  preventionAction?: string;
+  correctionEvidence?: string;
+  reviewerVerification?: string;
+  updatedAt: string;
+}
+
+export function reviewQualityBand(score?: number, criticalError = false) {
+  if (criticalError || (score ?? 0) < 60) return "Critical intervention";
+  if ((score ?? 0) < 70) return "Performance risk";
+  if ((score ?? 0) < 80) return "Coaching required";
+  if ((score ?? 0) < 90) return "Strong";
+  return "Gharpayy Gold";
+}
+
 // ─── Inventory focus ─────────────────────────────────────────
 
 export type InventoryHorizon = "today" | "this-week" | "this-month" | "later";
@@ -296,6 +347,7 @@ interface CTStore {
   ownershipMode: OwnershipMode;
   gatesByLead: Record<string, GateState[]>;
   reviews: ChatReview[];
+  dailyReviews: DailyInteractionReview[];
   inventory: InventoryFocus[];
   lineup: LineupPick[];
   worklist: WorklistItem[];
@@ -323,6 +375,9 @@ interface CTStore {
 
   // reviews
   addReview: (r: Omit<ChatReview, "id" | "reviewedAt">) => ChatReview;
+  ensureDailyReviewCoverage: (items: Array<Omit<DailyInteractionReview, "id" | "status" | "updatedAt" | "criticalError">>) => void;
+  submitDailyReview: (id: string, patch: Partial<DailyInteractionReview>, reviewerId: string) => void;
+  advanceDailyReview: (id: string, patch: Partial<DailyInteractionReview> & { status: FeedbackStatus }) => void;
 
   // inventory
   toggleInventory: (id: string) => void;
@@ -381,6 +436,7 @@ export const useControlTower = create<CTStore>()(
       ownershipMode: "shadow-allowed",
       gatesByLead: {},
       reviews: [],
+      dailyReviews: [],
       inventory: INVENTORY_FOCUS_SEED,
       lineup: [],
       worklist: [],
@@ -429,6 +485,26 @@ export const useControlTower = create<CTStore>()(
         set((s) => ({ reviews: [rec, ...s.reviews].slice(0, 500) }));
         get().audit_push({ actor: r.reviewerId, entity: "review", entityId: rec.id, action: `chat review saved · overall ${r.overall}/5` });
         return rec;
+      },
+      ensureDailyReviewCoverage: (items) =>
+        set((s) => {
+          const existing = new Set(s.dailyReviews.map((r) => `${r.leadId}:${r.kind}:${r.dueAt.slice(0, 10)}`));
+          const additions: DailyInteractionReview[] = items
+            .filter((r) => !existing.has(`${r.leadId}:${r.kind}:${r.dueAt.slice(0, 10)}`))
+            .map((r) => ({ ...r, id: uid(), status: "review-due", criticalError: false, updatedAt: now() }));
+          return additions.length ? { dailyReviews: [...additions, ...s.dailyReviews].slice(0, 5000) } : s;
+        }),
+      submitDailyReview: (id, patch, reviewerId) => {
+        set((s) => ({
+          dailyReviews: s.dailyReviews.map((r) => r.id === id ? {
+            ...r, ...patch, reviewerId, reviewedAt: now(), updatedAt: now(), status: "reviewer-submitted",
+          } : r),
+        }));
+        get().audit_push({ actor: reviewerId, entity: "review", entityId: id, action: `${patch.kind ?? "interaction"} review submitted · ${patch.score ?? 0}/100` });
+      },
+      advanceDailyReview: (id, patch) => {
+        set((s) => ({ dailyReviews: s.dailyReviews.map((r) => r.id === id ? { ...r, ...patch, updatedAt: now() } : r) }));
+        get().audit_push({ actor: "review-loop", entity: "review", entityId: id, action: `feedback → ${patch.status}` });
       },
 
       toggleInventory: (id) =>
@@ -532,7 +608,7 @@ export const useControlTower = create<CTStore>()(
 
       resetControlTower: () =>
         set({
-          gatesByLead: {}, reviews: [], worklist: [], lineup: [],
+          gatesByLead: {}, reviews: [], dailyReviews: [], worklist: [], lineup: [],
           slaBreaches: [], escalations: [], handovers: [], reviewQueue: [], exceptions: [], audit: [],
         }),
     }),
