@@ -1,3 +1,4 @@
+import { RoleGate } from "@/components/tower/RoleGate";
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,7 +23,7 @@ import {
 import type { Database } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/tower/review/$id")({
-  component: ReviewDetail,
+  component: () => <RoleGate module="review"><ReviewDetail /></RoleGate>,
   head: () => ({
     meta: [
       { title: "Review Detail — Gharpayy Review OS" },

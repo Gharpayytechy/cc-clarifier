@@ -1,3 +1,4 @@
+import { RoleGate } from "@/components/tower/RoleGate";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,7 +11,7 @@ import { DAILY_TARGET, STATUS_CLASS, STATUS_LABEL, TEAM_LABEL, bandMeta, fmtTime
 import type { Database } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/tower/feedback")({
-  component: MyFeedback,
+  component: () => <RoleGate module="feedback"><MyFeedback /></RoleGate>,
   head: () => ({
     meta: [
       { title: "Feedback Action Centre — Gharpayy Review OS" },

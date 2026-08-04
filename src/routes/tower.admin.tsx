@@ -1,3 +1,4 @@
+import { RoleGate } from "@/components/tower/RoleGate";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,7 +11,7 @@ import { ALL_ROLES, ROLE_LABEL, ROLE_SUMMARY } from "@/lib/tower/access";
 import { TEAMS, TEAM_LABEL } from "@/lib/tower/review-os";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/tower/admin")({ component: Admin });
+export const Route = createFileRoute("/tower/admin")({ component: () => <RoleGate module="admin"><Admin /></RoleGate> });
 
 const CATS = ["A","B","C","D"] as const;
 const ROLES = ALL_ROLES;

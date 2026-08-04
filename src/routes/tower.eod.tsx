@@ -1,10 +1,11 @@
+import { RoleGate } from "@/components/tower/RoleGate";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
-export const Route = createFileRoute("/tower/eod")({ component: EOD });
+export const Route = createFileRoute("/tower/eod")({ component: () => <RoleGate module="eod"><EOD /></RoleGate> });
 
 function EOD() {
   const [orphan, setOrphan] = useState<any[]>([]);

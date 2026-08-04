@@ -1,3 +1,4 @@
+import { RoleGate } from "@/components/tower/RoleGate";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,7 +10,7 @@ import { PRIORITY_COLORS, PRIORITY_LABELS } from "@/lib/tower/scoring";
 import { acceptAssignment } from "@/lib/tower/engine";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/tower/my-leads")({ component: MyLeads });
+export const Route = createFileRoute("/tower/my-leads")({ component: () => <RoleGate module="my-leads"><MyLeads /></RoleGate> });
 
 type Row = {
   id: string; lead_id: string; priority: "super_hot" | "hot" | "active" | "future" | "nurture";
