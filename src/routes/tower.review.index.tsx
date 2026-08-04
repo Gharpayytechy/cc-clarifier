@@ -103,8 +103,13 @@ function ReviewQueue() {
         </div>
         <div className="flex gap-2">
           <Link to="/tower/feedback"><Button variant="outline" size="sm">My Feedback</Button></Link>
-          <Link to="/tower/quality"><Button variant="outline" size="sm">Quality Dashboard</Button></Link>
+          {auth.can("quality") && <Link to="/tower/quality"><Button variant="outline" size="sm">Quality Dashboard</Button></Link>}
+          <Link to="/tower/access"><Button variant="outline" size="sm">Access Map</Button></Link>
+          {auth.isTowerOps ? (
           <NewReviewDialog people={people} leads={leads} onCreated={(id) => nav({ to: "/tower/review/$id", params: { id } })} />
+          ) : (
+            <span className="text-xs text-muted-foreground self-center max-w-[220px]">You can read every review; reviews are created by Control Tower and managers.</span>
+          )}
         </div>
       </div>
 
