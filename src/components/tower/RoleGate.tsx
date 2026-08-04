@@ -14,9 +14,11 @@ export function RoleGate({ module, children }: { module: ModuleId; children: Rea
   if (!auth.user) {
     return (
       <Card className="p-6 space-y-3 max-w-md">
-        <div className="font-semibold">Sign in required</div>
-        <p className="text-sm text-muted-foreground">Sign in with your Gharpayy account to open {mod?.label ?? "this module"}.</p>
-        <Button asChild size="sm"><Link to="/auth">Sign in</Link></Button>
+        <div className="font-semibold">Pick who you are</div>
+        <p className="text-sm text-muted-foreground">
+          No password needed. Use the name button in the top right to say who you are, and {mod?.label ?? "this module"} opens with your team&apos;s view.
+        </p>
+        <Button asChild size="sm" variant="outline"><Link to="/tower/guide">How this works</Link></Button>
       </Card>
     );
   }
@@ -26,15 +28,16 @@ export function RoleGate({ module, children }: { module: ModuleId; children: Rea
       <Card className="p-6 space-y-3 max-w-xl">
         <div className="font-semibold">{mod?.label ?? "This module"} is not part of your role</div>
         <p className="text-sm text-muted-foreground">
-          You are signed in as <span className="font-medium">{auth.role ? ROLE_LABEL[auth.role] : "no role"}</span>.
+          You are viewing as <span className="font-medium">{auth.user.name}</span> ({auth.role ? ROLE_LABEL[auth.role] : "no role"}).
           This module is open to: {(mod?.roles ?? []).map((r) => ROLE_LABEL[r]).join(", ")}.
         </p>
         <p className="text-sm text-muted-foreground">
           Every team can always see <span className="font-medium">Review OS</span> and <span className="font-medium">My Feedback</span> — that is where the quality loop stays open.
         </p>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button asChild size="sm"><Link to="/tower/review">Go to Review OS</Link></Button>
           <Button asChild size="sm" variant="outline"><Link to="/tower/access">See the access map</Link></Button>
+          <Button asChild size="sm" variant="ghost"><Link to="/tower/guide">How to use</Link></Button>
         </div>
       </Card>
     );

@@ -72,7 +72,7 @@ function MyFeedback() {
     };
   }, [rows, today]);
 
-  if (!auth.user) return <Card className="p-6 text-sm">Sign in to see your feedback.</Card>;
+  if (!auth.user) return <Card className="p-6 text-sm">Pick who you are (top right) to see your feedback.</Card>;
 
   return (
     <div className="space-y-4">

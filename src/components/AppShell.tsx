@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Target, CalendarPlus, ClipboardList, Boxes, Activity,
   Building2, Search, Sun, Command, Trophy, Sparkles, MessageSquare,
   IndianRupee, MapPin, Zap, Users, Home, Calendar, Store, Swords, Settings, AlertTriangle,
-  ShieldCheck, Inbox, Camera, HelpCircle, Layers, HeartPulse,
+  ShieldCheck, Inbox, Camera, HelpCircle, Layers, HeartPulse, ClipboardCheck,
 } from "lucide-react";
 import { NotificationCenter } from "./NotificationCenter";
 import { ProfileMenu } from "./ProfileMenu";
@@ -100,6 +100,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       { to: "/zones", label: "Zone Roles", icon: Users, accent: true },
       { to: "/myt/owners-compare", label: "Owners", icon: ShieldCheck },
       { to: "/control-tower-team", label: "Control Tower Team", icon: ShieldCheck, accent: true },
+      { to: "/tower", label: "Control Tower OS", icon: ShieldCheck, accent: true },
+      { to: "/tower/review", label: "Chat & Call Review OS", icon: ClipboardCheck, accent: true },
       { to: "/supply-hub", label: "Supply Hub", icon: Layers, accent: true },
       { to: "/supply-hub/match", label: "Lead Matcher", icon: Sparkles },
       { to: "/supply-hub/areas", label: "Area Mood", icon: MapPin },
@@ -129,6 +131,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       { to: "/zones", label: "Zone Roles", icon: Users, accent: true },
       { to: "/leads/add", label: "Reassign Console", icon: Inbox, accent: true },
       { to: "/control-tower-team", label: "Control Tower Team", icon: ShieldCheck, accent: true },
+      { to: "/tower", label: "Control Tower OS", icon: ShieldCheck, accent: true },
+      { to: "/tower/review", label: "Chat & Call Review OS", icon: ClipboardCheck, accent: true },
       { to: "/myt/leads", label: "MYT Leads", icon: Target },
       { to: "/myt/schedule", label: "Schedule Tour", icon: CalendarPlus },
       { to: "/myt/properties", label: "Properties", icon: Building2 },
@@ -159,6 +163,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       { to: "/follow-ups", label: "Follow-ups", icon: ClipboardList, badge: overdueCount },
       { to: "/handoffs", label: "Handoffs", icon: MessageSquare, badge: unreadHandoffs },
       { to: "/control-tower-team", label: "Daily Reviews", icon: ShieldCheck, accent: true },
+      { to: "/tower", label: "Control Tower OS", icon: ShieldCheck, accent: true },
+      { to: "/tower/review", label: "Chat & Call Review OS", icon: ClipboardCheck, accent: true },
       { to: "/myt/marketplace", label: "Marketplace", icon: Store },
       { to: "/supply-hub", label: "Supply Hub", icon: Layers, accent: true },
       { to: "/supply-hub/match", label: "Lead Matcher", icon: Sparkles },

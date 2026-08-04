@@ -701,7 +701,7 @@ export type Database = {
           primary_zone_id?: string | null
           team?: Database["public"]["Enums"]["review_team"] | null
           updated_at?: string
-          user_id: string
+          user_id?: string
         }
         Update: {
           created_at?: string

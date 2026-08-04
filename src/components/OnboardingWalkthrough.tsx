@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Sparkles, X, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Link } from '@tanstack/react-router';
+import { Link, useRouterState } from '@tanstack/react-router';
 
 const STORAGE_KEY = 'gharpayy.onboarding.completed.v1';
 
@@ -36,6 +36,8 @@ const STEPS = [
 export function OnboardingWalkthrough() {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const inTower = pathname.startsWith('/tower');
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -43,7 +45,7 @@ export function OnboardingWalkthrough() {
     if (!done) setOpen(true);
   }, []);
 
-  if (!open) return null;
+  if (!open || inTower) return null;
   const s = STEPS[step];
   const last = step === STEPS.length - 1;
 
