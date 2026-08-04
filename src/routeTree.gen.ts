@@ -43,7 +43,9 @@ import { Route as SupplyHubIndexRouteImport } from './routes/supply-hub/index'
 import { Route as OwnerIndexRouteImport } from './routes/owner/index'
 import { Route as MytIndexRouteImport } from './routes/myt/index'
 import { Route as TowerTeamRouteImport } from './routes/tower.team'
+import { Route as TowerQualityRouteImport } from './routes/tower.quality'
 import { Route as TowerMyLeadsRouteImport } from './routes/tower.my-leads'
+import { Route as TowerFeedbackRouteImport } from './routes/tower.feedback'
 import { Route as TowerEodRouteImport } from './routes/tower.eod'
 import { Route as TowerDashboardRouteImport } from './routes/tower.dashboard'
 import { Route as TowerAdminRouteImport } from './routes/tower.admin'
@@ -76,6 +78,8 @@ import { Route as MytDraftsRouteImport } from './routes/myt/drafts'
 import { Route as MytCalendarRouteImport } from './routes/myt/calendar'
 import { Route as MytBookingsRouteImport } from './routes/myt/bookings'
 import { Route as LeadsAddRouteImport } from './routes/leads.add'
+import { Route as TowerReviewIndexRouteImport } from './routes/tower.review.index'
+import { Route as TowerReviewIdRouteImport } from './routes/tower.review.$id'
 import { Route as TowerLeadsIdRouteImport } from './routes/tower.leads.$id'
 import { Route as OwnerMediaRoomIdRouteImport } from './routes/owner/media.$roomId'
 import { Route as MytTourIdRouteImport } from './routes/myt/tour.$id'
@@ -254,9 +258,19 @@ const TowerTeamRoute = TowerTeamRouteImport.update({
   path: '/team',
   getParentRoute: () => TowerRoute,
 } as any)
+const TowerQualityRoute = TowerQualityRouteImport.update({
+  id: '/quality',
+  path: '/quality',
+  getParentRoute: () => TowerRoute,
+} as any)
 const TowerMyLeadsRoute = TowerMyLeadsRouteImport.update({
   id: '/my-leads',
   path: '/my-leads',
+  getParentRoute: () => TowerRoute,
+} as any)
+const TowerFeedbackRoute = TowerFeedbackRouteImport.update({
+  id: '/feedback',
+  path: '/feedback',
   getParentRoute: () => TowerRoute,
 } as any)
 const TowerEodRoute = TowerEodRouteImport.update({
@@ -419,6 +433,16 @@ const LeadsAddRoute = LeadsAddRouteImport.update({
   path: '/add',
   getParentRoute: () => LeadsRoute,
 } as any)
+const TowerReviewIndexRoute = TowerReviewIndexRouteImport.update({
+  id: '/review/',
+  path: '/review/',
+  getParentRoute: () => TowerRoute,
+} as any)
+const TowerReviewIdRoute = TowerReviewIdRouteImport.update({
+  id: '/review/$id',
+  path: '/review/$id',
+  getParentRoute: () => TowerRoute,
+} as any)
 const TowerLeadsIdRoute = TowerLeadsIdRouteImport.update({
   id: '/leads/$id',
   path: '/leads/$id',
@@ -517,7 +541,9 @@ export interface FileRoutesByFullPath {
   '/tower/admin': typeof TowerAdminRoute
   '/tower/dashboard': typeof TowerDashboardRoute
   '/tower/eod': typeof TowerEodRoute
+  '/tower/feedback': typeof TowerFeedbackRoute
   '/tower/my-leads': typeof TowerMyLeadsRoute
+  '/tower/quality': typeof TowerQualityRoute
   '/tower/team': typeof TowerTeamRoute
   '/myt/': typeof MytIndexRoute
   '/owner/': typeof OwnerIndexRoute
@@ -529,6 +555,8 @@ export interface FileRoutesByFullPath {
   '/myt/tour/$id': typeof MytTourIdRouteWithChildren
   '/owner/media/$roomId': typeof OwnerMediaRoomIdRoute
   '/tower/leads/$id': typeof TowerLeadsIdRoute
+  '/tower/review/$id': typeof TowerReviewIdRoute
+  '/tower/review/': typeof TowerReviewIndexRoute
   '/myt/tour/$id/report': typeof MytTourIdReportRoute
 }
 export interface FileRoutesByTo {
@@ -592,7 +620,9 @@ export interface FileRoutesByTo {
   '/tower/admin': typeof TowerAdminRoute
   '/tower/dashboard': typeof TowerDashboardRoute
   '/tower/eod': typeof TowerEodRoute
+  '/tower/feedback': typeof TowerFeedbackRoute
   '/tower/my-leads': typeof TowerMyLeadsRoute
+  '/tower/quality': typeof TowerQualityRoute
   '/tower/team': typeof TowerTeamRoute
   '/myt': typeof MytIndexRoute
   '/owner': typeof OwnerIndexRoute
@@ -604,6 +634,8 @@ export interface FileRoutesByTo {
   '/myt/tour/$id': typeof MytTourIdRouteWithChildren
   '/owner/media/$roomId': typeof OwnerMediaRoomIdRoute
   '/tower/leads/$id': typeof TowerLeadsIdRoute
+  '/tower/review/$id': typeof TowerReviewIdRoute
+  '/tower/review': typeof TowerReviewIndexRoute
   '/myt/tour/$id/report': typeof MytTourIdReportRoute
 }
 export interface FileRoutesById {
@@ -669,7 +701,9 @@ export interface FileRoutesById {
   '/tower/admin': typeof TowerAdminRoute
   '/tower/dashboard': typeof TowerDashboardRoute
   '/tower/eod': typeof TowerEodRoute
+  '/tower/feedback': typeof TowerFeedbackRoute
   '/tower/my-leads': typeof TowerMyLeadsRoute
+  '/tower/quality': typeof TowerQualityRoute
   '/tower/team': typeof TowerTeamRoute
   '/myt/': typeof MytIndexRoute
   '/owner/': typeof OwnerIndexRoute
@@ -681,6 +715,8 @@ export interface FileRoutesById {
   '/myt/tour/$id': typeof MytTourIdRouteWithChildren
   '/owner/media/$roomId': typeof OwnerMediaRoomIdRoute
   '/tower/leads/$id': typeof TowerLeadsIdRoute
+  '/tower/review/$id': typeof TowerReviewIdRoute
+  '/tower/review/': typeof TowerReviewIndexRoute
   '/myt/tour/$id/report': typeof MytTourIdReportRoute
 }
 export interface FileRouteTypes {
@@ -747,7 +783,9 @@ export interface FileRouteTypes {
     | '/tower/admin'
     | '/tower/dashboard'
     | '/tower/eod'
+    | '/tower/feedback'
     | '/tower/my-leads'
+    | '/tower/quality'
     | '/tower/team'
     | '/myt/'
     | '/owner/'
@@ -759,6 +797,8 @@ export interface FileRouteTypes {
     | '/myt/tour/$id'
     | '/owner/media/$roomId'
     | '/tower/leads/$id'
+    | '/tower/review/$id'
+    | '/tower/review/'
     | '/myt/tour/$id/report'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -822,7 +862,9 @@ export interface FileRouteTypes {
     | '/tower/admin'
     | '/tower/dashboard'
     | '/tower/eod'
+    | '/tower/feedback'
     | '/tower/my-leads'
+    | '/tower/quality'
     | '/tower/team'
     | '/myt'
     | '/owner'
@@ -834,6 +876,8 @@ export interface FileRouteTypes {
     | '/myt/tour/$id'
     | '/owner/media/$roomId'
     | '/tower/leads/$id'
+    | '/tower/review/$id'
+    | '/tower/review'
     | '/myt/tour/$id/report'
   id:
     | '__root__'
@@ -898,7 +942,9 @@ export interface FileRouteTypes {
     | '/tower/admin'
     | '/tower/dashboard'
     | '/tower/eod'
+    | '/tower/feedback'
     | '/tower/my-leads'
+    | '/tower/quality'
     | '/tower/team'
     | '/myt/'
     | '/owner/'
@@ -910,6 +956,8 @@ export interface FileRouteTypes {
     | '/myt/tour/$id'
     | '/owner/media/$roomId'
     | '/tower/leads/$id'
+    | '/tower/review/$id'
+    | '/tower/review/'
     | '/myt/tour/$id/report'
   fileRoutesById: FileRoutesById
 }
@@ -1219,11 +1267,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TowerTeamRouteImport
       parentRoute: typeof TowerRoute
     }
+    '/tower/quality': {
+      id: '/tower/quality'
+      path: '/quality'
+      fullPath: '/tower/quality'
+      preLoaderRoute: typeof TowerQualityRouteImport
+      parentRoute: typeof TowerRoute
+    }
     '/tower/my-leads': {
       id: '/tower/my-leads'
       path: '/my-leads'
       fullPath: '/tower/my-leads'
       preLoaderRoute: typeof TowerMyLeadsRouteImport
+      parentRoute: typeof TowerRoute
+    }
+    '/tower/feedback': {
+      id: '/tower/feedback'
+      path: '/feedback'
+      fullPath: '/tower/feedback'
+      preLoaderRoute: typeof TowerFeedbackRouteImport
       parentRoute: typeof TowerRoute
     }
     '/tower/eod': {
@@ -1450,6 +1512,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LeadsAddRouteImport
       parentRoute: typeof LeadsRoute
     }
+    '/tower/review/': {
+      id: '/tower/review/'
+      path: '/review'
+      fullPath: '/tower/review/'
+      preLoaderRoute: typeof TowerReviewIndexRouteImport
+      parentRoute: typeof TowerRoute
+    }
+    '/tower/review/$id': {
+      id: '/tower/review/$id'
+      path: '/review/$id'
+      fullPath: '/tower/review/$id'
+      preLoaderRoute: typeof TowerReviewIdRouteImport
+      parentRoute: typeof TowerRoute
+    }
     '/tower/leads/$id': {
       id: '/tower/leads/$id'
       path: '/leads/$id'
@@ -1516,20 +1592,28 @@ interface TowerRouteChildren {
   TowerAdminRoute: typeof TowerAdminRoute
   TowerDashboardRoute: typeof TowerDashboardRoute
   TowerEodRoute: typeof TowerEodRoute
+  TowerFeedbackRoute: typeof TowerFeedbackRoute
   TowerMyLeadsRoute: typeof TowerMyLeadsRoute
+  TowerQualityRoute: typeof TowerQualityRoute
   TowerTeamRoute: typeof TowerTeamRoute
   TowerIndexRoute: typeof TowerIndexRoute
   TowerLeadsIdRoute: typeof TowerLeadsIdRoute
+  TowerReviewIdRoute: typeof TowerReviewIdRoute
+  TowerReviewIndexRoute: typeof TowerReviewIndexRoute
 }
 
 const TowerRouteChildren: TowerRouteChildren = {
   TowerAdminRoute: TowerAdminRoute,
   TowerDashboardRoute: TowerDashboardRoute,
   TowerEodRoute: TowerEodRoute,
+  TowerFeedbackRoute: TowerFeedbackRoute,
   TowerMyLeadsRoute: TowerMyLeadsRoute,
+  TowerQualityRoute: TowerQualityRoute,
   TowerTeamRoute: TowerTeamRoute,
   TowerIndexRoute: TowerIndexRoute,
   TowerLeadsIdRoute: TowerLeadsIdRoute,
+  TowerReviewIdRoute: TowerReviewIdRoute,
+  TowerReviewIndexRoute: TowerReviewIndexRoute,
 }
 
 const TowerRouteWithChildren = TowerRoute._addFileChildren(TowerRouteChildren)
@@ -1627,12 +1711,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

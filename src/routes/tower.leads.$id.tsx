@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { MOVE_IN_LABELS, type MoveInBucket } from "@/lib/tower/scoring";
 import { useTowerAuth } from "@/lib/tower/auth";
 import { toast } from "sonner";
+import { LeadQualityTimeline } from "@/components/tower/LeadQualityTimeline";
 
 export const Route = createFileRoute("/tower/leads/$id")({ component: LeadDetail });
 
@@ -224,6 +225,8 @@ function LeadDetail() {
           </Card>
         )}
       </div>
+
+      <LeadQualityTimeline leadId={id} />
     </div>
   );
 }
