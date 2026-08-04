@@ -1,9 +1,10 @@
+import { RoleGate } from "@/components/tower/RoleGate";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 
-export const Route = createFileRoute("/tower/dashboard")({ component: Dash });
+export const Route = createFileRoute("/tower/dashboard")({ component: () => <RoleGate module="dashboard"><Dash /></RoleGate> });
 
 function Dash() {
   const [k, setK] = useState<Record<string, number>>({});

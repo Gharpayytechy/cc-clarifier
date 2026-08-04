@@ -1,3 +1,4 @@
+import { RoleGate } from "@/components/tower/RoleGate";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useTowerAuth } from "@/lib/tower/auth";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/tower/team")({ component: Team });
+export const Route = createFileRoute("/tower/team")({ component: () => <RoleGate module="team"><Team /></RoleGate> });
 
 function Team() {
   const auth = useTowerAuth();

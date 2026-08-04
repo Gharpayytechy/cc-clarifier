@@ -1,3 +1,4 @@
+import { RoleGate } from "@/components/tower/RoleGate";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,7 +14,7 @@ import {
 import type { Database } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/tower/quality")({
-  component: QualityDashboard,
+  component: () => <RoleGate module="quality"><QualityDashboard /></RoleGate>,
   head: () => ({
     meta: [
       { title: "Quality Dashboard — Gharpayy Review OS" },

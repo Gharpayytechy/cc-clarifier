@@ -1,3 +1,4 @@
+import { RoleGate } from "@/components/tower/RoleGate";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,7 +12,7 @@ import { toast } from "sonner";
 import { MOVE_IN_LABELS, PRIORITY_COLORS, PRIORITY_LABELS, type MoveInBucket } from "@/lib/tower/scoring";
 import { checkDuplicate, createAndAssign, simulateIncoming } from "@/lib/tower/engine";
 
-export const Route = createFileRoute("/tower/")({ component: TowerHome });
+export const Route = createFileRoute("/tower/")({ component: () => <RoleGate module="overview"><TowerHome /></RoleGate> });
 
 type Conv = {
   id: string; wa_name: string | null; phone: string; first_message: string | null;

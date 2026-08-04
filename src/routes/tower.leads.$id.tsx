@@ -1,3 +1,4 @@
+import { RoleGate } from "@/components/tower/RoleGate";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,7 +15,7 @@ import { useTowerAuth } from "@/lib/tower/auth";
 import { toast } from "sonner";
 import { LeadQualityTimeline } from "@/components/tower/LeadQualityTimeline";
 
-export const Route = createFileRoute("/tower/leads/$id")({ component: LeadDetail });
+export const Route = createFileRoute("/tower/leads/$id")({ component: () => <RoleGate module="my-leads"><LeadDetail /></RoleGate> });
 
 function LeadDetail() {
   const { id } = Route.useParams();

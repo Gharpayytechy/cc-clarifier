@@ -49,6 +49,7 @@ import { Route as TowerFeedbackRouteImport } from './routes/tower.feedback'
 import { Route as TowerEodRouteImport } from './routes/tower.eod'
 import { Route as TowerDashboardRouteImport } from './routes/tower.dashboard'
 import { Route as TowerAdminRouteImport } from './routes/tower.admin'
+import { Route as TowerAccessRouteImport } from './routes/tower.access'
 import { Route as SupplyHubMatchRouteImport } from './routes/supply-hub/match'
 import { Route as SupplyHubAreasRouteImport } from './routes/supply-hub/areas'
 import { Route as SupplyHubIdRouteImport } from './routes/supply-hub/$id'
@@ -286,6 +287,11 @@ const TowerDashboardRoute = TowerDashboardRouteImport.update({
 const TowerAdminRoute = TowerAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => TowerRoute,
+} as any)
+const TowerAccessRoute = TowerAccessRouteImport.update({
+  id: '/access',
+  path: '/access',
   getParentRoute: () => TowerRoute,
 } as any)
 const SupplyHubMatchRoute = SupplyHubMatchRouteImport.update({
@@ -538,6 +544,7 @@ export interface FileRoutesByFullPath {
   '/supply-hub/$id': typeof SupplyHubIdRoute
   '/supply-hub/areas': typeof SupplyHubAreasRoute
   '/supply-hub/match': typeof SupplyHubMatchRoute
+  '/tower/access': typeof TowerAccessRoute
   '/tower/admin': typeof TowerAdminRoute
   '/tower/dashboard': typeof TowerDashboardRoute
   '/tower/eod': typeof TowerEodRoute
@@ -617,6 +624,7 @@ export interface FileRoutesByTo {
   '/supply-hub/$id': typeof SupplyHubIdRoute
   '/supply-hub/areas': typeof SupplyHubAreasRoute
   '/supply-hub/match': typeof SupplyHubMatchRoute
+  '/tower/access': typeof TowerAccessRoute
   '/tower/admin': typeof TowerAdminRoute
   '/tower/dashboard': typeof TowerDashboardRoute
   '/tower/eod': typeof TowerEodRoute
@@ -698,6 +706,7 @@ export interface FileRoutesById {
   '/supply-hub/$id': typeof SupplyHubIdRoute
   '/supply-hub/areas': typeof SupplyHubAreasRoute
   '/supply-hub/match': typeof SupplyHubMatchRoute
+  '/tower/access': typeof TowerAccessRoute
   '/tower/admin': typeof TowerAdminRoute
   '/tower/dashboard': typeof TowerDashboardRoute
   '/tower/eod': typeof TowerEodRoute
@@ -780,6 +789,7 @@ export interface FileRouteTypes {
     | '/supply-hub/$id'
     | '/supply-hub/areas'
     | '/supply-hub/match'
+    | '/tower/access'
     | '/tower/admin'
     | '/tower/dashboard'
     | '/tower/eod'
@@ -859,6 +869,7 @@ export interface FileRouteTypes {
     | '/supply-hub/$id'
     | '/supply-hub/areas'
     | '/supply-hub/match'
+    | '/tower/access'
     | '/tower/admin'
     | '/tower/dashboard'
     | '/tower/eod'
@@ -939,6 +950,7 @@ export interface FileRouteTypes {
     | '/supply-hub/$id'
     | '/supply-hub/areas'
     | '/supply-hub/match'
+    | '/tower/access'
     | '/tower/admin'
     | '/tower/dashboard'
     | '/tower/eod'
@@ -1309,6 +1321,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TowerAdminRouteImport
       parentRoute: typeof TowerRoute
     }
+    '/tower/access': {
+      id: '/tower/access'
+      path: '/access'
+      fullPath: '/tower/access'
+      preLoaderRoute: typeof TowerAccessRouteImport
+      parentRoute: typeof TowerRoute
+    }
     '/supply-hub/match': {
       id: '/supply-hub/match'
       path: '/supply-hub/match'
@@ -1589,6 +1608,7 @@ const LeadsRouteChildren: LeadsRouteChildren = {
 const LeadsRouteWithChildren = LeadsRoute._addFileChildren(LeadsRouteChildren)
 
 interface TowerRouteChildren {
+  TowerAccessRoute: typeof TowerAccessRoute
   TowerAdminRoute: typeof TowerAdminRoute
   TowerDashboardRoute: typeof TowerDashboardRoute
   TowerEodRoute: typeof TowerEodRoute
@@ -1603,6 +1623,7 @@ interface TowerRouteChildren {
 }
 
 const TowerRouteChildren: TowerRouteChildren = {
+  TowerAccessRoute: TowerAccessRoute,
   TowerAdminRoute: TowerAdminRoute,
   TowerDashboardRoute: TowerDashboardRoute,
   TowerEodRoute: TowerEodRoute,

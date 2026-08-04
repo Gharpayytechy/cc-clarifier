@@ -2,17 +2,24 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-
-type Role = Database["public"]["Enums"]["app_role"];
+import { canAccess, modulesForRoles, primaryRole, ROLE_DEFAULT_TEAM, type ModuleId, type Role, type TowerModule } from "@/lib/tower/access";
+import type { ReviewTeam } from "@/lib/tower/review-os";
 
 type AuthState = {
   user: User | null;
   roles: Role[];
+  team: ReviewTeam | null;
   loading: boolean;
   isAdmin: boolean;
   isManager: boolean;
   isOperator: boolean;
   isSales: boolean;
+  isControlTower: boolean;
+  /** Anyone who runs the tower floor: admin, manager, control tower or operator. */
+  isTowerOps: boolean;
+  role: Role | null;
+  modules: TowerModule[];
+  can: (id: ModuleId) => boolean;
   signOut: () => Promise<void>;
   refresh: () => Promise<void>;
 };
@@ -22,18 +29,25 @@ const Ctx = createContext<AuthState | null>(null);
 export function TowerAuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [roles, setRoles] = useState<Role[]>([]);
+  const [team, setTeam] = useState<ReviewTeam | null>(null);
   const [loading, setLoading] = useState(true);
 
   const loadRoles = async (uid: string) => {
-    const { data } = await supabase.from("user_roles").select("role").eq("user_id", uid);
-    setRoles((data ?? []).map((r) => r.role));
+    const [r, p] = await Promise.all([
+      supabase.from("user_roles").select("role").eq("user_id", uid),
+      supabase.from("profiles").select("team").eq("user_id", uid).maybeSingle(),
+    ]);
+    const list = (r.data ?? []).map((x) => x.role);
+    setRoles(list);
+    const fallback = list.map((x) => ROLE_DEFAULT_TEAM[x]).find(Boolean) ?? null;
+    setTeam((p.data?.team as ReviewTeam | null) ?? fallback);
   };
 
   const refresh = async () => {
     const { data } = await supabase.auth.getUser();
     setUser(data.user);
     if (data.user) await loadRoles(data.user.id);
-    else setRoles([]);
+    else { setRoles([]); setTeam(null); }
   };
 
   useEffect(() => {
@@ -48,7 +62,7 @@ export function TowerAuthProvider({ children }: { children: ReactNode }) {
       if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") {
         setUser(session?.user ?? null);
         if (session?.user) setTimeout(() => loadRoles(session.user.id), 0);
-        else setRoles([]);
+        else { setRoles([]); setTeam(null); }
       }
     });
     return () => {
@@ -57,14 +71,25 @@ export function TowerAuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  const isAdmin = roles.includes("admin");
+  const isManager = roles.includes("manager") || isAdmin;
+  const isControlTower = roles.includes("control_tower") || isAdmin;
+  const isOperator = roles.includes("operator") || isAdmin;
+
   const value: AuthState = {
     user,
     roles,
+    team,
     loading,
-    isAdmin: roles.includes("admin"),
-    isManager: roles.includes("manager") || roles.includes("admin"),
-    isOperator: roles.includes("operator") || roles.includes("admin"),
-    isSales: roles.includes("sales") || roles.includes("admin"),
+    isAdmin,
+    isManager,
+    isOperator,
+    isSales: roles.includes("sales") || isAdmin,
+    isControlTower,
+    isTowerOps: isAdmin || isManager || isControlTower || isOperator,
+    role: primaryRole(roles),
+    modules: modulesForRoles(roles),
+    can: (id: ModuleId) => canAccess(id, roles),
     signOut: async () => {
       await supabase.auth.signOut();
     },
