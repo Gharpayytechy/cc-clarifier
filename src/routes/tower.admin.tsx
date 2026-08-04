@@ -11,7 +11,9 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/tower/admin")({ component: Admin });
 
 const CATS = ["A","B","C","D"] as const;
-const ROLES = ["admin","manager","operator","sales"] as const;
+const ROLES = ALL_ROLES;
+const TEAM_OPTS = TEAMS;
+
 
 function Admin() {
   const auth = useTowerAuth();
