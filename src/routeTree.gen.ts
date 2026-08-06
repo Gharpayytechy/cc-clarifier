@@ -48,6 +48,7 @@ import { Route as TowerGuideRouteImport } from './routes/tower.guide'
 import { Route as TowerFeedbackRouteImport } from './routes/tower.feedback'
 import { Route as TowerEodRouteImport } from './routes/tower.eod'
 import { Route as TowerDashboardRouteImport } from './routes/tower.dashboard'
+import { Route as TowerAnalyticsRouteImport } from './routes/tower.analytics'
 import { Route as TowerAdminRouteImport } from './routes/tower.admin'
 import { Route as TowerAccessRouteImport } from './routes/tower.access'
 import { Route as SupplyHubMatchRouteImport } from './routes/supply-hub/match'
@@ -282,6 +283,11 @@ const TowerEodRoute = TowerEodRouteImport.update({
 const TowerDashboardRoute = TowerDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => TowerRoute,
+} as any)
+const TowerAnalyticsRoute = TowerAnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
   getParentRoute: () => TowerRoute,
 } as any)
 const TowerAdminRoute = TowerAdminRouteImport.update({
@@ -545,6 +551,7 @@ export interface FileRoutesByFullPath {
   '/supply-hub/match': typeof SupplyHubMatchRoute
   '/tower/access': typeof TowerAccessRoute
   '/tower/admin': typeof TowerAdminRoute
+  '/tower/analytics': typeof TowerAnalyticsRoute
   '/tower/dashboard': typeof TowerDashboardRoute
   '/tower/eod': typeof TowerEodRoute
   '/tower/feedback': typeof TowerFeedbackRoute
@@ -625,6 +632,7 @@ export interface FileRoutesByTo {
   '/supply-hub/match': typeof SupplyHubMatchRoute
   '/tower/access': typeof TowerAccessRoute
   '/tower/admin': typeof TowerAdminRoute
+  '/tower/analytics': typeof TowerAnalyticsRoute
   '/tower/dashboard': typeof TowerDashboardRoute
   '/tower/eod': typeof TowerEodRoute
   '/tower/feedback': typeof TowerFeedbackRoute
@@ -707,6 +715,7 @@ export interface FileRoutesById {
   '/supply-hub/match': typeof SupplyHubMatchRoute
   '/tower/access': typeof TowerAccessRoute
   '/tower/admin': typeof TowerAdminRoute
+  '/tower/analytics': typeof TowerAnalyticsRoute
   '/tower/dashboard': typeof TowerDashboardRoute
   '/tower/eod': typeof TowerEodRoute
   '/tower/feedback': typeof TowerFeedbackRoute
@@ -790,6 +799,7 @@ export interface FileRouteTypes {
     | '/supply-hub/match'
     | '/tower/access'
     | '/tower/admin'
+    | '/tower/analytics'
     | '/tower/dashboard'
     | '/tower/eod'
     | '/tower/feedback'
@@ -870,6 +880,7 @@ export interface FileRouteTypes {
     | '/supply-hub/match'
     | '/tower/access'
     | '/tower/admin'
+    | '/tower/analytics'
     | '/tower/dashboard'
     | '/tower/eod'
     | '/tower/feedback'
@@ -951,6 +962,7 @@ export interface FileRouteTypes {
     | '/supply-hub/match'
     | '/tower/access'
     | '/tower/admin'
+    | '/tower/analytics'
     | '/tower/dashboard'
     | '/tower/eod'
     | '/tower/feedback'
@@ -1313,6 +1325,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TowerDashboardRouteImport
       parentRoute: typeof TowerRoute
     }
+    '/tower/analytics': {
+      id: '/tower/analytics'
+      path: '/analytics'
+      fullPath: '/tower/analytics'
+      preLoaderRoute: typeof TowerAnalyticsRouteImport
+      parentRoute: typeof TowerRoute
+    }
     '/tower/admin': {
       id: '/tower/admin'
       path: '/admin'
@@ -1609,6 +1628,7 @@ const LeadsRouteWithChildren = LeadsRoute._addFileChildren(LeadsRouteChildren)
 interface TowerRouteChildren {
   TowerAccessRoute: typeof TowerAccessRoute
   TowerAdminRoute: typeof TowerAdminRoute
+  TowerAnalyticsRoute: typeof TowerAnalyticsRoute
   TowerDashboardRoute: typeof TowerDashboardRoute
   TowerEodRoute: typeof TowerEodRoute
   TowerFeedbackRoute: typeof TowerFeedbackRoute
@@ -1625,6 +1645,7 @@ interface TowerRouteChildren {
 const TowerRouteChildren: TowerRouteChildren = {
   TowerAccessRoute: TowerAccessRoute,
   TowerAdminRoute: TowerAdminRoute,
+  TowerAnalyticsRoute: TowerAnalyticsRoute,
   TowerDashboardRoute: TowerDashboardRoute,
   TowerEodRoute: TowerEodRoute,
   TowerFeedbackRoute: TowerFeedbackRoute,
@@ -1732,12 +1753,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

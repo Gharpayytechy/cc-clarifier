@@ -43,6 +43,7 @@ export type ModuleId =
   | "review"
   | "feedback"
   | "quality"
+  | "analytics"
   | "dashboard"
   | "eod"
   | "access"
@@ -108,6 +109,14 @@ export const MODULES: TowerModule[] = [
     group: "Review OS",
     purpose: "Company quality pulse, coverage per person and the daily cadence.",
     roles: ["admin", "manager", "control_tower"],
+  },
+  {
+    id: "analytics",
+    to: "/tower/analytics",
+    label: "100x Analytics",
+    group: "Review OS",
+    purpose: "Everything interconnected: lead flow, SLA, review coverage, feedback closure and the 14 checkpoints.",
+    roles: ["admin", "manager", "control_tower", "operator", "sales"],
   },
   {
     id: "dashboard",

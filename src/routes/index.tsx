@@ -44,10 +44,10 @@ function DashboardPage() {
   );
   const hotLeads = liveLeads.filter((l) => l.intent === "hot" && l.stage !== "booked" && l.stage !== "dropped");
   const incompleteTours = tours.filter((t) => t.status === "completed" && !t.postTour.filledAt);
-  const todayTours = tours.filter((t) => t.status === "scheduled" && sameDay(+new Date(t.scheduledAt), now));
+  const todayTours = mounted ? tours.filter((t) => t.status === "scheduled" && sameDay(+new Date(t.scheduledAt), now)) : [];
   const booked = tours.filter((t) => t.decision === "booked").length;
   const conversion = tours.length ? Math.round((booked / tours.length) * 100) : 0;
-  const overdueFu = followUps.filter((f) => !f.done && +new Date(f.dueAt) < now).length;
+  const overdueFu = mounted ? followUps.filter((f) => !f.done && +new Date(f.dueAt) < now).length : 0;
   const monthlyRevenue = bookings.reduce((s, b) => s + b.amount, 0);
   const unreadHandoffs = handoffs.filter((h) => !h.read && h.to === role).length;
 
