@@ -12,7 +12,7 @@ import {
   buildSnapshot, pct, STATUS_DOT, STATUS_TEXT, TEAM_TARGETS,
   type Assignment, type Breach, type Lead, type Profile, type Review, type Snapshot, type Timeline,
 } from "@/lib/tower/analytics";
-import { TEAM_LABEL, DAILY_TARGET, bandMeta, STATUS_LABEL, STATUS_CLASS } from "@/lib/tower/review-os";
+import { TEAM_LABEL, DAILY_TARGET } from "@/lib/tower/review-os";
 
 export const Route = createFileRoute("/tower/analytics")({
   component: () => <RoleGate module="analytics"><Analytics /></RoleGate>,
@@ -273,6 +273,3 @@ function Kpi({ label, value, hint, tone }: { label: string; value: string | numb
     </Card>
   );
 }
-
-/* keep imports used */
-void bandMeta; void STATUS_LABEL; void STATUS_CLASS;
