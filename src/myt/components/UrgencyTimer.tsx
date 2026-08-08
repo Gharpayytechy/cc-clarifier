@@ -4,11 +4,15 @@ import { cn } from '@/lib/utils';
 import { Clock } from 'lucide-react';
 
 export function UrgencyTimer({ expiresAt, className }: { expiresAt: string; className?: string }) {
+  const [mounted, setMounted] = useState(false);
   const [, setTick] = useState(0);
   useEffect(() => {
+    setMounted(true);
     const id = setInterval(() => setTick(t => t + 1), 30000);
     return () => clearInterval(id);
   }, []);
+
+  if (!mounted) return <span className={cn('inline-flex items-center gap-1 text-[11px] font-mono', className)} />;
 
   const t = timeLeft(expiresAt);
   return (

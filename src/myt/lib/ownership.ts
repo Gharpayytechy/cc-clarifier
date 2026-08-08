@@ -1,6 +1,73 @@
-import { CallOutcome, Lead, NextActionType } from './types';
+import { CallOutcome, Lead, LeadTouch, NextActionType } from './types';
 
 export const OWNERSHIP_DAYS = 15;
+
+/** Daily team goal — connected calls, not dials. */
+export const DAILY_CONNECT_TARGET = 80;
+
+/** Outcomes that count as a real human conversation. */
+export const CONNECTED_OUTCOMES: CallOutcome[] = [
+  'connected-interested',
+  'connected-not-now',
+  'busy-callback',
+];
+
+export function isConnected(o?: CallOutcome | null) {
+  return Boolean(o && CONNECTED_OUTCOMES.includes(o));
+}
+
+export function allTouches(leads: Lead[]): LeadTouch[] {
+  return leads.flatMap((l) => l.touches ?? []);
+}
+
+function isToday(iso: string) {
+  const d = new Date(iso);
+  const n = new Date();
+  return d.toDateString() === n.toDateString();
+}
+
+/** Today's scoreboard against the 80-connected-calls goal. */
+export function todayScoreboard(leads: Lead[]) {
+  const touches = allTouches(leads).filter((t) => isToday(t.at));
+  const connected = touches.filter((t) => isConnected(t.outcome)).length;
+  const calls = touches.filter((t) => t.channel === 'call').length;
+  const chats = touches.filter((t) => t.channel === 'whatsapp').length;
+  const tours = touches.filter((t) => t.action === 'schedule-tour').length;
+  return {
+    target: DAILY_CONNECT_TARGET,
+    connected,
+    calls,
+    chats,
+    touches: touches.length,
+    tours,
+    remaining: Math.max(0, DAILY_CONNECT_TARGET - connected),
+    pct: Math.min(100, Math.round((connected / DAILY_CONNECT_TARGET) * 100)),
+  };
+}
+
+/** Shared vocabulary so notes stay comparable across the team. */
+export const marketplaceTags: { value: string; label: string; tone: 'good' | 'warn' | 'bad' }[] = [
+  { value: 'budget-flexible', label: 'Budget flexible', tone: 'good' },
+  { value: 'ready-to-book', label: 'Ready to book', tone: 'good' },
+  { value: 'wants-single', label: 'Wants single room', tone: 'warn' },
+  { value: 'wants-food', label: 'Food matters', tone: 'warn' },
+  { value: 'family-decides', label: 'Family decides', tone: 'warn' },
+  { value: 'comparing', label: 'Comparing others', tone: 'warn' },
+  { value: 'area-mismatch', label: 'Area mismatch', tone: 'warn' },
+  { value: 'low-budget', label: 'Budget too low', tone: 'bad' },
+  { value: 'future-movein', label: 'Future move-in', tone: 'bad' },
+  { value: 'unreachable', label: 'Hard to reach', tone: 'bad' },
+  { value: 'language-hindi', label: 'Prefers Hindi', tone: 'warn' },
+  { value: 'student', label: 'Student', tone: 'warn' },
+];
+
+export function tagLabel(v: string) {
+  return marketplaceTags.find((t) => t.value === v)?.label ?? v;
+}
+
+export function tagTone(v: string) {
+  return marketplaceTags.find((t) => t.value === v)?.tone ?? 'warn';
+}
 
 export const callOutcomes: { value: CallOutcome; label: string; tone: 'good' | 'warn' | 'bad' }[] = [
   { value: 'connected-interested', label: 'Connected · interested', tone: 'good' },
