@@ -20,7 +20,7 @@ export default function LeadMarketplace() {
   const { globalZoneFilter } = useAppState();
   const {
     leads, setLeads, owners, actorId, actorName, setCurrentMemberId,
-    active, sheetMode, sheetChannel, setActive, claimLead, completeTouch, addNote, abandon,
+    active, sheetMode, sheetChannel, sheetStage, setActive, claimLead, completeTouch, addNote, abandon,
   } = useLeadActions();
 
   /** Marketplace = only what is still buyable. Claimed leads leave the board. */
@@ -175,6 +175,7 @@ export default function LeadMarketplace() {
         open={Boolean(active)}
         mode={sheetMode}
         channel={sheetChannel}
+        initialStage={sheetStage}
         onOpenChange={(v) => { if (!v) setActive(null); }}
         onComplete={(p) => { if (active) completeTouch(active.id, p); setActive(null); }}
         onAbandon={abandon}

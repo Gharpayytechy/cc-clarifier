@@ -22,7 +22,7 @@ export default function MyLeads() {
   const [bucket, setBucket] = useState<Bucket>('due');
   const {
     leads, owners, actorId, setCurrentMemberId,
-    active, sheetMode, sheetChannel, setActive,
+    active, sheetMode, sheetChannel, sheetStage, setActive,
     openSheet, releaseLead, completeTouch, addNote, abandon,
   } = useLeadActions();
 
@@ -132,7 +132,7 @@ export default function MyLeads() {
             e={e}
             actorId={actorId}
             variant="owned"
-            onTouch={(l, ch) => openSheet(l, 'touch', ch)}
+            onTouch={(l, ch, stage) => openSheet(l, 'touch', ch, stage)}
             onFinish={(l) => openSheet(l, 'claim', 'call')}
             onRelease={releaseLead}
             onSchedule={scheduleFromLead}
@@ -146,6 +146,7 @@ export default function MyLeads() {
         open={Boolean(active)}
         mode={sheetMode}
         channel={sheetChannel}
+        initialStage={sheetStage}
         onOpenChange={(v) => { if (!v) setActive(null); }}
         onComplete={(p) => { if (active) completeTouch(active.id, p); setActive(null); }}
         onAbandon={abandon}

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Lead, TouchChannel } from '@/myt/lib/types';
+import { CallStage, Lead, TouchChannel } from '@/myt/lib/types';
 import { UrgencyTimer } from '@/myt/components/UrgencyTimer';
 import { teamMembers } from '@/myt/lib/mock-data';
 import {
@@ -30,8 +30,8 @@ interface Props {
   actorId: string;
   /** 'market' = unclaimed board (single Claim action). 'owned' = execution queue. */
   variant: 'market' | 'owned';
-  onClaim?: (l: Lead, channel?: TouchChannel) => void;
-  onTouch?: (l: Lead, ch: TouchChannel) => void;
+  onClaim?: (l: Lead, channel?: TouchChannel, stage?: CallStage) => void;
+  onTouch?: (l: Lead, ch: TouchChannel, stage?: CallStage) => void;
   onFinish?: (l: Lead) => void;
   onRelease?: (id: string) => void;
   onSchedule?: (l: Lead) => void;
@@ -233,7 +233,7 @@ export function LeadCard({ e, actorId, variant, onClaim, onTouch, onFinish, onRe
       <div className="flex flex-wrap gap-2 pt-1">
         <LeadControlPanel
           subject={{ kind: 'lead', lead: l }}
-          onStartTouch={(lead, channel) => variant === 'market' ? onClaim?.(lead, channel) : onTouch?.(lead, channel)}
+          onStartTouch={(lead, channel, stage) => variant === 'market' ? onClaim?.(lead, channel, stage) : onTouch?.(lead, channel, stage)}
           trigger={
             <Button size="sm" variant="outline" className="h-8 text-xs gap-1">
               <Sparkles className="h-3 w-3" /> Open

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { useAppState } from '@/myt/lib/app-context';
-import { Lead, LeadTouch, TouchChannel } from '@/myt/lib/types';
+import { CallStage, Lead, LeadTouch, TouchChannel } from '@/myt/lib/types';
 import { teamMembers } from '@/myt/lib/mock-data';
 import { isConnected, isIncomplete, OWNERSHIP_DAYS } from '@/myt/lib/ownership';
 import type { TouchPayload } from '@/myt/components/ClaimCallSheet';
@@ -12,24 +12,26 @@ export function useLeadActions() {
   const [active, setActive] = useState<Lead | null>(null);
   const [sheetMode, setSheetMode] = useState<'claim' | 'touch'>('claim');
   const [sheetChannel, setSheetChannel] = useState<TouchChannel>('call');
+  const [sheetStage, setSheetStage] = useState<CallStage | undefined>();
 
   const owners = useMemo(() => teamMembers.filter(m => m.role === 'tcm' || m.role === 'flow-ops'), []);
   const actorId = currentMemberId ?? owners[0]?.id ?? 'm1';
   const actorName = teamMembers.find(m => m.id === actorId)?.name ?? 'Team';
 
-  const openSheet = (lead: Lead, mode: 'claim' | 'touch', channel: TouchChannel = 'call') => {
+  const openSheet = (lead: Lead, mode: 'claim' | 'touch', channel: TouchChannel = 'call', stage?: CallStage) => {
     setSheetMode(mode);
     setSheetChannel(channel);
+    setSheetStage(stage);
     setActive(lead);
   };
 
-  const claimLead = (lead: Lead, channel: TouchChannel = 'call') => {
+  const claimLead = (lead: Lead, channel: TouchChannel = 'call', stage?: CallStage) => {
     const now = new Date().toISOString();
     setLeads(prev => prev.map(l => l.id === lead.id
       ? { ...l, claimedBy: actorId, claimedAt: now, status: 'qualified' as const,
           ownershipExpiresAt: new Date(Date.now() + OWNERSHIP_DAYS * 86_400_000).toISOString() }
       : l));
-    openSheet({ ...lead, claimedBy: actorId, claimedAt: now }, 'claim', channel);
+    openSheet({ ...lead, claimedBy: actorId, claimedAt: now }, 'claim', channel, stage);
     toast.success(`Claimed — ${lead.name} is yours for ${OWNERSHIP_DAYS} days`, {
       description: 'It has moved out of the marketplace into My Leads.',
     });
@@ -112,7 +114,7 @@ export function useLeadActions() {
 
   return {
     leads, setLeads, owners, actorId, actorName, setCurrentMemberId,
-    active, setActive, sheetMode, sheetChannel,
+    active, setActive, sheetMode, sheetChannel, sheetStage,
     openSheet, claimLead, releaseLead, completeTouch, addNote, abandon,
   };
 }

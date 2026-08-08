@@ -1,6 +1,6 @@
 import { CheckCircle2, Circle, Gauge, PhoneOff, Target } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Lead } from '@/myt/lib/types';
+import { CallStage, Lead } from '@/myt/lib/types';
 import {
   CALL_PLAYS, STAGE_ORDER, currentStage, closingReadiness, readinessTone,
   readinessVerdict, play, askFields, filled, attemptsAtStage, waStatusMeta,
@@ -10,13 +10,19 @@ import {
  * The same ladder the call sheet runs on, in read-only form:
  * which call this lead is on, what that call needs, and how close to closeable.
  */
-export function CallLadder({ lead, compact = false }: { lead: Lead; compact?: boolean }) {
+export function CallLadder({ lead, compact = false, selectedStage, onSelectStage }: {
+  lead: Lead;
+  compact?: boolean;
+  selectedStage?: CallStage;
+  onSelectStage?: (stage: CallStage) => void;
+}) {
   const stage = currentStage(lead);
-  const p = play(stage);
+  const activeStage = selectedStage ?? stage;
+  const p = play(activeStage);
   const r = closingReadiness(lead);
   const tone = readinessTone(r.pct);
-  const attempts = attemptsAtStage(lead, stage);
-  const open = askFields(stage).filter((f) => !filled(lead.discovery, f.key));
+  const attempts = attemptsAtStage(lead, activeStage);
+  const open = askFields(activeStage).filter((f) => !filled(lead.discovery, f.key));
   const wa = waStatusMeta(lead.waStatus);
 
   return (
@@ -26,7 +32,7 @@ export function CallLadder({ lead, compact = false }: { lead: Lead; compact?: bo
           p.colour === 'good' ? 'bg-role-tcm/10 border-role-tcm/40 text-role-tcm'
             : p.colour === 'warn' ? 'bg-role-hr/10 border-role-hr/40 text-role-hr'
             : 'bg-primary/10 border-primary/40 text-primary')}>{p.code}</span>
-        <div className="text-xs font-semibold">Call {stage} · {p.name}</div>
+        <div className="text-xs font-semibold">Call {activeStage} · {p.name}</div>
         <span className={cn('ml-auto text-[10px] font-semibold',
           tone === 'good' ? 'text-role-tcm' : tone === 'warn' ? 'text-role-hr' : 'text-danger')}>
           {r.pct}%
@@ -47,16 +53,18 @@ export function CallLadder({ lead, compact = false }: { lead: Lead; compact?: bo
       <div className="flex items-center gap-1">
         {STAGE_ORDER.map((s) => {
           const done = s < stage;
-          const now = s === stage;
+          const now = s === activeStage;
           return (
-            <div key={s} title={`${CALL_PLAYS[s].code} · ${CALL_PLAYS[s].name} — ${CALL_PLAYS[s].mission}`}
+            <button type="button" key={s} title={`${CALL_PLAYS[s].code} · ${CALL_PLAYS[s].name} — ${CALL_PLAYS[s].mission}`}
+              onClick={() => onSelectStage?.(s)} disabled={!onSelectStage}
               className={cn('flex-1 rounded-lg border px-1.5 py-1 text-center transition-colors',
-                done ? 'border-role-tcm/40 bg-role-tcm/10 text-role-tcm'
+                onSelectStage && 'cursor-pointer hover:border-primary hover:bg-primary/10 disabled:cursor-default',
+                done && !now ? 'border-role-tcm/40 bg-role-tcm/10 text-role-tcm'
                   : now ? 'border-primary bg-primary/10 text-primary font-semibold'
                   : 'border-border text-muted-foreground/50')}>
-              <div className="text-[10px] leading-none">{s}</div>
+              <div className="text-[10px] font-bold leading-none">C{s}</div>
               <div className="text-[9px] leading-tight truncate">{CALL_PLAYS[s].name}</div>
-            </div>
+            </button>
           );
         })}
       </div>
@@ -81,7 +89,7 @@ export function CallLadder({ lead, compact = false }: { lead: Lead; compact?: bo
           )}
           {open.length === 0 && (
             <div className="text-[11px] text-role-tcm flex items-center gap-1.5">
-              <CheckCircle2 className="h-3 w-3" /> {p.code} data complete — move to Call {Math.min(stage + 1, 5)}.
+               <CheckCircle2 className="h-3 w-3" /> {p.code} data complete — move to Call {Math.min(activeStage + 1, 5)}.
             </div>
           )}
 
