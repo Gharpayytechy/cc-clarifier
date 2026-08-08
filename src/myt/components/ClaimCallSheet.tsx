@@ -43,6 +43,7 @@ interface Props {
   open: boolean;
   mode?: 'claim' | 'touch';
   channel?: TouchChannel;
+  initialStage?: CallStage;
   onOpenChange: (v: boolean) => void;
   onComplete: (payload: TouchPayload) => void;
   onAbandon: () => void;
@@ -55,7 +56,7 @@ type Step = 'wa' | 'brief' | 'dial' | 'pickup' | 'ask' | 'wrap';
  * that call's questions ever appear. No pickup → the ladder handles it and the
  * call's questions are never shown, because they are not relevant yet.
  */
-export function ClaimCallSheet({ lead, open, mode = 'claim', channel = 'call', onOpenChange, onComplete, onAbandon }: Props) {
+export function ClaimCallSheet({ lead, open, mode = 'claim', channel = 'call', initialStage, onOpenChange, onComplete, onAbandon }: Props) {
   const [step, setStep] = useState<Step>('wa');
   const [ch, setCh] = useState<TouchChannel>(channel);
   const [waStatus, setWaStatus] = useState<WaStatus | null>(null);
@@ -73,7 +74,7 @@ export function ClaimCallSheet({ lead, open, mode = 'claim', channel = 'call', o
   const [nextAt, setNextAt] = useState('');
   const [nextSt, setNextSt] = useState<CallStage>(1);
 
-  const stage: CallStage = lead ? currentStage(lead) : 1;
+  const stage: CallStage = initialStage ?? (lead ? currentStage(lead) : 1);
   const p = play(stage);
 
   useEffect(() => {
@@ -159,9 +160,9 @@ export function ClaimCallSheet({ lead, open, mode = 'claim', channel = 'call', o
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) close(mode === 'claim'); }}>
-      <DialogContent className="flex h-[min(36rem,calc(100dvh-1rem))] max-w-xl flex-col overflow-hidden border-primary/25 bg-card p-0 gap-0 shadow-2xl" onInteractOutside={(e) => e.preventDefault()}>
+       <DialogContent className="flex h-[calc(100dvh-0.5rem)] max-h-[36rem] w-[calc(100vw-0.5rem)] max-w-xl flex-col gap-0 overflow-hidden border-primary/25 bg-card p-0 shadow-2xl" onInteractOutside={(e) => e.preventDefault()}>
         {/* --------- header: who, which call, how ready --------- */}
-        <div className="shrink-0 border-b border-primary/20 bg-secondary/70 px-5 py-3 space-y-2">
+         <div className="shrink-0 space-y-1.5 border-b border-primary/20 bg-secondary/70 px-4 py-2">
           <DialogHeader className="space-y-1">
             <div className="flex items-center gap-2">
               <span className={cn('text-[10px] font-bold px-1.5 py-0.5 rounded-md border',
@@ -191,10 +192,10 @@ export function ClaimCallSheet({ lead, open, mode = 'claim', channel = 'call', o
           <Trail step={step} missed={missed} />
         </div>
 
-        <div className="min-h-0 flex-1 px-5 py-3">
+         <div className="min-h-0 flex-1 overflow-hidden px-4 py-2.5">
           {/* ---------------- WA ---------------- */}
           {step === 'wa' && (
-            <div className="flex h-full flex-col gap-3">
+             <div className="flex h-full flex-col gap-2">
               <div>
                 <Head>Is there a WhatsApp chat already?</Head>
                 <Why>This prevents duplicate messages and tells you how warm the conversation already is.</Why>
@@ -247,7 +248,7 @@ export function ClaimCallSheet({ lead, open, mode = 'claim', channel = 'call', o
 
           {/* ---------------- BRIEF (only when something is genuinely missing) ---------------- */}
           {step === 'brief' && (
-            <div className="flex h-full flex-col gap-3">
+             <div className="flex h-full flex-col gap-2">
               <div><Head>Known before you dial</Head>
               <Why>These facts keep the opening relevant and stop a valuable call from becoming a generic pitch.</Why>
               <p className="mt-1 text-[10px] text-muted-foreground">
@@ -274,7 +275,7 @@ export function ClaimCallSheet({ lead, open, mode = 'claim', channel = 'call', o
 
           {/* ---------------- DIAL ---------------- */}
           {step === 'dial' && (
-            <div className="flex h-full flex-col gap-3">
+             <div className="flex h-full flex-col gap-2">
               <Why>Using the same proven opener makes every call clear, confident, and measurable.</Why>
               <div className="rounded-xl border border-primary/40 bg-primary/5 p-3">
                 <div className="text-[10px] uppercase tracking-wide text-primary font-semibold">Open with this</div>
@@ -319,7 +320,7 @@ export function ClaimCallSheet({ lead, open, mode = 'claim', channel = 'call', o
 
           {/* ---------------- PICKUP GATE ---------------- */}
           {step === 'pickup' && (
-            <div className="flex h-full flex-col gap-3">
+             <div className="flex h-full flex-col gap-2">
               <div><Head>Did they pick up?</Head>
               <Why>One tap sends you down the correct path; unanswered calls never create fake discovery data.</Why>
               <p className="mt-1 text-[10px] text-muted-foreground">
@@ -345,7 +346,7 @@ export function ClaimCallSheet({ lead, open, mode = 'claim', channel = 'call', o
 
           {/* ---------------- ASK — only this call's questions ---------------- */}
           {step === 'ask' && (
-            <div className="flex h-full flex-col gap-3">
+             <div className="flex h-full flex-col gap-2">
               <div><Head>{p.code} questions · {asks.length} only</Head>
               <Why>Each answer removes uncertainty from the next call and moves this lead closer to a booking.</Why></div>
               <Fields fields={asks} discovery={discovery} setField={setField}
@@ -374,7 +375,7 @@ export function ClaimCallSheet({ lead, open, mode = 'claim', channel = 'call', o
 
           {/* ---------------- WRAP ---------------- */}
           {step === 'wrap' && (
-            <div className="flex h-full flex-col gap-3">
+             <div className="flex h-full flex-col gap-2">
               <Why>A dated next action keeps ownership useful: no lead leaves this flow without a clear next moment.</Why>
               {missed || outcome === 'busy-callback' ? (
                 <div className="rounded-xl border border-role-hr/40 bg-role-hr/5 p-3 text-[11px] space-y-1">
@@ -394,7 +395,7 @@ export function ClaimCallSheet({ lead, open, mode = 'claim', channel = 'call', o
               ) : (
                 <div className="space-y-2">
                   <Head>How did {p.code} end?</Head>
-                  <div className="grid gap-1.5">
+                   <div className="grid grid-cols-2 gap-1.5">
                     {p.outcomes.map((o) => (
                       <button key={o.value} type="button" onClick={() => pickOutcome(o.value)}
                         className={cn('text-left rounded-lg border px-3 py-2 text-xs transition-all',
@@ -413,7 +414,7 @@ export function ClaimCallSheet({ lead, open, mode = 'claim', channel = 'call', o
                 <>
                   <div>
                     <Label className="text-[11px] flex items-center gap-1"><StickyNote className="h-3 w-3" /> One line for the next person</Label>
-                    <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2}
+                     <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={1}
                       placeholder={missed ? 'Rang out, tried twice…' : 'What they said, in their words…'} className="text-xs mt-1" />
                   </div>
 

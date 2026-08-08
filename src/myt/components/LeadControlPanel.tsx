@@ -13,7 +13,7 @@ import {
   Wallet, MapPin, Building2, AlertTriangle, CheckCircle2, ThumbsUp, ThumbsDown, Sparkles,
   Tag, FileText, Clock, Send, RefreshCw, X, Bell,
 } from "lucide-react";
-import { Tour, Lead, TourStatus, TourOutcome, WhyLost } from "@/myt/lib/types";
+import { CallStage, Tour, Lead, TourStatus, TourOutcome, WhyLost } from "@/myt/lib/types";
 import { useAppState } from "@/myt/lib/app-context";
 import { useTourData } from "@/myt/lib/tour-data-context";
 import { intentBg, confirmationLabel } from "@/myt/lib/confidence";
@@ -32,7 +32,7 @@ interface Props {
   subject: Subject;
   trigger?: ReactNode;
   defaultTab?: "overview" | "tour" | "actions" | "followup" | "post-tour" | "activity";
-  onStartTouch?: (lead: Lead, channel: 'call' | 'whatsapp') => void;
+  onStartTouch?: (lead: Lead, channel: 'call' | 'whatsapp', stage?: CallStage) => void;
 }
 
 const STAGES: { value: TourStatus; label: string }[] = [
@@ -78,6 +78,7 @@ export function LeadControlPanel({ subject, trigger, defaultTab = "overview", on
   );
   const [fuReason, setFuReason] = useState("Decision check-in");
   const [waText, setWaText] = useState("");
+  const [selectedCall, setSelectedCall] = useState<CallStage>(() => lead ? currentStage(lead) : 1);
 
   // post-tour
   const existingReport = tour ? reports[tour.id] : undefined;
@@ -124,7 +125,7 @@ export function LeadControlPanel({ subject, trigger, defaultTab = "overview", on
     if (lead && onStartTouch) {
       window.setTimeout(() => {
         setOpen(false);
-        onStartTouch(lead, 'call');
+        onStartTouch(lead, 'call', selectedCall);
       }, 0);
       return;
     }
@@ -136,7 +137,7 @@ export function LeadControlPanel({ subject, trigger, defaultTab = "overview", on
     if (lead && onStartTouch) {
       window.setTimeout(() => {
         setOpen(false);
-        onStartTouch(lead, 'whatsapp');
+        onStartTouch(lead, 'whatsapp', selectedCall);
       }, 0);
       return;
     }
@@ -208,10 +209,10 @@ export function LeadControlPanel({ subject, trigger, defaultTab = "overview", on
       </SheetTrigger>
       <SheetContent
         side="right"
-        className="w-full sm:max-w-xl p-0 overflow-y-auto"
+        className="flex h-dvh w-full flex-col overflow-hidden p-0 sm:max-w-xl"
       >
         {/* Header */}
-        <SheetHeader className="p-4 border-b border-border bg-surface-2/40 sticky top-0 z-10">
+        <SheetHeader className="shrink-0 border-b border-border bg-surface-2/40 p-3">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <SheetTitle className="text-base font-heading flex items-center gap-2 flex-wrap">
@@ -244,7 +245,7 @@ export function LeadControlPanel({ subject, trigger, defaultTab = "overview", on
           </div>
 
           {/* Quick actions row */}
-          <div className="flex flex-wrap gap-1.5 pt-2">
+          <div className="grid grid-cols-2 gap-1.5 pt-1.5">
             <Button size="sm" variant="outline" className="h-7 gap-1 text-[11px]" onClick={callNow} disabled={!phone}>
               <Phone className="h-3 w-3" /> {lead && onStartTouch ? 'Start guided call' : 'Call'}
             </Button>
@@ -265,8 +266,8 @@ export function LeadControlPanel({ subject, trigger, defaultTab = "overview", on
         </SheetHeader>
 
         {/* Tabs */}
-        <Tabs defaultValue={stale ? "post-tour" : defaultTab} className="p-4">
-          <TabsList className="w-full justify-start h-9 flex-wrap">
+        <Tabs defaultValue={stale ? "post-tour" : defaultTab} className="flex min-h-0 flex-1 flex-col p-3">
+          <TabsList className="h-9 w-full shrink-0 justify-start overflow-x-auto">
             <TabsTrigger value="overview" className="text-[11px] gap-1"><FileText className="h-3 w-3" /> Overview</TabsTrigger>
             <TabsTrigger value="actions" className="text-[11px] gap-1"><MessageSquare className="h-3 w-3" /> Action</TabsTrigger>
             <TabsTrigger value="followup" className="text-[11px] gap-1"><Bell className="h-3 w-3" /> Follow-up</TabsTrigger>
@@ -275,8 +276,13 @@ export function LeadControlPanel({ subject, trigger, defaultTab = "overview", on
           </TabsList>
 
           {/* ---- OVERVIEW ---- */}
-          <TabsContent value="overview" className="mt-3 space-y-3">
-            {lead && <CallLadder lead={lead} />}
+          <TabsContent value="overview" className="mt-2 min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+            {lead && <CallLadder lead={lead} selectedStage={selectedCall} onSelectStage={setSelectedCall} />}
+            {lead && (
+              <Button className="h-9 w-full" onClick={callNow}>
+                <Phone className="mr-1.5 h-3.5 w-3.5" /> Start {play(selectedCall).code} · {play(selectedCall).name}
+              </Button>
+            )}
             <div className="grid grid-cols-2 gap-2 text-xs">
 
               <Info icon={<Wallet className="h-3.5 w-3.5" />} label="Budget" value={`₹${budget.toLocaleString()}/mo`} />
@@ -326,7 +332,7 @@ export function LeadControlPanel({ subject, trigger, defaultTab = "overview", on
           </TabsContent>
 
           {/* ---- ACTIONS (WhatsApp templates) ---- */}
-          <TabsContent value="actions" className="mt-3 space-y-2">
+          <TabsContent value="actions" className="mt-2 min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
             <div className="space-y-2">
               {[
                 { label: "Reconfirm tour", text: `Hi ${name}, just confirming your tour today at ${tour?.tourTime ?? "the scheduled time"} for ${property ?? "the property"}. Reply YES to confirm.` },
@@ -357,7 +363,7 @@ export function LeadControlPanel({ subject, trigger, defaultTab = "overview", on
           </TabsContent>
 
           {/* ---- FOLLOW-UP ---- */}
-          <TabsContent value="followup" className="mt-3 space-y-3">
+          <TabsContent value="followup" className="mt-2 min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
             <div className="rounded-md border border-amber/30 bg-amber/5 p-2.5 text-[11px] text-amber-foreground/90">
               ⚠ Every lead must have a next follow-up date. No exceptions.
             </div>
@@ -411,7 +417,7 @@ export function LeadControlPanel({ subject, trigger, defaultTab = "overview", on
 
           {/* ---- POST-TOUR (mandatory enforcement) ---- */}
           {tour && (
-            <TabsContent value="post-tour" className="mt-3 space-y-3">
+            <TabsContent value="post-tour" className="mt-2 min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
               {stale && (
                 <div className="rounded-md border border-destructive/40 bg-destructive/5 p-2.5 text-[11px] text-destructive flex items-center gap-1.5">
                   <AlertTriangle className="h-3.5 w-3.5" /> Tour ended without an update. Fill all fields to clear the flag.
@@ -487,7 +493,7 @@ export function LeadControlPanel({ subject, trigger, defaultTab = "overview", on
           )}
 
           {/* ---- ACTIVITY TIMELINE ---- */}
-          <TabsContent value="activity" className="mt-3 space-y-2">
+          <TabsContent value="activity" className="mt-2 min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
             {events.length === 0 ? (
               <p className="text-xs text-muted-foreground text-center py-6">No activity yet. Every action you take here will appear in this timeline.</p>
             ) : (
