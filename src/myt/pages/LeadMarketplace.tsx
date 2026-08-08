@@ -14,6 +14,7 @@ import { LeadControlPanel } from '@/myt/components/LeadControlPanel';
 import { ClaimCallSheet } from '@/myt/components/ClaimCallSheet';
 import { BulkAddLeads } from '@/myt/components/BulkAddLeads';
 import { actionDueLabel, callOutcomes, isIncomplete, nextActions, OWNERSHIP_DAYS, ownershipDay } from '@/myt/lib/ownership';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface Enriched {
   lead: Lead;
@@ -241,12 +242,12 @@ export default function LeadMarketplace() {
                   <Hand className="h-3 w-3 mr-1" /> Claim & call now
                 </Button>
               )}
-              {isIncomplete(e.lead) && e.lead.claimedBy === currentMemberId && (
+              {isIncomplete(e.lead) && e.lead.claimedBy === actorId && (
                 <Button size="sm" variant="destructive" onClick={() => setClaiming(e.lead)} className="h-8 text-xs flex-1">
                   Finish call log
                 </Button>
               )}
-              {e.lead.claimedBy === currentMemberId && !isIncomplete(e.lead) && (
+              {e.lead.claimedBy === actorId && !isIncomplete(e.lead) && (
                 <Button size="sm" variant="outline" onClick={() => setClaiming(e.lead)} className="h-8 text-xs">
                   Log touch
                 </Button>
