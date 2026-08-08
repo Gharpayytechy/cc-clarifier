@@ -159,9 +159,9 @@ export function ClaimCallSheet({ lead, open, mode = 'claim', channel = 'call', o
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) close(mode === 'claim'); }}>
-      <DialogContent className="max-w-lg max-h-[92vh] overflow-y-auto p-0 gap-0" onInteractOutside={(e) => e.preventDefault()}>
+      <DialogContent className="flex h-[min(36rem,calc(100dvh-1rem))] max-w-xl flex-col overflow-hidden border-primary/25 bg-card p-0 gap-0 shadow-2xl" onInteractOutside={(e) => e.preventDefault()}>
         {/* --------- header: who, which call, how ready --------- */}
-        <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b px-5 pt-4 pb-3 space-y-2.5">
+        <div className="shrink-0 border-b border-primary/20 bg-secondary/70 px-5 py-3 space-y-2">
           <DialogHeader className="space-y-1">
             <div className="flex items-center gap-2">
               <span className={cn('text-[10px] font-bold px-1.5 py-0.5 rounded-md border',
@@ -191,40 +191,37 @@ export function ClaimCallSheet({ lead, open, mode = 'claim', channel = 'call', o
           <Trail step={step} missed={missed} />
         </div>
 
-        <div className="px-5 py-4 space-y-4">
+        <div className="min-h-0 flex-1 px-5 py-3">
           {/* ---------------- WA ---------------- */}
           {step === 'wa' && (
-            <div className="space-y-3">
-              <Head>Is there a WhatsApp chat already?</Head>
-              <div className="grid gap-1.5">
+            <div className="flex h-full flex-col gap-3">
+              <div>
+                <Head>Is there a WhatsApp chat already?</Head>
+                <Why>This prevents duplicate messages and tells you how warm the conversation already is.</Why>
+              </div>
+              <div className="grid grid-cols-5 gap-1.5">
                 {WA_STATUSES.map((s) => (
-                  <button key={s.value} type="button" onClick={() => setWaStatus(s.value)}
-                    className={cn('text-left rounded-lg border px-3 py-2 transition-all',
-                      waStatus === s.value ? 'border-primary bg-primary/10' : 'border-border hover:bg-surface-2')}>
-                    <div className="text-xs font-medium">{s.label}</div>
-                    {waStatus === s.value && <div className="text-[10px] text-muted-foreground">{s.hint}</div>}
+                  <button key={s.value} type="button" title={s.hint} onClick={() => { setWaStatus(s.value); setWaLabel(suggestedWaLabel(stage)); }}
+                    className={cn('min-h-12 rounded-md border px-1.5 py-1.5 text-center transition-all',
+                      waStatus === s.value ? 'border-primary bg-primary text-primary-foreground shadow-sm' : 'border-border bg-card hover:border-primary/60 hover:bg-secondary')}>
+                    <div className="text-[10px] font-semibold leading-tight">{s.label}</div>
                   </button>
                 ))}
               </div>
 
               {waStatus && (
-                <div className="rounded-xl border p-3 space-y-2">
-                  <Label className="text-[11px]">Label the chat — {WA_LABELS.find((l) => l.value === waLabel)?.label ?? waLabel}</Label>
-                  <div className="flex flex-wrap gap-1.5">
+                <div className="rounded-md border border-primary/25 bg-primary/5 p-2.5 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <Label className="text-[11px]">Chat label</Label>
+                    <div className="flex gap-1.5">
+                      <Button size="sm" variant="outline" className="h-7 text-[10px]" onClick={() => { navigator.clipboard?.writeText(waLabel); toast.success(`&quot;${waLabel}&quot; copied`); }}><Copy className="mr-1 h-3 w-3" /> Copy</Button>
+                      <Button asChild size="sm" className="h-7 text-[10px]"><a href={waLink(lead.phone)} target="_blank" rel="noopener noreferrer"><MessageCircle className="mr-1 h-3 w-3" /> Open chat</a></Button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-5 gap-1">
                     {WA_LABELS.map((l) => (
                       <Chip key={l.value} active={waLabel === l.value} onClick={() => setWaLabel(l.value)}>{l.label}</Chip>
                     ))}
-                  </div>
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="outline" className="h-7 text-[11px]"
-                      onClick={() => { navigator.clipboard?.writeText(waLabel); toast.success(`"${waLabel}" copied — apply it on the chat`); }}>
-                      <Copy className="h-3 w-3 mr-1" /> Copy
-                    </Button>
-                    <Button asChild size="sm" variant="outline" className="h-7 text-[11px]">
-                      <a href={waLink(lead.phone)} target="_blank" rel="noopener noreferrer">
-                        <MessageCircle className="h-3 w-3 mr-1" /> Open chat
-                      </a>
-                    </Button>
                   </div>
                 </div>
               )}
@@ -235,7 +232,7 @@ export function ClaimCallSheet({ lead, open, mode = 'claim', channel = 'call', o
                   value={chatNotes} onChange={(e) => setChatNotes(e.target.value)} />
               )}
 
-              <Nav
+              <div className="mt-auto"><Nav
                 back={<Button variant="ghost" size="sm" className="text-xs" onClick={() => close(mode === 'claim')}>
                   {mode === 'claim' ? 'Release lead' : 'Cancel'}
                 </Button>}
@@ -244,19 +241,20 @@ export function ClaimCallSheet({ lead, open, mode = 'claim', channel = 'call', o
                   {brief.length ? `Fill ${brief.length} before dialling` : `Go to ${p.code}`}
                   <ArrowRight className="h-3 w-3 ml-1" />
                 </Button>}
-              />
+              /></div>
             </div>
           )}
 
           {/* ---------------- BRIEF (only when something is genuinely missing) ---------------- */}
           {step === 'brief' && (
-            <div className="space-y-3">
-              <Head>Known before you dial</Head>
-              <p className="text-[11px] text-muted-foreground -mt-1">
+            <div className="flex h-full flex-col gap-3">
+              <div><Head>Known before you dial</Head>
+              <Why>These facts keep the opening relevant and stop a valuable call from becoming a generic pitch.</Why>
+              <p className="mt-1 text-[10px] text-muted-foreground">
                 {backlog.length
                   ? `${backlog.length} answer${backlog.length === 1 ? '' : 's'} from an earlier call is still blank. Fill or skip — then ${p.code} can start.`
                   : 'Two taps to frame the call. Skip anything you genuinely do not know.'}
-              </p>
+              </p></div>
               <Fields fields={brief} discovery={discovery} setField={setField}
                 onSkip={(k) => setSkipped((s) => [...s, k])} />
               {discovery.dealRead === 'Try nearby' && (
@@ -265,18 +263,19 @@ export function ClaimCallSheet({ lead, open, mode = 'claim', channel = 'call', o
                   "Try nearby" — don't burn a call. Release it so it reroutes to the right zone.
                 </div>
               )}
-              <Nav
+              <div className="mt-auto"><Nav
                 back={<Button variant="ghost" size="sm" className="text-xs" onClick={() => setStep('wa')}>Back</Button>}
                  next={<Button size="sm" disabled={briefLeft.length > 0} onClick={() => setStep('dial')}>
                    {briefLeft.length ? `Complete ${briefLeft.length} required` : `Start ${p.code}`} <ArrowRight className="h-3 w-3 ml-1" />
                  </Button>}
-              />
+              /></div>
             </div>
           )}
 
           {/* ---------------- DIAL ---------------- */}
           {step === 'dial' && (
-            <div className="space-y-3">
+            <div className="flex h-full flex-col gap-3">
+              <Why>Using the same proven opener makes every call clear, confident, and measurable.</Why>
               <div className="rounded-xl border border-primary/40 bg-primary/5 p-3">
                 <div className="text-[10px] uppercase tracking-wide text-primary font-semibold">Open with this</div>
                 <p className="text-xs mt-1 leading-relaxed">"{p.open(lead)}"</p>
@@ -309,24 +308,25 @@ export function ClaimCallSheet({ lead, open, mode = 'claim', channel = 'call', o
                   </a>
                 </Button>
               </div>
-              <Nav
+              <div className="mt-auto"><Nav
                 back={<Button variant="ghost" size="sm" className="text-xs" onClick={() => setStep(brief.length ? 'brief' : 'wa')}>Back</Button>}
                 next={<Button variant="ghost" size="sm" className="text-xs" onClick={() => setStep('pickup')}>
                   Already reached out <ArrowRight className="h-3 w-3 ml-1" />
                 </Button>}
-              />
+              /></div>
             </div>
           )}
 
           {/* ---------------- PICKUP GATE ---------------- */}
           {step === 'pickup' && (
-            <div className="space-y-3">
-              <Head>Did they pick up?</Head>
-              <p className="text-[11px] text-muted-foreground -mt-1">
+            <div className="flex h-full flex-col gap-3">
+              <div><Head>Did they pick up?</Head>
+              <Why>One tap sends you down the correct path; unanswered calls never create fake discovery data.</Why>
+              <p className="mt-1 text-[10px] text-muted-foreground">
                 If they didn't, we don't ask you anything else — {p.code} simply retries.
-              </p>
-              <div className="grid gap-2">
-                <Button className="h-12 justify-start" onClick={() => setStep(asks.length ? 'ask' : 'wrap')}>
+              </p></div>
+              <div className="grid grid-cols-2 gap-2">
+                <Button className="h-11 justify-start" onClick={() => setStep(asks.length ? 'ask' : 'wrap')}>
                   <CheckCircle2 className="h-4 w-4 mr-2" /> Yes — we spoke
                 </Button>
                 <Button variant="outline" className="h-11 justify-start border-role-hr/40" onClick={() => missedPath('no-answer')}>
@@ -339,15 +339,15 @@ export function ClaimCallSheet({ lead, open, mode = 'claim', channel = 'call', o
                   <AlertTriangle className="h-4 w-4 mr-2" /> Wrong number
                 </Button>
               </div>
-              <Nav back={<Button variant="ghost" size="sm" className="text-xs" onClick={() => setStep('dial')}>Back</Button>} next={null} />
+              <div className="mt-auto"><Nav back={<Button variant="ghost" size="sm" className="text-xs" onClick={() => setStep('dial')}>Back</Button>} next={null} /></div>
             </div>
           )}
 
           {/* ---------------- ASK — only this call's questions ---------------- */}
           {step === 'ask' && (
-            <div className="space-y-3">
-              <Head>{p.code} questions · {asks.length} only</Head>
-              <p className="text-[11px] text-muted-foreground -mt-1">{p.mission} Skip anything they didn't answer.</p>
+            <div className="flex h-full flex-col gap-3">
+              <div><Head>{p.code} questions · {asks.length} only</Head>
+              <Why>Each answer removes uncertainty from the next call and moves this lead closer to a booking.</Why></div>
               <Fields fields={asks} discovery={discovery} setField={setField}
                 onSkip={(k) => setSkipped((s) => [...s, k])} />
 
@@ -362,19 +362,20 @@ export function ClaimCallSheet({ lead, open, mode = 'claim', channel = 'call', o
                 )
               )}
 
-              <Nav
+              <div className="mt-auto"><Nav
                 back={<Button variant="ghost" size="sm" className="text-xs" onClick={() => setStep('pickup')}>Back</Button>}
                  next={<Button size="sm" disabled={askLeft.length > 0} onClick={() => setStep('wrap')}>
                    {askLeft.length ? `Complete ${askLeft.length} required` : 'All captured — wrap up'}
                   <ArrowRight className="h-3 w-3 ml-1" />
                 </Button>}
-              />
+              /></div>
             </div>
           )}
 
           {/* ---------------- WRAP ---------------- */}
           {step === 'wrap' && (
-            <div className="space-y-4">
+            <div className="flex h-full flex-col gap-3">
+              <Why>A dated next action keeps ownership useful: no lead leaves this flow without a clear next moment.</Why>
               {missed || outcome === 'busy-callback' ? (
                 <div className="rounded-xl border border-role-hr/40 bg-role-hr/5 p-3 text-[11px] space-y-1">
                   <div className="font-semibold text-role-hr flex items-center gap-1">
@@ -416,13 +417,13 @@ export function ClaimCallSheet({ lead, open, mode = 'claim', channel = 'call', o
                       placeholder={missed ? 'Rang out, tried twice…' : 'What they said, in their words…'} className="text-xs mt-1" />
                   </div>
 
-                  <div className="rounded-xl border border-primary/40 bg-primary/5 p-3 space-y-2">
+                  <div className="rounded-md border border-primary/40 bg-primary/5 p-2.5 space-y-2">
                     <div className="text-[11px] font-medium text-primary flex items-center gap-1">
                       <Target className="h-3.5 w-3.5" />
                       Next: Call {nextSt} · {play(nextSt).name}
                     </div>
                     <div className="text-[10px] text-muted-foreground">{play(nextSt).mission}</div>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-[1fr_auto] gap-2">
                       <div>
                         <Label className="text-[10px] text-muted-foreground">When</Label>
                         <Input type="datetime-local" value={nextAt} onChange={(e) => { setNextAt(e.target.value); setDueAt(e.target.value); }} className="text-xs h-8" />
@@ -469,7 +470,7 @@ export function ClaimCallSheet({ lead, open, mode = 'claim', channel = 'call', o
                     {captured.length ? ` · ${captured.length} new answer${captured.length === 1 ? '' : 's'}` : ''}.
                   </div>
 
-                  <Button className="w-full h-11" disabled={!outcome || !action || !dueAt || !nextAt} onClick={finish}>
+                  <Button className="mt-auto w-full h-10" disabled={!outcome || !action || !dueAt || !nextAt} onClick={finish}>
                     <CheckCircle2 className="h-4 w-4 mr-1" />
                     {mode === 'claim' ? 'Lock ownership & next call' : 'Save call & next call'}
                   </Button>
@@ -497,12 +498,17 @@ function Fields({ fields, discovery, setField, onSkip }: {
   if (fields.length === 0) {
     return <div className="rounded-xl border bg-surface-2/60 p-3 text-[11px] text-muted-foreground">Nothing left to ask here.</div>;
   }
+  const pending = fields.filter((f) => !filled(discovery, f.key));
+  const visible = pending[0] ?? fields[fields.length - 1];
+  if (!visible) return null;
+  const completed = fields.length - pending.length;
   return (
     <div className="space-y-2">
-      {fields.map((f, i) => (
-        <div key={f.key} className="rounded-xl border p-3 space-y-1.5">
+      <div className="flex items-center gap-2 text-[10px] text-muted-foreground"><span>{completed} of {fields.length} captured</span><div className="h-1 flex-1 overflow-hidden rounded-full bg-secondary"><div className="h-full bg-primary transition-all" style={{ width: `${(completed / fields.length) * 100}%` }} /></div></div>
+      {[visible].map((f) => (
+        <div key={f.key} className="rounded-md border border-primary/25 bg-card p-3 space-y-2">
           <div className="flex items-start gap-2">
-            <span className="text-[10px] font-mono text-muted-foreground pt-0.5">Q{i + 1}</span>
+            <span className="text-[10px] font-mono text-primary pt-0.5">Q{fields.indexOf(f) + 1}</span>
             <div className="min-w-0 flex-1">
               <Label className="text-xs flex items-center gap-1">
                 {f.label}
@@ -518,7 +524,7 @@ function Fields({ fields, discovery, setField, onSkip }: {
             )}
           </div>
           {f.kind === 'choice' ? (
-            <div className="flex flex-wrap gap-1.5">
+            <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
               {f.options!.map((o) => (
                 <Chip key={o} active={discovery[f.key] === o} onClick={() => setField(f.key, discovery[f.key] === o ? '' : o)}>{o}</Chip>
               ))}
@@ -536,15 +542,19 @@ function Fields({ fields, discovery, setField, onSkip }: {
 function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <button type="button" onClick={onClick}
-      className={cn('text-[10px] px-2 py-1 rounded-full border transition-all',
-        active ? 'bg-primary/15 border-primary/60 text-primary font-medium' : 'border-border text-muted-foreground hover:text-foreground hover:border-foreground/30')}>
+      className={cn('min-w-0 rounded-md border px-2 py-1 text-[10px] leading-tight transition-all',
+        active ? 'bg-primary border-primary text-primary-foreground font-medium' : 'border-border bg-card text-muted-foreground hover:text-foreground hover:border-primary/50')}>
       {children}
     </button>
   );
 }
 
 function Head({ children }: { children: React.ReactNode }) {
-  return <div className="text-xs font-semibold text-foreground">{children}</div>;
+  return <div className="font-display text-sm font-bold text-foreground">{children}</div>;
+}
+
+function Why({ children }: { children: React.ReactNode }) {
+  return <div className="mt-1 border-l-2 border-accent pl-2 text-[10px] leading-relaxed text-muted-foreground"><span className="font-semibold text-primary">Why this matters:</span> {children}</div>;
 }
 
 function Nav({ back, next }: { back: React.ReactNode; next: React.ReactNode }) {
