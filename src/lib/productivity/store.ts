@@ -142,6 +142,79 @@ export const useProductivity = create<State>()(
   ),
 );
 
+export { dayKey };
+
+/** Human label for a route path. */
+export function pageLabel(path: string) {
+  if (path === "/" || path === "") return "Home";
+  return path
+    .split("/")
+    .filter(Boolean)
+    .map((seg) => seg.replace(/[-_]/g, " ").replace(/^\w/, (c) => c.toUpperCase()))
+    .join(" › ");
+}
+
+export interface DayBreakdown {
+  actorId: string;
+  actorName: string;
+  firstActionAt?: string;
+  lastActionAt?: string;
+  spanSec: number;      // last action − first action
+  leadSec: number;      // measured inside lead drawers / claim / call flows
+  idleSec: number;      // on a page, but no click/typing/scroll
+  otherSec: number;     // active in the CRM but not on a lead
+  unaccountedSec: number; // span not covered by any of the above (app closed / away)
+  pages: { path: string; label: string; activeSec: number; idleSec: number }[];
+}
+
+/**
+ * Full picture of a person's day: when they started, when they stopped, how much
+ * of that window went into leads, into other CRM pages, and how much was idle.
+ */
+export function dayBreakdown(
+  sessions: WorkSession[],
+  pages: PageStint[],
+  marks: DayMarks[],
+): DayBreakdown[] {
+  const ids = new Set<string>([
+    ...sessions.map((s) => s.actorId),
+    ...pages.map((p) => p.actorId),
+    ...marks.map((m) => m.actorId),
+  ]);
+  const out: DayBreakdown[] = [];
+  for (const id of ids) {
+    const mine = marks.filter((m) => m.actorId === id);
+    const myPages = pages.filter((p) => p.actorId === id);
+    const mySessions = sessions.filter((s) => s.actorId === id);
+    const name =
+      mine[0]?.actorName ?? myPages[0]?.actorName ?? mySessions[0]?.actorName ?? id;
+
+    const firsts = mine.map((m) => Date.parse(m.firstActionAt));
+    const lasts = mine.map((m) => Date.parse(m.lastActionAt));
+    const first = firsts.length ? Math.min(...firsts) : undefined;
+    const last = lasts.length ? Math.max(...lasts) : undefined;
+    const spanSec = first && last ? Math.max(0, Math.round((last - first) / 1000)) : 0;
+
+    const leadSec = mySessions.reduce((a, s) => a + s.durationSec, 0);
+    const idleSec = myPages.reduce((a, p) => a + p.idleSec, 0);
+    const activeSec = myPages.reduce((a, p) => a + p.activeSec, 0);
+    const otherSec = Math.max(0, activeSec - leadSec);
+    const unaccountedSec = Math.max(0, spanSec - leadSec - idleSec - otherSec);
+
+    out.push({
+      actorId: id,
+      actorName: name,
+      firstActionAt: first ? new Date(first).toISOString() : undefined,
+      lastActionAt: last ? new Date(last).toISOString() : undefined,
+      spanSec, leadSec, idleSec, otherSec, unaccountedSec,
+      pages: myPages
+        .map((p) => ({ path: p.path, label: pageLabel(p.path), activeSec: p.activeSec, idleSec: p.idleSec }))
+        .sort((a, b) => b.activeSec + b.idleSec - (a.activeSec + a.idleSec)),
+    });
+  }
+  return out.sort((a, b) => b.spanSec - a.spanSec);
+}
+
 export function isSameDay(iso: string, day: Date) {
   const d = new Date(iso);
   return d.toDateString() === day.toDateString();
