@@ -23,15 +23,20 @@ export function LeadCallLadder({
   lead,
   activities,
   tours,
+  selectedCall,
+  onSelectCall,
   onContinue,
 }: {
   lead: Lead;
   activities: ActivityLog[];
   tours: Tour[];
-  onContinue: () => void;
+  selectedCall?: number;
+  onSelectCall?: (call: number) => void;
+  onContinue: (call: number) => void;
 }) {
   const current = callNumberFor(lead);
-  const play = CALLS[current - 1];
+  const activeCall = selectedCall ?? current;
+  const play = CALLS[activeCall - 1] ?? CALLS[0];
   const calls = activities.filter((activity) => activity.kind === "call_logged");
   const messages = activities.filter((activity) => activity.kind === "message_sent");
   const latestTour = tours[0];
@@ -55,7 +60,7 @@ export function LeadCallLadder({
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <Target className="h-4 w-4 shrink-0 text-primary" />
-            <h2 className="truncate text-sm font-semibold">Call {current} · {play.name}</h2>
+            <h2 className="truncate text-sm font-semibold">Call {activeCall} · {play.name}</h2>
           </div>
           <p className="mt-0.5 truncate text-[11px] text-muted-foreground">Win: {play.win}</p>
         </div>
@@ -71,23 +76,29 @@ export function LeadCallLadder({
       <div className="grid grid-cols-5 gap-1">
         {CALLS.map((call) => {
           const done = call.number < current || lead.stage === "booked";
-          const active = call.number === current && lead.stage !== "booked";
+          const active = call.number === activeCall && lead.stage !== "booked";
           const Icon = done ? Check : active ? Circle : LockKeyhole;
           return (
-            <div
+            <Button
+              type="button"
               key={call.number}
+              variant="outline"
               title={`${call.name}: ${call.win}`}
+              aria-pressed={active}
+              onClick={() => onSelectCall?.(call.number)}
               className={cn(
-                "min-w-0 rounded-md border px-1 py-1.5 text-center",
+                "h-auto min-w-0 rounded-md px-1 py-1.5 text-center",
                 done && "border-success/40 bg-success/10 text-success",
                 active && "border-primary bg-primary/10 text-primary",
                 !done && !active && "border-border text-muted-foreground/55",
               )}
             >
-              <Icon className="mx-auto h-3 w-3" />
-              <div className="mt-1 text-[10px] font-semibold">C{call.number}</div>
-              <div className="truncate text-[9px]">{call.name}</div>
-            </div>
+              <span className="block min-w-0">
+                <Icon className="mx-auto h-3 w-3" />
+                <span className="mt-1 block text-[10px] font-semibold">C{call.number}</span>
+                <span className="block truncate text-[9px] font-normal">{call.name}</span>
+              </span>
+            </Button>
           );
         })}
       </div>
@@ -106,8 +117,8 @@ export function LeadCallLadder({
         </div>
       </div>
 
-      <Button size="sm" className="h-8 w-full" onClick={onContinue}>
-        <Phone className="mr-1.5 h-3.5 w-3.5" /> Continue Call {current} · {play.name}
+      <Button size="sm" className="h-8 w-full" onClick={() => onContinue(activeCall)}>
+        <Phone className="mr-1.5 h-3.5 w-3.5" /> Continue Call {activeCall} · {play.name}
       </Button>
     </section>
   );

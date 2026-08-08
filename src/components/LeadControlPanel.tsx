@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useApp, getProperty, getTcm } from "@/lib/store";
 import {
@@ -47,6 +47,16 @@ const TEMPLATES = [
   { id: "scarcity", label: "Scarcity", body: "Just a heads-up — only a couple of beds left at this price." },
 ];
 
+const DRAWER_CALLS = ["Basics", "Schedule", "Tour", "Close", "Recall"] as const;
+
+function callNumberForStage(stage: LeadStage) {
+  if (stage === "new" || stage === "contacted") return 1;
+  if (stage === "tour-scheduled") return 2;
+  if (stage === "tour-done") return 3;
+  if (stage === "negotiation") return 4;
+  return 5;
+}
+
 export function LeadControlPanel() {
   const {
     selectedLeadId, selectLead, leads, properties, tours, activities, tcms,
@@ -83,6 +93,9 @@ export function LeadControlPanel() {
   // Note state
   const [note, setNote] = useState("");
   const [customMsg, setCustomMsg] = useState("");
+  const [selectedCall, setSelectedCall] = useState(1);
+  const drawerScrollRef = useRef<HTMLDivElement>(null);
+  const actionEngineRef = useRef<HTMLDivElement>(null);
 
   const pendingPostTour = leadTours.find(
     (t) => t.status === "completed" && !t.postTour.filledAt,
@@ -94,8 +107,17 @@ export function LeadControlPanel() {
     setPropertyId(upcomingTour?.propertyId ?? "");
     setTcmId(upcomingTour?.tcmId ?? lead.assignedTcmId ?? "");
     setScheduledAt(upcomingTour ? toLocal(upcomingTour.scheduledAt) : "");
+    setSelectedCall(callNumberForStage(lead.stage));
     setTab(pendingPostTour ? "post" : upcomingTour ? "tour" : settings.matching.drawerDefaultTab);
   }, [lead, pendingPostTour, upcomingTour, settings.matching.drawerDefaultTab]);
+
+  const continueCall = (call: number) => {
+    setSelectedCall(call);
+    setTab("control");
+    window.setTimeout(() => {
+      actionEngineRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 0);
+  };
 
   if (!lead) {
     if (!selectedLeadId) return null;
@@ -167,12 +189,14 @@ export function LeadControlPanel() {
           lead={lead}
           activities={leadActivities}
           tours={leadTours}
-          onContinue={() => setTab("control")}
+          selectedCall={selectedCall}
+          onSelectCall={setSelectedCall}
+          onContinue={continueCall}
         />
         </div>
 
         {/* Lower half: every operational action scrolls independently. */}
-        <div data-testid="lead-drawer-scroll" className="lead-drawer-scroll flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-thin pb-8">
+        <div ref={drawerScrollRef} data-testid="lead-drawer-scroll" className="lead-drawer-scroll flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-thin pb-8">
           <div className="pt-3">
             <LeadLiveStrip lead={lead} />
             <LeadAdminStrip lead={lead} />
@@ -272,13 +296,17 @@ export function LeadControlPanel() {
                 </div>
               </Section>
 
-              <Section title="Action engine">
+              <div ref={actionEngineRef}>
+              <Section title={`Call ${selectedCall} · ${DRAWER_CALLS[selectedCall - 1]} actions`}>
+                <div className="rounded-md border border-primary/25 bg-primary/5 px-3 py-2 text-[11px] text-muted-foreground">
+                  Working on <span className="font-semibold text-foreground">C{selectedCall} · {DRAWER_CALLS[selectedCall - 1]}</span>. Logging either action updates the ladder immediately.
+                </div>
                 <div className="grid grid-cols-2 gap-2">
-                  <Button variant="outline" size="sm" onClick={() => { logCall(lead.id); toast.success("Call logged"); }}>
-                    <Phone className="h-3.5 w-3.5 mr-1.5" /> Call
+                  <Button variant="outline" size="sm" onClick={() => { logCall(lead.id); toast.success(`C${selectedCall} call attempt logged`); }}>
+                    <Phone className="h-3.5 w-3.5 mr-1.5" /> Log C{selectedCall} call
                   </Button>
                   <Button variant="outline" size="sm" onClick={() => { sendMessage(lead.id, "WhatsApp template sent"); toast.success("Message sent"); }}>
-                    <MessageSquare className="h-3.5 w-3.5 mr-1.5" /> WhatsApp
+                    <MessageSquare className="h-3.5 w-3.5 mr-1.5" /> Log WhatsApp
                   </Button>
                 </div>
                 <div className="space-y-2">
@@ -307,6 +335,7 @@ export function LeadControlPanel() {
                   </Button>
                 </div>
               </Section>
+              </div>
 
               <Section title="Follow-up engine">
                 <div className="grid grid-cols-2 gap-2">
