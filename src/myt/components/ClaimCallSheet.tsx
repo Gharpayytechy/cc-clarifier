@@ -189,9 +189,10 @@ export function ClaimCallSheet({ lead, open, mode = 'claim', channel = 'call', i
                 p.colour === 'good' ? 'bg-role-tcm/10 border-role-tcm/40 text-role-tcm'
                   : p.colour === 'warn' ? 'bg-role-hr/10 border-role-hr/40 text-role-hr'
                   : 'bg-primary/10 border-primary/40 text-primary')}>{p.code}</span>
-              <DialogTitle className="text-sm leading-tight">
+              <DialogTitle className="min-w-0 flex-1 truncate text-sm leading-tight">
                 {lead.name} · ₹{(lead.budget / 1000).toFixed(0)}k · {lead.area}
               </DialogTitle>
+              <SessionTimerBadge elapsed={timer.elapsed} />
             </div>
             <DialogDescription className="text-[11px]">
               <span className="font-medium text-foreground">{stageLabel}</span> — {p.mission}
