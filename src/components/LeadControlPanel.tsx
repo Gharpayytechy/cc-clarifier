@@ -185,6 +185,7 @@ export function LeadControlPanel() {
             >
               <X className="h-4 w-4" />
             </button>
+            </div>
           </div>
           <div className="flex items-center gap-1.5 flex-wrap">
             <StageBadge stage={lead.stage} />
