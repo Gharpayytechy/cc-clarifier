@@ -241,7 +241,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             const active = isActive(it.to);
             return (
               <Link
-                key={it.to}
+                key={`${it.to}-${it.label}`}
                 to={it.to}
                 className={cn(
                   "flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] transition-colors",
@@ -346,7 +346,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             const active = isActive(item.to);
             return (
               <Link
-                key={item.to}
+                key={`${item.to}-${item.label}`}
                 to={item.to}
                 className={cn(
                   "relative flex shrink-0 snap-start flex-col items-center justify-center gap-1 rounded-md px-3 py-1.5 text-[10px] font-medium transition-colors min-w-[64px] min-h-[44px]",
