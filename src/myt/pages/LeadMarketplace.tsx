@@ -106,19 +106,31 @@ export default function LeadMarketplace() {
             Lead Marketplace
           </h1>
           <p className="text-xs text-muted-foreground">
-            {currentRole === 'tcm'
-              ? 'Claim → call on the spot → log outcome → set next action. Then own it for 15 days.'
-              : 'Watch demand flow through the funnel in real time'}
+            Claim → call on the spot → log outcome → set next action. Then own it for 15 days.
           </p>
         </div>
-        <BulkAddLeads
-          onAdd={(newLeads) => {
-            setLeads(prev => [...newLeads, ...prev]);
-            toast.success(`${newLeads.length} leads added to the marketplace`);
-          }}
-          addedBy={currentMemberId ?? 'unknown'}
-          addedByName={teamMembers.find(m => m.id === currentMemberId)?.name ?? 'Team'}
-        />
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Working as</span>
+            <Select value={actorId} onValueChange={setCurrentMemberId}>
+              <SelectTrigger className="h-8 w-40 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {owners.map(m => (
+                  <SelectItem key={m.id} value={m.id} className="text-xs">{m.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <BulkAddLeads
+            onAdd={(newLeads) => {
+              setLeads(prev => [...newLeads, ...prev]);
+              toast.success(`${newLeads.length} leads added to the marketplace`);
+            }}
+            addedBy={actorId}
+            addedByName={actorName}
+          />
+        </div>
+
       </div>
 
       {myIncomplete.length > 0 && (
