@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { intentBg } from '@/myt/lib/confidence';
-import { currentStage, discoveryProgress, missingAll, waStatusMeta, CALL_STAGES } from '@/myt/lib/call-plan';
+import { currentStage, discoveryProgress, missingAll, waStatusMeta, CALL_STAGES, closingReadiness, readinessTone } from '@/myt/lib/call-plan';
 import { LeadControlPanel } from '@/myt/components/LeadControlPanel';
 import {
   actionDueLabel, callOutcomes, isIncomplete, nextActions, OWNERSHIP_DAYS, ownershipDay,
@@ -112,7 +112,40 @@ export function LeadCard({ e, actorId, variant, onClaim, onTouch, onFinish, onRe
         </div>
       )}
 
-      {/* WhatsApp state + 3-call ladder + what we still don't know */}
+      {/* Closing readiness — can I actually close this? Under 99% = no. */}
+      {(() => {
+        const r = closingReadiness(l);
+        const t = readinessTone(r.pct);
+        return (
+          <div className={cn(
+            'rounded-lg border px-2 py-1.5 space-y-1',
+            t === 'good' ? 'border-role-tcm/40 bg-role-tcm/5'
+              : t === 'warn' ? 'border-role-hr/30 bg-role-hr/5'
+              : 'border-danger/30 bg-danger/5',
+          )}>
+            <div className="flex items-center gap-2 text-[10px]">
+              <span className={cn('font-semibold tabular-nums',
+                t === 'good' ? 'text-role-tcm' : t === 'warn' ? 'text-role-hr' : 'text-danger')}>
+                {r.pct}% effort
+              </span>
+              <span className="text-muted-foreground">{r.closeable ? 'Closeable — give it 100%' : 'Not closeable yet'}</span>
+              <span className="ml-auto text-muted-foreground">{r.done}/{r.total}</span>
+            </div>
+            <div className="h-1 rounded-full bg-surface-3 overflow-hidden">
+              <div className={cn('h-full transition-all',
+                t === 'good' ? 'bg-role-tcm' : t === 'warn' ? 'bg-role-hr' : 'bg-danger')}
+                style={{ width: `${r.pct}%` }} />
+            </div>
+            {r.blockers.length > 0 && (
+              <div className="text-[10px] text-muted-foreground">
+                Blocking: {r.blockers.slice(0, 4).join(', ')}{r.blockers.length > 4 && ` +${r.blockers.length - 4}`}
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* WhatsApp state + call ladder + what we still don't know */}
       <div className="rounded-lg border bg-surface-2/50 px-2 py-1.5 space-y-1">
         <div className="flex items-center gap-2 flex-wrap text-[10px]">
           <span className={cn(
