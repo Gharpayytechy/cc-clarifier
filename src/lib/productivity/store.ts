@@ -69,6 +69,8 @@ export const useProductivity = create<State>()(
   persist(
     (set, get) => ({
       sessions: [],
+      pages: [],
+      marks: [],
       start: (s) => {
         const id = `ws_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
         const entry: WorkSession = {
