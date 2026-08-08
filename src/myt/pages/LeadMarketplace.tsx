@@ -251,7 +251,7 @@ export default function LeadMarketplace() {
                   Log touch
                 </Button>
               )}
-              {(currentRole === 'flow-ops' || (currentRole === 'tcm' && e.lead.claimedBy === currentMemberId)) && (
+              {(!e.lead.claimedBy || e.lead.claimedBy === actorId) && (
                 <Button size="sm" variant="outline" onClick={() => scheduleFromLead(e.lead)} className="h-8 text-xs flex-1">
                   Schedule tour →
                 </Button>
