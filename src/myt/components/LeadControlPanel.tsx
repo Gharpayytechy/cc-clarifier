@@ -20,6 +20,8 @@ import { intentBg, confirmationLabel } from "@/myt/lib/confidence";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { format, formatDistanceToNow } from "date-fns";
+import { CallLadder } from "@/myt/components/CallLadder";
+
 
 type Subject =
   | { kind: "tour"; tour: Tour }
