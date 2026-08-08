@@ -236,7 +236,7 @@ export default function LeadMarketplace() {
                   </Button>
                 }
               />
-              {currentRole === 'tcm' && !e.lead.claimedBy && (
+              {!e.lead.claimedBy && (
                 <Button size="sm" onClick={() => claimLead(e.lead)} className="h-8 text-xs flex-1">
                   <Hand className="h-3 w-3 mr-1" /> Claim & call now
                 </Button>
