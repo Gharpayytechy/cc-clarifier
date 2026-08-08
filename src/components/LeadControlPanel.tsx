@@ -97,7 +97,22 @@ export function LeadControlPanel() {
     setTab(pendingPostTour ? "post" : upcomingTour ? "tour" : settings.matching.drawerDefaultTab);
   }, [lead, pendingPostTour, upcomingTour, settings.matching.drawerDefaultTab]);
 
-  if (!lead) return null;
+  if (!lead) {
+    if (!selectedLeadId) return null;
+    return (
+      <Sheet open onOpenChange={(open) => !open && selectLead(null)}>
+        <SheetContent side="right" className="w-full sm:max-w-md">
+          <SheetHeader>
+            <SheetTitle>Lead unavailable</SheetTitle>
+            <SheetDescription>
+              This lead is no longer in the active lead list. Refresh the source view and try again.
+            </SheetDescription>
+          </SheetHeader>
+          <Button className="mt-4" onClick={() => selectLead(null)}>Close</Button>
+        </SheetContent>
+      </Sheet>
+    );
+  }
 
   const tcm = getTcm(lead.assignedTcmId);
 

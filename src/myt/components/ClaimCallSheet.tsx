@@ -469,7 +469,7 @@ export function ClaimCallSheet({ lead, open, mode = 'claim', channel = 'call', o
                     {captured.length ? ` · ${captured.length} new answer${captured.length === 1 ? '' : 's'}` : ''}.
                   </div>
 
-                  <Button className="w-full h-11" disabled={!action || !nextAt} onClick={finish}>
+                  <Button className="w-full h-11" disabled={!outcome || !action || !dueAt || !nextAt} onClick={finish}>
                     <CheckCircle2 className="h-4 w-4 mr-1" />
                     {mode === 'claim' ? 'Lock ownership & next call' : 'Save call & next call'}
                   </Button>
