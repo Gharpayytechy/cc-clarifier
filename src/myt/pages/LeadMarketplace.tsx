@@ -156,7 +156,7 @@ export default function LeadMarketplace() {
               e.intent === 'hard' && 'border-role-tcm/30 bg-role-tcm/5',
               e.intent === 'medium' && 'border-role-hr/20 bg-role-hr/5',
               e.intent === 'soft' && 'border-border bg-surface-2/40',
-              e.lead.claimedBy && 'opacity-60'
+              e.lead.claimedBy && !isIncomplete(e.lead) && 'opacity-70'
             )}
           >
             <div className="flex items-start justify-between gap-2">
@@ -168,7 +168,12 @@ export default function LeadMarketplace() {
                   </span>
                   {e.lead.claimedBy && (
                     <span className="text-[9px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
-                      Claimed
+                      {teamMembers.find(m => m.id === e.lead.claimedBy)?.name ?? 'Claimed'} · Day {ownershipDay(e.lead)}/{OWNERSHIP_DAYS}
+                    </span>
+                  )}
+                  {isIncomplete(e.lead) && (
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-danger/10 text-danger border border-danger/30">
+                      Call + next action pending
                     </span>
                   )}
                 </div>
@@ -188,6 +193,27 @@ export default function LeadMarketplace() {
               <ScoreInline label="Conversion prob" value={e.conversionProb} icon={<TrendingUp className="h-3 w-3" />} />
             </div>
 
+            {e.lead.nextAction && (
+              <div className="flex items-center gap-2 text-[11px] rounded-lg border bg-surface-2/60 px-2 py-1.5 flex-wrap">
+                <CheckCircle2 className="h-3 w-3 text-role-tcm" />
+                <span className="text-foreground font-medium">
+                  {nextActions.find(a => a.value === e.lead.nextAction!.type)?.label}
+                </span>
+                {e.lead.nextAction.note && <span className="text-muted-foreground">· {e.lead.nextAction.note}</span>}
+                <span className={cn(
+                  'flex items-center gap-1 ml-auto',
+                  actionDueLabel(e.lead.nextAction.dueAt).overdue ? 'text-danger' : 'text-muted-foreground'
+                )}>
+                  <Clock className="h-3 w-3" />{actionDueLabel(e.lead.nextAction.dueAt).text}
+                </span>
+                {e.lead.callOutcome && (
+                  <span className="text-muted-foreground w-full">
+                    Last call: {callOutcomes.find(c => c.value === e.lead.callOutcome)?.label}
+                  </span>
+                )}
+              </div>
+            )}
+
             <div className="flex gap-2 pt-1">
               <LeadControlPanel
                 subject={{ kind: 'lead', lead: e.lead }}
@@ -198,8 +224,18 @@ export default function LeadMarketplace() {
                 }
               />
               {currentRole === 'tcm' && !e.lead.claimedBy && (
-                <Button size="sm" onClick={() => claimLead(e.lead.id)} className="h-8 text-xs flex-1">
-                  <Hand className="h-3 w-3 mr-1" /> Claim
+                <Button size="sm" onClick={() => claimLead(e.lead)} className="h-8 text-xs flex-1">
+                  <Hand className="h-3 w-3 mr-1" /> Claim & call now
+                </Button>
+              )}
+              {isIncomplete(e.lead) && e.lead.claimedBy === currentMemberId && (
+                <Button size="sm" variant="destructive" onClick={() => setClaiming(e.lead)} className="h-8 text-xs flex-1">
+                  Finish call log
+                </Button>
+              )}
+              {e.lead.claimedBy === currentMemberId && !isIncomplete(e.lead) && (
+                <Button size="sm" variant="outline" onClick={() => setClaiming(e.lead)} className="h-8 text-xs">
+                  Log touch
                 </Button>
               )}
               {(currentRole === 'flow-ops' || (currentRole === 'tcm' && e.lead.claimedBy === currentMemberId)) && (
@@ -211,9 +247,21 @@ export default function LeadMarketplace() {
           </div>
         ))}
       </div>
+
+      <ClaimCallSheet
+        lead={claiming}
+        open={Boolean(claiming)}
+        onOpenChange={(v) => { if (!v) setClaiming(null); }}
+        onComplete={(p) => { if (claiming) completeClaim(claiming.id, p); setClaiming(null); }}
+        onAbandon={() => {
+          if (claiming && isIncomplete(claiming)) releaseLead(claiming.id);
+          setClaiming(null);
+        }}
+      />
     </div>
   );
 }
+
 
 function Stat({ label, value, accent }: { label: string; value: string | number; accent?: 'green' | 'amber' | 'primary' }) {
   return (
