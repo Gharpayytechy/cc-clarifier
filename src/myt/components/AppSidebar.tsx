@@ -25,6 +25,7 @@ const navItems = {
     { label: 'Dashboard', path: '/myt/flow-ops', icon: LayoutDashboard },
     { label: 'Schedule', path: '/myt/schedule', icon: CalendarPlus },
     { label: 'Marketplace', path: '/myt/marketplace', icon: Zap },
+    { label: 'My Leads', path: '/myt/my-leads', icon: Crosshair },
     { label: 'Properties', path: '/myt/properties', icon: Boxes },
     { label: 'Calendar', path: '/myt/calendar', icon: CalendarDays },
     { label: 'Leads', path: '/myt/leads', icon: Target },
@@ -32,6 +33,7 @@ const navItems = {
   tcm: [
     { label: 'Tours', path: '/myt/tcm', icon: LayoutDashboard },
     { label: 'Marketplace', path: '/myt/marketplace', icon: Zap },
+    { label: 'My Leads', path: '/myt/my-leads', icon: Crosshair },
     { label: 'Calendar', path: '/myt/calendar', icon: CalendarDays },
     { label: 'Actions', path: '/myt/tcm/actions', icon: CalendarPlus },
     { label: 'Stats', path: '/myt/tcm/performance', icon: BarChart3 },
