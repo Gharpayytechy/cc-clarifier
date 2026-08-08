@@ -226,6 +226,15 @@ export interface LeadTouch {
   dueAt: string;
   actionNote?: string;
   tags: string[];
+  /** Which call in the ladder this touch was. */
+  stage?: CallStage;
+  /** WhatsApp state recorded before this touch. */
+  waStatus?: WaStatus;
+  waLabel?: string;
+  /** Fields captured during this touch. */
+  captured?: DiscoveryKey[];
+  /** The call planned right after this one. */
+  nextCall?: PlannedCall | null;
 }
 
 export interface LeadNote {
