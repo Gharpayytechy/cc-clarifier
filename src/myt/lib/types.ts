@@ -158,6 +158,11 @@ export interface Lead {
   nextAction?: NextAction | null;
   ownershipExpiresAt?: string;     // claimedAt + 15 days
   lastTouchAt?: string;
+  // Shared marketplace intelligence — anyone can add value
+  touches?: LeadTouch[];
+  tags?: string[];
+  marketNotes?: LeadNote[];
+  lastChannel?: TouchChannel;
 }
 
 export type CallOutcome =
