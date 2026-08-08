@@ -22,6 +22,9 @@ import { cn } from "@/lib/utils";
 import { format, formatDistanceToNow } from "date-fns";
 import { CallLadder } from "@/myt/components/CallLadder";
 import { currentStage, play } from "@/myt/lib/call-plan";
+import { teamMembers } from "@/myt/lib/mock-data";
+import { useSessionTimer } from "@/lib/productivity/use-session-timer";
+import { SessionTimerBadge } from "@/components/productivity/SessionTimerBadge";
 
 
 type Subject =
@@ -50,7 +53,7 @@ const SIGNAL_TAGS = [
 
 export function LeadControlPanel({ subject, trigger, defaultTab = "overview", onStartTouch }: Props) {
   const [open, setOpen] = useState(false);
-  const { setTours, leads, setLeads } = useAppState();
+  const { setTours, leads, setLeads, currentMemberId } = useAppState();
   const { addEvent, eventsForTour, reports, setReport } = useTourData();
 
   // ----- derive lead + tour from subject + global state -----
@@ -64,6 +67,19 @@ export function LeadControlPanel({ subject, trigger, defaultTab = "overview", on
   const area = tour?.area ?? lead?.area ?? "—";
   const budget = tour?.budget ?? lead?.budget ?? 0;
   const property = tour?.propertyName;
+
+  // 120s target timer for every second the drawer stays open on this lead.
+  const actorId = currentMemberId ?? teamMembers[0]?.id ?? "m1";
+  const actorName = teamMembers.find((m) => m.id === actorId)?.name ?? "Team";
+  const timer = useSessionTimer({
+    active: open,
+    kind: "drawer",
+    leadId: lead?.id ?? tour?.id ?? "unknown",
+    leadName: name,
+    actorId,
+    actorName,
+  });
+
 
   // ----- local state -----
   const [note, setNote] = useState("");
@@ -227,6 +243,7 @@ export function LeadControlPanel({ subject, trigger, defaultTab = "overview", on
                     <AlertTriangle className="h-3 w-3" /> Update required
                   </Badge>
                 )}
+                <SessionTimerBadge elapsed={timer.elapsed} />
               </SheetTitle>
               <p className="text-[11px] text-muted-foreground mt-1">
                 {phone && <span className="mr-2">📞 {phone}</span>}

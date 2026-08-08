@@ -36,6 +36,9 @@ import type { LeadStage, FollowUpPriority, SequenceKind } from "@/lib/types";
 import { toast } from "sonner";
 import { useMountedNow } from "@/hooks/use-now";
 import { sendTourMessage as sendOwnerTourMessage } from "@/owner/messaging";
+import { useSessionTimer } from "@/lib/productivity/use-session-timer";
+import { SessionTimerBadge } from "@/components/productivity/SessionTimerBadge";
+import { useIdentityStore } from "@/lib/lead-identity/store";
 import { useSettings } from "@/myt/lib/settings-context";
 import { LeadCallLadder } from "./leads/LeadCallLadder";
 
@@ -111,6 +114,18 @@ export function LeadControlPanel() {
     setTab(pendingPostTour ? "post" : upcomingTour ? "tour" : settings.matching.drawerDefaultTab);
   }, [lead, pendingPostTour, upcomingTour, settings.matching.drawerDefaultTab]);
 
+  // 120s target timer — every second in this drawer is logged to Productivity.
+  const me = useIdentityStore((s) => s.currentUser);
+  const timer = useSessionTimer({
+    active: Boolean(selectedLeadId && lead),
+    kind: "drawer",
+    leadId: lead?.id ?? "",
+    leadName: lead?.name ?? "",
+    actorId: me?.id ?? "me",
+    actorName: me?.name ?? "You",
+    outcome: lead ? `Stage ${lead.stage}` : undefined,
+  });
+
   const continueCall = (call: number) => {
     setSelectedCall(call);
     setTab("control");
@@ -161,6 +176,8 @@ export function LeadControlPanel() {
                 {lead.phone} · via {lead.source} · assigned {tcm?.name ?? "—"} ({tcm?.zone ?? "—"})
               </SheetDescription>
             </div>
+            <div className="flex shrink-0 items-center gap-1.5">
+            <SessionTimerBadge elapsed={timer.elapsed} />
             <button
               onClick={() => selectLead(null)}
               className="h-7 w-7 shrink-0 rounded-md hover:bg-muted flex items-center justify-center"
@@ -168,6 +185,7 @@ export function LeadControlPanel() {
             >
               <X className="h-4 w-4" />
             </button>
+            </div>
           </div>
           <div className="flex items-center gap-1.5 flex-wrap">
             <StageBadge stage={lead.stage} />

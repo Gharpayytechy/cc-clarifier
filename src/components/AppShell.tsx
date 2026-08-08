@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Target, CalendarPlus, ClipboardList, Boxes, Activity,
   Building2, Search, Sun, Command, Trophy, Sparkles, MessageSquare,
   IndianRupee, MapPin, Zap, Users, Home, Calendar, Store, Swords, Settings, AlertTriangle,
-  ShieldCheck, Inbox, Camera, HelpCircle, Layers, HeartPulse, ClipboardCheck, ListChecks,
+  ShieldCheck, Inbox, Camera, HelpCircle, Layers, HeartPulse, ClipboardCheck, ListChecks, Timer,
 } from "lucide-react";
 import { NotificationCenter } from "./NotificationCenter";
 import { ProfileMenu } from "./ProfileMenu";
@@ -117,6 +117,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       { to: "/queue", label: "Action Queue", icon: Zap, accent: true },
       { to: "/zone-brain", label: "Zone Brain", icon: MapPin, accent: true },
       { to: "/monitoring", label: "Command Center", icon: Activity, accent: true },
+      { to: "/productivity", label: "Productivity", icon: Timer, accent: true },
       { to: "/health", label: "System Health", icon: HeartPulse },
       { to: "/help", label: "How to use", icon: HelpCircle },
     ],
@@ -150,6 +151,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       { to: "/queue", label: "Action Queue", icon: Zap, accent: true },
       { to: "/zone-brain", label: "Zone Brain", icon: MapPin, accent: true },
       { to: "/monitoring", label: "Command Center", icon: Activity, accent: true },
+      { to: "/productivity", label: "Productivity", icon: Timer, accent: true },
       { to: "/health", label: "System Health", icon: HeartPulse },
       { to: "/help", label: "How to use", icon: HelpCircle },
     ],
@@ -180,6 +182,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       { to: "/inbox", label: "Inbox", icon: Inbox },
       { to: "/queue", label: "Action Queue", icon: Zap, accent: true },
       { to: "/zone-brain", label: "Zone Brain", icon: MapPin },
+      { to: "/productivity", label: "Productivity", icon: Timer, accent: true },
       { to: "/health", label: "System Health", icon: HeartPulse },
       { to: "/help", label: "How to use", icon: HelpCircle },
     ],

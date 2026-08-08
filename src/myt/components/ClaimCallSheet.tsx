@@ -9,6 +9,10 @@ import {
   Copy, CalendarClock, PhoneOff, SkipForward, Target, Plus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useSessionTimer } from '@/lib/productivity/use-session-timer';
+import { SessionTimerBadge } from '@/components/productivity/SessionTimerBadge';
+import { useAppState } from '@/myt/lib/app-context';
+import { teamMembers } from '@/myt/lib/mock-data';
 import { Lead, CallOutcome, NextActionType, TouchChannel, WaStatus, CallStage, LeadDiscovery, DiscoveryKey, PlannedCall } from '@/myt/lib/types';
 import {
   nextActions, suggestedAction, isoIn, waLink,
@@ -76,6 +80,22 @@ export function ClaimCallSheet({ lead, open, mode = 'claim', channel = 'call', i
 
   const stage: CallStage = initialStage ?? (lead ? currentStage(lead) : 1);
   const p = play(stage);
+
+  // 120s target: the whole claim → call → next-action loop is timed.
+  const { currentMemberId } = useAppState();
+  const actorId = currentMemberId ?? teamMembers[0]?.id ?? 'm1';
+  const actorName = teamMembers.find((m) => m.id === actorId)?.name ?? 'Team';
+  const timer = useSessionTimer({
+    active: open && Boolean(lead),
+    kind: mode === 'claim' ? 'claim' : 'call',
+    leadId: lead?.id ?? '',
+    leadName: lead?.name ?? '',
+    actorId,
+    actorName,
+    outcome: outcome ?? undefined,
+  });
+
+
 
   useEffect(() => {
     if (open && lead) {
@@ -169,9 +189,10 @@ export function ClaimCallSheet({ lead, open, mode = 'claim', channel = 'call', i
                 p.colour === 'good' ? 'bg-role-tcm/10 border-role-tcm/40 text-role-tcm'
                   : p.colour === 'warn' ? 'bg-role-hr/10 border-role-hr/40 text-role-hr'
                   : 'bg-primary/10 border-primary/40 text-primary')}>{p.code}</span>
-              <DialogTitle className="text-sm leading-tight">
+              <DialogTitle className="min-w-0 flex-1 truncate text-sm leading-tight">
                 {lead.name} · ₹{(lead.budget / 1000).toFixed(0)}k · {lead.area}
               </DialogTitle>
+              <SessionTimerBadge elapsed={timer.elapsed} />
             </div>
             <DialogDescription className="text-[11px]">
               <span className="font-medium text-foreground">{stageLabel}</span> — {p.mission}
