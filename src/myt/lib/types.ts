@@ -163,6 +163,31 @@ export interface Lead {
   tags?: string[];
   marketNotes?: LeadNote[];
   lastChannel?: TouchChannel;
+  // WhatsApp bridge — what the chat looks like before we dial
+  waStatus?: WaStatus;
+  waLabel?: string;
+  waLabelledAt?: string;
+  // 3-call ladder: basics → schedule → booking
+  callStage?: CallStage;
+  discovery?: LeadDiscovery;
+  nextCall?: PlannedCall | null;
+}
+
+export type WaStatus = 'chat-replied' | 'chat-no-reply' | 'chat-stale' | 'no-chat' | 'not-on-wa';
+
+export type CallStage = 1 | 2 | 3;
+
+export type DiscoveryKey =
+  | 'inBangalore' | 'areas' | 'budget' | 'moveIn' | 'personaType' | 'roomType' | 'genderNeed' | 'whoIsComing'
+  | 'officeLocation' | 'company' | 'sharing' | 'food' | 'stayDuration' | 'decisionMaker' | 'tourSlot'
+  | 'competition' | 'objection' | 'tokenReadiness' | 'moveInConfirmed';
+
+export type LeadDiscovery = Partial<Record<DiscoveryKey, string>>;
+
+export interface PlannedCall {
+  stage: CallStage;
+  dueAt: string;
+  purpose: string;
 }
 
 export type CallOutcome =
