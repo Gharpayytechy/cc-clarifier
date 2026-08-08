@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { format, formatDistanceToNow } from "date-fns";
 import { CallLadder } from "@/myt/components/CallLadder";
+import { currentStage, play } from "@/myt/lib/call-plan";
 
 
 type Subject =
@@ -31,6 +32,7 @@ interface Props {
   subject: Subject;
   trigger?: ReactNode;
   defaultTab?: "overview" | "tour" | "actions" | "followup" | "post-tour" | "activity";
+  onStartTouch?: (lead: Lead, channel: 'call' | 'whatsapp') => void;
 }
 
 const STAGES: { value: TourStatus; label: string }[] = [
@@ -46,7 +48,7 @@ const SIGNAL_TAGS = [
   "Comparing options", "Food concern", "Move-in delay", "Hot lead",
 ];
 
-export function LeadControlPanel({ subject, trigger, defaultTab = "overview" }: Props) {
+export function LeadControlPanel({ subject, trigger, defaultTab = "overview", onStartTouch }: Props) {
   const [open, setOpen] = useState(false);
   const { setTours, leads, setLeads } = useAppState();
   const { addEvent, eventsForTour, reports, setReport } = useTourData();
@@ -67,8 +69,9 @@ export function LeadControlPanel({ subject, trigger, defaultTab = "overview" }: 
   const [note, setNote] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [fuDate, setFuDate] = useState(() => {
-    const d = new Date(); d.setDate(d.getDate() + 1);
-    return d.toISOString().slice(0, 10);
+    const d = new Date(Date.now() + 2 * 3_600_000);
+    const off = d.getTimezoneOffset();
+    return new Date(d.getTime() - off * 60_000).toISOString().slice(0, 16);
   });
   const [fuPriority, setFuPriority] = useState<"hot" | "warm" | "cold">(
     tour?.intent === "hard" ? "hot" : tour?.intent === "medium" ? "warm" : "cold"
@@ -118,8 +121,26 @@ export function LeadControlPanel({ subject, trigger, defaultTab = "overview" }: 
 
   const callNow = () => {
     if (!phone) return;
+    if (lead && onStartTouch) {
+      window.setTimeout(() => {
+        setOpen(false);
+        onStartTouch(lead, 'call');
+      }, 0);
+      return;
+    }
     window.location.href = `tel:${phone.replace(/\s/g, "")}`;
     log("custom_message_sent", "Call placed");
+  };
+
+  const startWhatsApp = () => {
+    if (lead && onStartTouch) {
+      window.setTimeout(() => {
+        setOpen(false);
+        onStartTouch(lead, 'whatsapp');
+      }, 0);
+      return;
+    }
+    sendWhatsApp(`Hi ${name}, this is regarding your Gharpayy tour. Can we connect?`);
   };
 
   const saveNote = () => {
@@ -133,7 +154,14 @@ export function LeadControlPanel({ subject, trigger, defaultTab = "overview" }: 
     const dueAt = new Date(fuDate).toISOString();
     log("reminder_sent", `Follow-up scheduled · ${fuPriority.toUpperCase()} · ${fuReason} · ${format(new Date(fuDate), "MMM d")}`);
     toast.success(`Follow-up set ${format(new Date(fuDate), "MMM d")}`, { description: fuReason });
-    if (lead) updateLead({ notes: `[FU ${fuDate}] ${fuReason}\n${lead.notes ?? ""}` });
+    if (lead) {
+      const stage = currentStage(lead);
+      updateLead({
+        notes: `[FU ${fuDate}] ${fuReason}\n${lead.notes ?? ""}`,
+        nextAction: { type: 'call-back', dueAt, note: fuReason },
+        nextCall: { stage, dueAt, purpose: play(stage).mission },
+      });
+    }
   };
 
   const savePostTour = () => {
@@ -170,7 +198,7 @@ export function LeadControlPanel({ subject, trigger, defaultTab = "overview" }: 
   const stale = tour?.status === "completed" && !tour.outcome;
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
+    <Sheet open={open} onOpenChange={setOpen} modal={false}>
       <SheetTrigger asChild>
         {trigger ?? (
           <Button size="sm" variant="outline" className="h-8 gap-1.5">
@@ -218,10 +246,10 @@ export function LeadControlPanel({ subject, trigger, defaultTab = "overview" }: 
           {/* Quick actions row */}
           <div className="flex flex-wrap gap-1.5 pt-2">
             <Button size="sm" variant="outline" className="h-7 gap-1 text-[11px]" onClick={callNow} disabled={!phone}>
-              <Phone className="h-3 w-3" /> Call
+              <Phone className="h-3 w-3" /> {lead && onStartTouch ? 'Start guided call' : 'Call'}
             </Button>
-            <Button size="sm" variant="outline" className="h-7 gap-1 text-[11px]" onClick={() => sendWhatsApp(`Hi ${name}, this is regarding your Gharpayy tour. Can we connect?`)} disabled={!phone}>
-              <MessageCircle className="h-3 w-3" /> WhatsApp
+            <Button size="sm" variant="outline" className="h-7 gap-1 text-[11px]" onClick={startWhatsApp} disabled={!phone}>
+              <MessageCircle className="h-3 w-3" /> {lead && onStartTouch ? 'Guided WhatsApp' : 'WhatsApp'}
             </Button>
             {tour && (
               <Select value={tour.status} onValueChange={(v) => setStatus(v as TourStatus)}>
@@ -336,7 +364,7 @@ export function LeadControlPanel({ subject, trigger, defaultTab = "overview" }: 
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1.5">
                 <Label className="text-[11px] text-muted-foreground">Next follow-up</Label>
-                <Input type="date" value={fuDate} onChange={(e) => setFuDate(e.target.value)} className="h-9 text-sm" />
+                <Input type="datetime-local" value={fuDate} onChange={(e) => setFuDate(e.target.value)} className="h-9 text-sm" />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-[11px] text-muted-foreground">Priority</Label>
@@ -349,6 +377,18 @@ export function LeadControlPanel({ subject, trigger, defaultTab = "overview" }: 
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+            <div className="grid grid-cols-4 gap-1.5">
+              {([['30m', 0.5], ['2h', 2], ['Tomorrow', 24], ['3 days', 72]] as const).map(([label, hours]) => (
+                <Button key={label} type="button" size="sm" variant="outline" className="h-8 text-[10px]"
+                  onClick={() => {
+                    const d = new Date(Date.now() + hours * 3_600_000);
+                    const off = d.getTimezoneOffset();
+                    setFuDate(new Date(d.getTime() - off * 60_000).toISOString().slice(0, 16));
+                  }}>
+                  {label}
+                </Button>
+              ))}
             </div>
             <div className="space-y-1.5">
               <Label className="text-[11px] text-muted-foreground">What to do</Label>

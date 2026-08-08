@@ -12,7 +12,7 @@ import { Link } from '@/shims/react-router-dom';
 import { ClaimCallSheet } from '@/myt/components/ClaimCallSheet';
 import { BulkAddLeads } from '@/myt/components/BulkAddLeads';
 import { LeadCard, EnrichedLead } from '@/myt/components/LeadCard';
-import { todayScoreboard, DAILY_CONNECT_TARGET, marketPulse, ownerStats } from '@/myt/lib/ownership';
+import { todayScoreboard, DAILY_CONNECT_TARGET, marketLane, marketPulse, ownerStats, type MarketLane } from '@/myt/lib/ownership';
 import { useLeadActions } from '@/myt/lib/use-lead-actions';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -45,6 +45,13 @@ export default function LeadMarketplace() {
   const best = stats.slice(0, 3);
   const worst = stats.slice(-3).reverse().filter(s => !best.includes(s));
   const myOwned = leads.filter(l => l.claimedBy === actorId).length;
+  const lanes: { key: MarketLane; title: string; hint: string; tone: string }[] = [
+    { key: 'now', title: 'Call now · seconds matter', hint: 'Ready to book, moving in ≤3 days, or 80%+ probability.', tone: 'border-danger/50 bg-danger/5' },
+    { key: 'today', title: 'Do today', hint: 'Fresh, moving soon, or strong conversion potential.', tone: 'border-role-hr/40 bg-role-hr/5' },
+    { key: 'next', title: 'Work next', hint: 'Good pipeline for the next focused calling block.', tone: 'border-primary/30 bg-primary/5' },
+    { key: 'nurture', title: 'Future move-in', hint: 'Keep warm by month and bring forward when intent changes.', tone: 'border-border bg-surface-2/30' },
+  ];
+  const grouped = lanes.map((lane) => ({ ...lane, items: open.filter((item) => marketLane(item.lead, item.conversionProb) === lane.key) }));
 
   return (
     <div className="space-y-4 animate-slide-up">
@@ -136,7 +143,7 @@ export default function LeadMarketplace() {
         </div>
       )}
 
-      <div className="space-y-2">
+      <div className="space-y-3">
         {open.length === 0 && (
           <div className="glass-card p-8 text-center space-y-2">
             <Inbox className="h-6 w-6 mx-auto text-muted-foreground" />
@@ -147,15 +154,19 @@ export default function LeadMarketplace() {
             </p>
           </div>
         )}
-        {open.map(e => (
-          <LeadCard
-            key={e.lead.id}
-            e={e}
-            actorId={actorId}
-            variant="market"
-            onClaim={claimLead}
-            onAddNote={addNote}
-          />
+        {grouped.filter((lane) => lane.items.length > 0).map((lane) => (
+          <section key={lane.key} className={cn('rounded-lg border p-2.5 space-y-2', lane.tone)}>
+            <header className="flex items-center justify-between gap-3 px-0.5">
+              <div>
+                <h2 className="text-sm font-semibold text-foreground">{lane.title}</h2>
+                <p className="text-[10px] text-muted-foreground">{lane.hint}</p>
+              </div>
+              <span className="text-lg font-bold tabular-nums">{lane.items.length}</span>
+            </header>
+            {lane.items.map((e) => (
+              <LeadCard key={e.lead.id} e={e} actorId={actorId} variant="market" onClaim={claimLead} onAddNote={addNote} />
+            ))}
+          </section>
         ))}
       </div>
 

@@ -100,6 +100,7 @@ export function ClaimCallSheet({ lead, open, mode = 'claim', channel = 'call', o
   const brief = [...backlog, ...preCall].slice(0, 5);
   const asks = askFields(stage).filter((f) => !skipped.includes(f.key));
   const askLeft = asks.filter((f) => f.required && !filled(discovery, f.key));
+  const briefLeft = brief.filter((f) => f.required && !filled(discovery, f.key));
   const readiness = closingReadiness({ ...(lead ?? {} as Lead), discovery });
   const tone = readinessTone(readiness.pct);
   const attempts = lead ? attemptsAtStage(lead, stage) : 0;
@@ -266,7 +267,9 @@ export function ClaimCallSheet({ lead, open, mode = 'claim', channel = 'call', o
               )}
               <Nav
                 back={<Button variant="ghost" size="sm" className="text-xs" onClick={() => setStep('wa')}>Back</Button>}
-                next={<Button size="sm" onClick={() => setStep('dial')}>Start {p.code} <ArrowRight className="h-3 w-3 ml-1" /></Button>}
+                 next={<Button size="sm" disabled={briefLeft.length > 0} onClick={() => setStep('dial')}>
+                   {briefLeft.length ? `Complete ${briefLeft.length} required` : `Start ${p.code}`} <ArrowRight className="h-3 w-3 ml-1" />
+                 </Button>}
               />
             </div>
           )}
@@ -361,8 +364,8 @@ export function ClaimCallSheet({ lead, open, mode = 'claim', channel = 'call', o
 
               <Nav
                 back={<Button variant="ghost" size="sm" className="text-xs" onClick={() => setStep('pickup')}>Back</Button>}
-                next={<Button size="sm" onClick={() => setStep('wrap')}>
-                  {askLeft.length ? `Continue · ${askLeft.length} blank` : 'All captured — wrap up'}
+                 next={<Button size="sm" disabled={askLeft.length > 0} onClick={() => setStep('wrap')}>
+                   {askLeft.length ? `Complete ${askLeft.length} required` : 'All captured — wrap up'}
                   <ArrowRight className="h-3 w-3 ml-1" />
                 </Button>}
               />
@@ -433,6 +436,14 @@ export function ClaimCallSheet({ lead, open, mode = 'claim', channel = 'call', o
                         </div>
                       </div>
                     </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {([['30 min', 0.5], ['2 hours', 2], ['Tomorrow', 24], ['3 days', 72]] as const).map(([label, hours]) => (
+                        <Button key={label} type="button" size="sm" variant="outline" className="h-7 text-[10px]"
+                          onClick={() => { const value = toLocalInput(isoIn(hours)); setNextAt(value); setDueAt(value); }}>
+                          {label}
+                        </Button>
+                      ))}
+                    </div>
                   </div>
 
                   {!missed && (
@@ -458,7 +469,7 @@ export function ClaimCallSheet({ lead, open, mode = 'claim', channel = 'call', o
                     {captured.length ? ` · ${captured.length} new answer${captured.length === 1 ? '' : 's'}` : ''}.
                   </div>
 
-                  <Button className="w-full h-11" disabled={!action || !nextAt} onClick={finish}>
+                  <Button className="w-full h-11" disabled={!outcome || !action || !dueAt || !nextAt} onClick={finish}>
                     <CheckCircle2 className="h-4 w-4 mr-1" />
                     {mode === 'claim' ? 'Lock ownership & next call' : 'Save call & next call'}
                   </Button>
@@ -499,10 +510,12 @@ function Fields({ fields, discovery, setField, onSkip }: {
               </Label>
               <div className="text-[10px] text-muted-foreground">{f.why}</div>
             </div>
-            <button type="button" onClick={() => onSkip(f.key)}
-              className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-0.5 shrink-0">
-              <SkipForward className="h-3 w-3" /> Skip
-            </button>
+            {!f.required && (
+              <button type="button" onClick={() => onSkip(f.key)}
+                className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-0.5 shrink-0">
+                <SkipForward className="h-3 w-3" /> Skip
+              </button>
+            )}
           </div>
           {f.kind === 'choice' ? (
             <div className="flex flex-wrap gap-1.5">

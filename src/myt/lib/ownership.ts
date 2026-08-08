@@ -122,6 +122,26 @@ export function actionDueLabel(dueAt: string) {
   return { text: `Due in ${Math.round(hrs / 24)}d`, overdue: false };
 }
 
+export function moveInLabel(lead: Pick<Lead, 'moveInDate' | 'dateConfirmed' | 'moveInWindow'>) {
+  const date = new Date(`${lead.moveInDate}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return 'Move-in not captured';
+  if (lead.dateConfirmed) return date.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+  const window = lead.moveInWindow ?? (date.getDate() <= 10 ? 'start' : date.getDate() <= 20 ? 'middle' : 'end');
+  const windowLabel = window === 'flexible' ? 'Flexible' : `${window[0].toUpperCase()}${window.slice(1)} of`;
+  return `${windowLabel} ${date.toLocaleDateString(undefined, { month: 'long' })}`;
+}
+
+export type MarketLane = 'now' | 'today' | 'next' | 'nurture';
+
+export function marketLane(lead: Lead, conversionProbability: number): MarketLane {
+  const moveDays = (new Date(`${lead.moveInDate}T12:00:00`).getTime() - Date.now()) / 86_400_000;
+  const ageHours = (Date.now() - new Date(lead.createdAt).getTime()) / 3_600_000;
+  if (lead.tags?.includes('ready-to-book') || moveDays <= 3 || conversionProbability >= 80) return 'now';
+  if (moveDays <= 10 || conversionProbability >= 65 || ageHours <= 6) return 'today';
+  if (moveDays <= 30 || conversionProbability >= 40) return 'next';
+  return 'nurture';
+}
+
 export function waLink(phone: string, text?: string) {
   const digits = phone.replace(/[^\d]/g, '');
   return `https://wa.me/${digits}${text ? `?text=${encodeURIComponent(text)}` : ''}`;
