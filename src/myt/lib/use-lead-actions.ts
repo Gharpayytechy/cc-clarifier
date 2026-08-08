@@ -62,6 +62,11 @@ export function useLeadActions() {
         dueAt: p.dueAt,
         actionNote: p.actionNote,
         tags: p.tags,
+        stage: p.stage,
+        waStatus: p.waStatus,
+        waLabel: p.waLabel,
+        captured: p.captured,
+        nextCall: p.nextCall,
       };
       const notes = p.notes.trim()
         ? [...(l.marketNotes ?? []), { id: `n-${Date.now()}`, at: now, by: actorId, byName: actorName, text: p.notes.trim() }]
@@ -73,16 +78,23 @@ export function useLeadActions() {
         lastChannel: p.channel,
         callOutcome: p.outcome,
         callNotes: p.notes,
+        waStatus: p.waStatus ?? l.waStatus,
+        waLabel: p.waLabel ?? l.waLabel,
+        waLabelledAt: p.waLabel ? now : l.waLabelledAt,
+        discovery: { ...(l.discovery ?? {}), ...p.discovery },
+        callStage: p.nextCall.stage,
+        nextCall: p.nextCall,
         tags: Array.from(new Set([...(l.tags ?? []), ...p.tags])),
         marketNotes: notes,
         touches: [...(l.touches ?? []), touch],
         nextAction: { type: p.action, dueAt: p.dueAt, note: p.actionNote },
       };
     }));
-    toast.success(isConnected(p.outcome) ? 'Connected call logged ✓' : 'Touch logged', {
-      description: `${actorName} owns this lead for ${OWNERSHIP_DAYS} days · next action set`,
+    toast.success(isConnected(p.outcome) ? `Call ${p.stage} logged ✓` : 'Touch logged', {
+      description: `${p.captured.length} new field${p.captured.length === 1 ? '' : 's'} captured · next call ${new Date(p.nextCall.dueAt).toLocaleString()} (Call ${p.nextCall.stage})`,
     });
   };
+
 
   const addNote = (leadId: string, text: string) => {
     const now = new Date().toISOString();
