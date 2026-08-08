@@ -175,12 +175,15 @@ export interface Lead {
 
 export type WaStatus = 'chat-replied' | 'chat-no-reply' | 'chat-stale' | 'no-chat' | 'not-on-wa';
 
-export type CallStage = 1 | 2 | 3;
+export type CallStage = 1 | 2 | 3 | 4 | 5;
 
 export type DiscoveryKey =
+  | 'dealRead' | 'goal'
   | 'inBangalore' | 'areas' | 'budget' | 'moveIn' | 'personaType' | 'roomType' | 'genderNeed' | 'whoIsComing'
-  | 'officeLocation' | 'company' | 'sharing' | 'food' | 'stayDuration' | 'decisionMaker' | 'tourSlot'
-  | 'competition' | 'objection' | 'tokenReadiness' | 'moveInConfirmed';
+  | 'officeLocation' | 'company' | 'sharing' | 'food' | 'stayDuration' | 'decisionMaker' | 'movingFeasibility' | 'tourSlot'
+  | 'competition' | 'objection' | 'tokenReadiness' | 'moveInConfirmed'
+  | 'tokenAmount' | 'paymentMode' | 'agreementReady'
+  | 'revivalReason' | 'recallWindow';
 
 export type LeadDiscovery = Partial<Record<DiscoveryKey, string>>;
 
