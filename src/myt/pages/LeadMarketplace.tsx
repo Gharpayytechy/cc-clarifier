@@ -1,9 +1,10 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAppState } from '@/myt/lib/app-context';
 import { budgetPowerScore, conversionProbability, leadIntent, urgencyExpiry, zoneMedianBudget } from '@/myt/lib/scoring';
 import { zones, teamMembers } from '@/myt/lib/mock-data';
 import {
   Zap, Target, Inbox, ArrowRight, TrendingUp, Clock, AlertTriangle, Trophy, Flame, Wallet,
+  Rows3, LayoutGrid, ListOrdered, Layers, Hand, MapPin, Calendar,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -12,7 +13,7 @@ import { Link } from '@/shims/react-router-dom';
 import { ClaimCallSheet } from '@/myt/components/ClaimCallSheet';
 import { BulkAddLeads } from '@/myt/components/BulkAddLeads';
 import { LeadCard, EnrichedLead } from '@/myt/components/LeadCard';
-import { todayScoreboard, DAILY_CONNECT_TARGET, marketLane, marketPulse, ownerStats, type MarketLane } from '@/myt/lib/ownership';
+import { todayScoreboard, DAILY_CONNECT_TARGET, marketLane, marketPulse, ownerStats, moveInLabel, type MarketLane } from '@/myt/lib/ownership';
 import { useLeadActions } from '@/myt/lib/use-lead-actions';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -39,6 +40,13 @@ export default function LeadMarketplace() {
       .sort((a, b) => b.conversionProb - a.conversionProb);
   }, [leads, globalZoneFilter]);
 
+  const [view, setView] = useState<ViewMode>('lanes');
+  useEffect(() => {
+    const saved = typeof window !== 'undefined' ? window.localStorage.getItem('myt.market.view') : null;
+    if (saved && VIEWS.some((v) => v.key === saved)) setView(saved as ViewMode);
+  }, []);
+  const pickView = (v: ViewMode) => { setView(v); try { window.localStorage.setItem('myt.market.view', v); } catch { /* ignore */ } };
+
   const board = todayScoreboard(leads);
   const pulse = marketPulse(leads);
   const stats = ownerStats(leads, teamMembers).filter(s => s.owned > 0 || s.touchesToday > 0);
@@ -52,6 +60,10 @@ export default function LeadMarketplace() {
     { key: 'nurture', title: 'Future move-in', hint: 'Keep warm by month and bring forward when intent changes.', tone: 'border-border bg-surface-2/30' },
   ];
   const grouped = lanes.map((lane) => ({ ...lane, items: open.filter((item) => marketLane(item.lead, item.conversionProb) === lane.key) }));
+  const laneRank: Record<MarketLane, number> = { now: 0, today: 1, next: 2, nurture: 3 };
+  const queue = [...open].sort((a, b) =>
+    laneRank[marketLane(a.lead, a.conversionProb)] - laneRank[marketLane(b.lead, b.conversionProb)]
+    || b.conversionProb - a.conversionProb);
 
   return (
     <div className="space-y-4 animate-slide-up">
@@ -143,6 +155,21 @@ export default function LeadMarketplace() {
         </div>
       )}
 
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="text-[11px] text-muted-foreground">
+          {open.length} open lead{open.length === 1 ? '' : 's'} · pick the layout that reads best for you.
+        </div>
+        <div className="inline-flex rounded-lg border border-border bg-card p-0.5">
+          {VIEWS.map((v) => (
+            <button key={v.key} type="button" onClick={() => pickView(v.key)} title={v.hint}
+              className={cn('flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-medium transition-all',
+                view === v.key ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground')}>
+              {v.icon}{v.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="space-y-3">
         {open.length === 0 && (
           <div className="glass-card p-8 text-center space-y-2">
@@ -154,20 +181,45 @@ export default function LeadMarketplace() {
             </p>
           </div>
         )}
-        {grouped.filter((lane) => lane.items.length > 0).map((lane) => (
-          <section key={lane.key} className={cn('rounded-lg border p-2.5 space-y-2', lane.tone)}>
+        {view === 'queue' ? (
+          <section className="rounded-lg border border-primary/30 bg-primary/5 p-2.5 space-y-1.5">
             <header className="flex items-center justify-between gap-3 px-0.5">
               <div>
-                <h2 className="text-sm font-semibold text-foreground">{lane.title}</h2>
-                <p className="text-[10px] text-muted-foreground">{lane.hint}</p>
+                <h2 className="text-sm font-semibold text-foreground">Priority queue</h2>
+                <p className="text-[10px] text-muted-foreground">Work strictly top to bottom — number 1 is the next call.</p>
               </div>
-              <span className="text-lg font-bold tabular-nums">{lane.items.length}</span>
+              <span className="text-lg font-bold tabular-nums">{queue.length}</span>
             </header>
-            {lane.items.map((e) => (
-              <LeadCard key={e.lead.id} e={e} actorId={actorId} variant="market" onClaim={claimLead} onAddNote={addNote} />
+            {queue.map((e, i) => (
+              <LeadRow key={e.lead.id} e={e} rank={i + 1} lane={marketLane(e.lead, e.conversionProb)} onClaim={claimLead} />
             ))}
           </section>
-        ))}
+        ) : (
+          grouped.filter((lane) => lane.items.length > 0).map((lane) => (
+            <section key={lane.key} className={cn('rounded-lg border p-2.5 space-y-2', lane.tone)}>
+              <header className="flex items-center justify-between gap-3 px-0.5">
+                <div>
+                  <h2 className="text-sm font-semibold text-foreground">{lane.title}</h2>
+                  <p className="text-[10px] text-muted-foreground">{lane.hint}</p>
+                </div>
+                <span className="text-lg font-bold tabular-nums">{lane.items.length}</span>
+              </header>
+              {view === 'rows' ? (
+                <div className="space-y-1.5">
+                  {lane.items.map((e) => (
+                    <LeadRow key={e.lead.id} e={e} lane={lane.key} onClaim={claimLead} />
+                  ))}
+                </div>
+              ) : (
+                <div className={cn(view === 'grid' && 'grid gap-2 md:grid-cols-2 xl:grid-cols-3', view === 'lanes' && 'space-y-2')}>
+                  {lane.items.map((e) => (
+                    <LeadCard key={e.lead.id} e={e} actorId={actorId} variant="market" onClaim={claimLead} onAddNote={addNote} />
+                  ))}
+                </div>
+              )}
+            </section>
+          ))
+        )}
       </div>
 
       <ClaimCallSheet
@@ -238,6 +290,44 @@ function Leaderboard({ title, rows, tone, icon }: {
           <span className="tabular-nums font-mono text-foreground w-8 text-right">{r.score}</span>
         </div>
       ))}
+    </div>
+  );
+}
+
+
+type ViewMode = 'lanes' | 'rows' | 'grid' | 'queue';
+
+const VIEWS: { key: ViewMode; label: string; hint: string; icon: React.ReactNode }[] = [
+  { key: 'lanes', label: 'Stack', hint: 'Full cards stacked inside each urgency lane', icon: <Layers className="h-3 w-3" /> },
+  { key: 'rows', label: 'Rows', hint: 'Dense one-line rows — most leads on screen', icon: <Rows3 className="h-3 w-3" /> },
+  { key: 'grid', label: 'Board', hint: 'Cards in a multi-column board', icon: <LayoutGrid className="h-3 w-3" /> },
+  { key: 'queue', label: 'Queue', hint: 'One ranked list, call strictly top-down', icon: <ListOrdered className="h-3 w-3" /> },
+];
+
+const LANE_DOT: Record<MarketLane, string> = {
+  now: 'bg-danger',
+  today: 'bg-role-hr',
+  next: 'bg-primary',
+  nurture: 'bg-muted-foreground/50',
+};
+
+function LeadRow({ e, rank, lane, onClaim }: {
+  e: EnrichedLead; rank?: number; lane: MarketLane;
+  onClaim: (l: EnrichedLead['lead']) => void;
+}) {
+  const l = e.lead;
+  return (
+    <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-2.5 py-1.5 hover:border-primary/50 transition-colors">
+      {rank !== undefined && <span className="w-5 shrink-0 text-[11px] font-bold tabular-nums text-muted-foreground">{rank}</span>}
+      <span className={cn('h-2 w-2 shrink-0 rounded-full', LANE_DOT[lane])} />
+      <span className="min-w-0 flex-1 truncate text-xs font-semibold text-foreground">{l.name}</span>
+      <span className="hidden sm:flex items-center gap-1 text-[11px] text-muted-foreground shrink-0"><Wallet className="h-3 w-3" />₹{(l.budget / 1000).toFixed(0)}k</span>
+      <span className="hidden md:flex items-center gap-1 text-[11px] text-muted-foreground shrink-0 truncate max-w-28"><MapPin className="h-3 w-3" />{l.area}</span>
+      <span className="hidden lg:flex items-center gap-1 text-[11px] text-muted-foreground shrink-0"><Calendar className="h-3 w-3" />{moveInLabel(l)}</span>
+      <span className="shrink-0 text-[11px] font-bold tabular-nums text-primary">{Math.round(e.conversionProb)}%</span>
+      <Button size="sm" className="h-7 shrink-0 text-[11px]" onClick={() => onClaim(l)}>
+        <Hand className="mr-1 h-3 w-3" /> Claim
+      </Button>
     </div>
   );
 }
