@@ -194,7 +194,7 @@ export function LeadControlPanel({ subject, trigger, defaultTab = "overview", on
   const stale = tour?.status === "completed" && !tour.outcome;
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
+    <Sheet open={open} onOpenChange={setOpen} modal={false}>
       <SheetTrigger asChild>
         {trigger ?? (
           <Button size="sm" variant="outline" className="h-8 gap-1.5">
