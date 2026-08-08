@@ -22,13 +22,48 @@ export interface WorkSession {
   outcome?: string;    // what happened at the end
 }
 
+/** How long without a click/keypress/scroll before we call it idle. */
+export const IDLE_AFTER_SEC = 60;
+
+/** Time parked on one page/route, split into active vs idle seconds. */
+export interface PageStint {
+  id: string;
+  actorId: string;
+  actorName: string;
+  path: string;
+  day: string;        // YYYY-MM-DD
+  startedAt: string;  // ISO — first time they landed here today
+  lastAt: string;     // ISO — most recent heartbeat
+  activeSec: number;
+  idleSec: number;
+}
+
+/** First / last action of the day per person — the bookends of the workday. */
+export interface DayMarks {
+  actorId: string;
+  actorName: string;
+  day: string;
+  firstActionAt: string;
+  lastActionAt: string;
+}
+
 interface State {
   sessions: WorkSession[];
+  pages: PageStint[];
+  marks: DayMarks[];
   start: (s: Omit<WorkSession, "id" | "startedAt" | "durationSec" | "overTarget" | "endedAt">) => string;
   end: (id: string, outcome?: string) => void;
   note: (id: string, outcome: string) => void;
+  /** Called on every real interaction — moves the day bookends. */
+  markAction: (actorId: string, actorName: string) => void;
+  /** Called by the ticker — adds active or idle seconds to the current page. */
+  heartbeat: (a: { actorId: string; actorName: string; path: string; activeSec: number; idleSec: number }) => void;
   clear: () => void;
 }
+
+const dayKey = (d = new Date()) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
 
 export const useProductivity = create<State>()(
   persist(
