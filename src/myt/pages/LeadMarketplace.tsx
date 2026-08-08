@@ -98,17 +98,43 @@ export default function LeadMarketplace() {
 
   return (
     <div className="space-y-4 animate-slide-up">
-      <div>
-        <h1 className="text-xl md:text-2xl font-heading font-bold text-foreground flex items-center gap-2">
-          <Zap className="h-5 w-5 text-role-hr" />
-          Lead Marketplace
-        </h1>
-        <p className="text-xs text-muted-foreground">
-          {currentRole === 'tcm'
-            ? 'Live unassigned leads — claim before they expire'
-            : 'Watch demand flow through the funnel in real time'}
-        </p>
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h1 className="text-xl md:text-2xl font-heading font-bold text-foreground flex items-center gap-2">
+            <Zap className="h-5 w-5 text-role-hr" />
+            Lead Marketplace
+          </h1>
+          <p className="text-xs text-muted-foreground">
+            {currentRole === 'tcm'
+              ? 'Claim → call on the spot → log outcome → set next action. Then own it for 15 days.'
+              : 'Watch demand flow through the funnel in real time'}
+          </p>
+        </div>
+        <BulkAddLeads
+          onAdd={(newLeads) => {
+            setLeads(prev => [...newLeads, ...prev]);
+            toast.success(`${newLeads.length} leads added to the marketplace`);
+          }}
+          addedBy={currentMemberId ?? 'unknown'}
+          addedByName={teamMembers.find(m => m.id === currentMemberId)?.name ?? 'Team'}
+        />
       </div>
+
+      {myIncomplete.length > 0 && (
+        <div className="rounded-xl border border-danger/40 bg-danger/5 p-3 space-y-2">
+          <div className="flex items-center gap-2 text-xs font-semibold text-danger">
+            <AlertTriangle className="h-4 w-4" />
+            {myIncomplete.length} claimed lead{myIncomplete.length === 1 ? '' : 's'} without a logged call or next action
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {myIncomplete.map(l => (
+              <Button key={l.id} size="sm" variant="outline" className="h-7 text-[11px]" onClick={() => setClaiming(l)}>
+                Finish {l.name}
+              </Button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
         <Stat label="Hard" value={summary.hard} accent="green" />
@@ -122,6 +148,7 @@ export default function LeadMarketplace() {
           <div className="glass-card p-8 text-center text-sm text-muted-foreground">No live leads right now. New ones surface as Flow Ops adds them.</div>
         )}
         {enriched.map(e => (
+
           <div
             key={e.lead.id}
             className={cn(
