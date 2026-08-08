@@ -97,11 +97,11 @@ export const DISCOVERY_FIELDS: DiscoveryField[] = [
 ];
 
 export const CALL_STAGES: { stage: CallStage; title: string; short: string; goal: string }[] = [
-  { stage: 1, title: 'Call 1 · Basics', short: 'Basics', goal: 'Frame the deal, then collect every basic: city, area, budget, move-in, persona, room.' },
-  { stage: 2, title: 'Call 2 · Schedule', short: 'Schedule', goal: 'Commute, sharing, decision maker — then lock a tour slot.' },
-  { stage: 3, title: 'Call 3 · Close', short: 'Close', goal: 'Kill the objection, confirm move-in, get token commitment.' },
-  { stage: 4, title: 'Call 4 · Payment', short: 'Payment', goal: 'Collect the token, fix payment mode, clear the paperwork.' },
-  { stage: 5, title: 'Call 5 · Recall', short: 'Recall', goal: 'Name why it stalled and set the recall window.' },
+  { stage: 1, title: 'Call 1 · Qualify', short: 'Qualify', goal: 'Find out if this lead is even real — city, area, budget, move date.' },
+  { stage: 2, title: 'Call 2 · Shortlist & visit', short: 'Visit', goal: 'Match 2-3 properties to their commute, then put a visit on the calendar.' },
+  { stage: 3, title: 'Call 3 · Close', short: 'Close', goal: 'Name the objection, kill it, and ask for the token.' },
+  { stage: 4, title: 'Call 4 · Money & handover', short: 'Money', goal: 'Get the token in, then clear KYC and the agreement.' },
+  { stage: 5, title: 'Call 5 · Revive', short: 'Revive', goal: 'Name why it died, give one reason to restart, set the recall window.' },
 ];
 
 export const STAGE_ORDER: CallStage[] = [1, 2, 3, 4, 5];
