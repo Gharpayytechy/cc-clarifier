@@ -1,4 +1,4 @@
-import { Lead, CallStage, DiscoveryKey, LeadDiscovery, WaStatus } from './types';
+import { Lead, CallStage, DiscoveryKey, LeadDiscovery, WaStatus, CallOutcome } from './types';
 
 /** ---------------------------------------------------------------
  *  WhatsApp state — the missing link between "claim" and "call".
