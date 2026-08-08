@@ -1,13 +1,13 @@
 import { useMemo, useState } from "react";
 import {
   useProductivity, rollupByPerson, rollupByLead, productivityScore,
-  fmtDuration, isSameDay, TARGET_SEC, SessionKind,
+  fmtDuration, isSameDay, TARGET_SEC, SessionKind, dayBreakdown, IDLE_AFTER_SEC,
 } from "@/lib/productivity/store";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import { Timer, Users, Target, AlertTriangle, Gauge } from "lucide-react";
+import { Timer, Users, Target, AlertTriangle, Gauge, Coffee } from "lucide-react";
 
 type Range = "today" | "7d" | "all";
 
