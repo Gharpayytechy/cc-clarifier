@@ -1,4 +1,4 @@
-import { Zone, TeamMember, Tour, HeatmapData, Lead, Booking, TourType, Intent, ConfirmationStrength, WillBookToday, DecisionMaker } from './types';
+import { Zone, TeamMember, Tour, HeatmapData, Lead, Booking, TourType, Intent, ConfirmationStrength, WillBookToday, DecisionMaker, CallOutcome, NextActionType, LeadTouch } from './types';
 import { scoreTour, inferConfirmationStrength } from './confidence';
 
 export const zones: Zone[] = [
@@ -160,7 +160,126 @@ export const tours: Tour[] = Array.from({ length: 80 }, (_, i) => {
 });
 
 // Leads always start empty — the marketplace is zero until the team adds real leads.
-export const initialLeads: Lead[] = [];
+// ---- Marketplace seed: 100 leads in motion across every zone ----
+function seeded(seed: number) {
+  let s = seed;
+  return () => {
+    s = (s * 1664525 + 1013904223) % 4294967296;
+    return s / 4294967296;
+  };
+}
+
+const leadStatuses: Lead['status'][] = ['new', 'contacted', 'qualified', 'tour-scheduled', 'dead'];
+const seedTagPool = [
+  'budget-flexible','ready-to-book','wants-single','wants-food','family-decides',
+  'comparing','area-mismatch','low-budget','future-movein','unreachable',
+  'language-hindi','student',
+];
+const seedOutcomes: CallOutcome[] = [
+  'connected-interested','connected-not-now','busy-callback','no-answer','wrong-number','not-interested',
+];
+const seedActions: NextActionType[] = [
+  'call-back','whatsapp-options','schedule-tour','send-quote','collect-token','nurture',
+];
+const seedNoteTexts = [
+  'Wants to shift within a week, shared 3 options on WhatsApp.',
+  'Budget is tight but flexible if food is included.',
+  'Works night shift — call only after 4 PM.',
+  'Comparing with a competitor 2 km away, price is the only blocker.',
+  'Parents need to approve, planning a weekend visit.',
+  'Asked for single room with attached bath, no sharing.',
+  'Currently in a PG, notice period ends month-end.',
+  'Prefers Hindi conversation, handed over accordingly.',
+  'Student, joining college next month — nurture till then.',
+  'Ready to pay token if tour goes well today.',
+];
+
+export const initialLeads: Lead[] = Array.from({ length: 100 }, (_, i) => {
+  const rnd = seeded(9001 + i * 37);
+  const zone = zones[i % zones.length];
+  const name = leadNames[i % leadNames.length];
+  const adder = teamMembers[(i * 3) % teamMembers.length];
+  const budget = 7000 + Math.floor(rnd() * 12) * 1500;
+  const now = Date.now();
+  const createdAgoH = Math.floor(rnd() * 96);
+  const createdAt = new Date(now - createdAgoH * 3600_000).toISOString();
+  const moveInDays = Math.floor(rnd() * 45) + 1;
+
+  // ~45% of the board is actively owned, the rest is open for claiming.
+  const owned = i % 20 < 9;
+  const claimant = teamMembers.filter((m) => m.role === 'tcm')[i % Math.max(1, teamMembers.filter((m) => m.role === 'tcm').length)];
+  const touchCount = owned ? 1 + Math.floor(rnd() * 3) : 0;
+  const tags = seedTagPool
+    .filter(() => rnd() < 0.22)
+    .slice(0, 3);
+
+  const touches: LeadTouch[] = [];
+  for (let t = 0; t < touchCount; t++) {
+    const outcome = seedOutcomes[Math.floor(rnd() * seedOutcomes.length)];
+    const action = seedActions[Math.floor(rnd() * seedActions.length)];
+    // Most touches happened today so the 80-connect scoreboard shows real motion.
+    const hoursAgo = t === 0 ? Math.floor(rnd() * 8) : 24 * t + Math.floor(rnd() * 6);
+    touches.push({
+      id: `sd-t${i}-${t}`,
+      at: new Date(now - hoursAgo * 3600_000).toISOString(),
+      by: claimant.id,
+      byName: claimant.name,
+      channel: rnd() < 0.7 ? 'call' : 'whatsapp',
+      outcome,
+      notes: seedNoteTexts[Math.floor(rnd() * seedNoteTexts.length)],
+      action,
+      dueAt: new Date(now + (1 + Math.floor(rnd() * 40)) * 3600_000).toISOString(),
+      tags,
+    });
+  }
+  touches.sort((a, b) => +new Date(b.at) - +new Date(a.at));
+  const last = touches[0];
+
+  const claimedAt = owned ? new Date(now - (Math.floor(rnd() * 12) + 1) * 86_400_000).toISOString() : undefined;
+
+  return {
+    id: `sd${i + 1}`,
+    name,
+    phone: `+91 ${9700000000 + i * 7}`,
+    area: zone.area,
+    budget,
+    moveInDate: new Date(now + moveInDays * 86_400_000).toISOString().split('T')[0],
+    dateConfirmed: rnd() < 0.5,
+    status: owned ? leadStatuses[1 + Math.floor(rnd() * 3)] : (rnd() < 0.8 ? 'new' : 'contacted'),
+    mytQualified: rnd() < 0.55,
+    addedBy: adder.id,
+    addedByName: adder.name,
+    createdAt,
+    notes: '',
+    budgetPowerScore: 25 + Math.floor(rnd() * 75),
+    urgencyExpiresAt: new Date(now + (moveInDays < 10 ? 1 : 6) * 3600_000 + Math.floor(rnd() * 50) * 60_000).toISOString(),
+    conversionProbability: 15 + Math.floor(rnd() * 80),
+    claimedBy: owned ? claimant.id : null,
+    claimedAt,
+    firstCallAt: last?.at,
+    callOutcome: last?.outcome,
+    callNotes: last?.notes,
+    nextAction: last ? { type: last.action, dueAt: last.dueAt, note: last.actionNote } : null,
+    ownershipExpiresAt: claimedAt
+      ? new Date(new Date(claimedAt).getTime() + 15 * 86_400_000).toISOString()
+      : undefined,
+    lastTouchAt: last?.at,
+    touches,
+    tags,
+    lastChannel: last?.channel,
+    marketNotes: tags.length
+      ? [
+          {
+            id: `sd-n${i}`,
+            at: new Date(now - Math.floor(rnd() * 20) * 3600_000).toISOString(),
+            by: adder.id,
+            byName: adder.name,
+            text: seedNoteTexts[i % seedNoteTexts.length],
+          },
+        ]
+      : [],
+  };
+});
 
 // Mock bookings
 export const initialBookings: Booking[] = Array.from({ length: 12 }, (_, i) => {
