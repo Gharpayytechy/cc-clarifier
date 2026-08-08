@@ -37,6 +37,7 @@ import { toast } from "sonner";
 import { useMountedNow } from "@/hooks/use-now";
 import { sendTourMessage as sendOwnerTourMessage } from "@/owner/messaging";
 import { useSettings } from "@/myt/lib/settings-context";
+import { LeadCallLadder } from "./leads/LeadCallLadder";
 
 const TAG_OPTIONS = ["price-issue", "location-mismatch", "parents-involved", "urgent", "budget-low"];
 const OBJECTIONS = ["Budget", "Location", "Amenities", "Timing", "Parents", "Comparing options", "Other"];
@@ -113,8 +114,9 @@ export function LeadControlPanel() {
   return (
     <Sheet open={!!selectedLeadId} onOpenChange={(o) => !o && selectLead(null)}>
       <SheetContent side="right" className="h-dvh max-h-dvh w-full gap-0 overflow-hidden p-0 sm:max-w-[640px] flex flex-col">
-        {/* Header block */}
-        <SheetHeader className="shrink-0 px-5 py-4 border-b border-border space-y-3">
+        {/* Top half: identity + call ladder. The lower half owns all scrolling. */}
+        <div className="h-1/2 min-h-0 shrink-0 overflow-y-auto border-b border-border bg-background">
+        <SheetHeader className="px-5 py-3 border-b border-border space-y-2">
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
             <div className="min-w-0">
               <SheetTitle className="font-display text-lg leading-tight truncate">{lead.name}</SheetTitle>
@@ -140,41 +142,40 @@ export function LeadControlPanel() {
             <ConfidenceBar value={lead.confidence} />
             <span className="text-[10px] text-muted-foreground shrink-0">confidence</span>
           </div>
-          <div className="grid grid-cols-3 gap-2 pt-1 text-xs">
+          <div className="grid grid-cols-3 gap-2 text-xs">
             <Meta icon={CalendarIcon} label="Move-in" value={format(new Date(lead.moveInDate), "MMM d")} />
             <Meta icon={Wallet} label="Budget" value={`₹${(lead.budget / 1000).toFixed(0)}k`} />
             <Meta icon={MapPin} label="Area" value={lead.preferredArea} />
           </div>
         </SheetHeader>
-
-        {/* Per-lead Live Activity Dock — calls, chats, claim & work */}
-        <div className="shrink-0">
-          <LeadLiveStrip lead={lead} />
-          <LeadAdminStrip lead={lead} />
+        <LeadCallLadder
+          lead={lead}
+          activities={leadActivities}
+          tours={leadTours}
+          onContinue={() => setTab("control")}
+        />
         </div>
 
-        {/* CRM 10x — commitment banner + 48h post-visit gate */}
-        <div className="shrink-0">
-          <CommitmentBanner lead={lead} />
-          <PostVisitGate lead={lead} />
-        </div>
-
-        {/* Stale alert */}
-        {pendingPostTour && (
-          <div className="mx-5 mt-3 shrink-0 rounded-lg border border-destructive/30 bg-destructive/5 p-3 flex items-start gap-2">
-            <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
-            <div className="text-xs">
-              <div className="font-semibold text-destructive">Post-tour update missing</div>
-              <div className="text-muted-foreground">
-                Tour completed {mounted ? formatDistanceToNow(new Date(pendingPostTour.scheduledAt), { addSuffix: true }) : "recently"}.
-                TCM must fill the form below.
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Body */}
+        {/* Lower half: every operational action scrolls independently. */}
         <div data-testid="lead-drawer-scroll" className="lead-drawer-scroll flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-thin pb-8">
+          <div className="pt-3">
+            <LeadLiveStrip lead={lead} />
+            <LeadAdminStrip lead={lead} />
+            <CommitmentBanner lead={lead} />
+            <PostVisitGate lead={lead} />
+            {pendingPostTour && (
+              <div className="mx-5 mt-3 rounded-lg border border-destructive/30 bg-destructive/5 p-3 flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+                <div className="text-xs">
+                  <div className="font-semibold text-destructive">Post-tour update missing</div>
+                  <div className="text-muted-foreground">
+                    Tour completed {mounted ? formatDistanceToNow(new Date(pendingPostTour.scheduledAt), { addSuffix: true }) : "recently"}.
+                    TCM must fill the form below.
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
           <Tabs value={tab} onValueChange={setTab} className="px-5 py-4">
             <TabsList className="grid h-auto w-full grid-cols-4 gap-1 sm:grid-cols-7">
               <TabsTrigger value="best-fit" className="text-xs">Best Fit</TabsTrigger>

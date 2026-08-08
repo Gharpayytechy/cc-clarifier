@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Target, CalendarPlus, ClipboardList, Boxes, Activity,
   Building2, Search, Sun, Command, Trophy, Sparkles, MessageSquare,
   IndianRupee, MapPin, Zap, Users, Home, Calendar, Store, Swords, Settings, AlertTriangle,
-  ShieldCheck, Inbox, Camera, HelpCircle, Layers, HeartPulse, ClipboardCheck,
+  ShieldCheck, Inbox, Camera, HelpCircle, Layers, HeartPulse, ClipboardCheck, ListChecks,
 } from "lucide-react";
 import { NotificationCenter } from "./NotificationCenter";
 import { ProfileMenu } from "./ProfileMenu";
@@ -92,6 +92,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       { to: "/today", label: "Today", icon: Sun, badge: queue.length },
       { to: "/execution", label: "Execution", icon: Zap, accent: true },
       { to: "/calendar", label: "Calendar", icon: Calendar },
+      { to: "/leads", label: "Call Ladder", icon: ListChecks, accent: true },
       { to: "/myt", label: "HR Tower", icon: Home },
       { to: "/myt/war-room", label: "War Room", icon: Swords },
       { to: "/myt/funnel", label: "Funnel", icon: Activity },
@@ -128,6 +129,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       { to: "/myt/flow-ops", label: "Flow Ops", icon: LayoutDashboard },
       { to: "/calendar", label: "Calendar", icon: Calendar },
       { to: "/leads", label: "Leads", icon: Target },
+      { to: "/leads", label: "Call Ladder", icon: ListChecks, accent: true },
       { to: "/zones", label: "Zone Roles", icon: Users, accent: true },
       { to: "/leads/add", label: "Reassign Console", icon: Inbox, accent: true },
       { to: "/control-tower-team", label: "Control Tower Team", icon: ShieldCheck, accent: true },
@@ -158,6 +160,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       { to: "/execution", label: "Execution", icon: Zap, accent: true },
       { to: "/myt/tcm", label: "TCM Desk", icon: Target },
       { to: "/calendar", label: "Calendar", icon: Calendar },
+      { to: "/leads", label: "Call Ladder", icon: ListChecks, accent: true },
       { to: "/myt/schedule", label: "Schedule Tour", icon: CalendarPlus },
       { to: "/tours", label: "My Tours", icon: CalendarPlus, badge: incompletePostTour },
       { to: "/myt/tours", label: "All Tours", icon: CalendarPlus },
@@ -238,7 +241,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             const active = isActive(it.to);
             return (
               <Link
-                key={it.to}
+                key={`${it.to}-${it.label}`}
                 to={it.to}
                 className={cn(
                   "flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] transition-colors",
@@ -343,7 +346,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             const active = isActive(item.to);
             return (
               <Link
-                key={item.to}
+                key={`${item.to}-${item.label}`}
                 to={item.to}
                 className={cn(
                   "relative flex shrink-0 snap-start flex-col items-center justify-center gap-1 rounded-md px-3 py-1.5 text-[10px] font-medium transition-colors min-w-[64px] min-h-[44px]",
