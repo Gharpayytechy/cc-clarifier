@@ -13,7 +13,7 @@ import { intentBg } from '@/myt/lib/confidence';
 import { currentStage, discoveryProgress, missingAll, waStatusMeta, CALL_STAGES, closingReadiness, readinessTone } from '@/myt/lib/call-plan';
 import { LeadControlPanel } from '@/myt/components/LeadControlPanel';
 import {
-  actionDueLabel, callOutcomes, isIncomplete, nextActions, OWNERSHIP_DAYS, ownershipDay,
+  actionDueLabel, callOutcomes, isIncomplete, moveInLabel, nextActions, OWNERSHIP_DAYS, ownershipDay,
   tagLabel, tagTone,
 } from '@/myt/lib/ownership';
 
@@ -88,7 +88,7 @@ export function LeadCard({ e, actorId, variant, onClaim, onTouch, onFinish, onRe
             <a href={`tel:${l.phone}`} className="flex items-center gap-1 hover:text-primary"><Phone className="h-3 w-3" />{l.phone}</a>
             <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{l.area}</span>
             <span className="flex items-center gap-1"><Wallet className="h-3 w-3" />₹{(l.budget/1000).toFixed(0)}k</span>
-            <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />Move {l.moveInDate.slice(5)}</span>
+            <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{moveInLabel(l)}</span>
           </div>
         </div>
         <UrgencyTimer expiresAt={e.expiresAt} />
@@ -233,6 +233,7 @@ export function LeadCard({ e, actorId, variant, onClaim, onTouch, onFinish, onRe
       <div className="flex flex-wrap gap-2 pt-1">
         <LeadControlPanel
           subject={{ kind: 'lead', lead: l }}
+          onStartTouch={(lead, channel) => variant === 'market' ? onClaim?.(lead) : onTouch?.(lead, channel)}
           trigger={
             <Button size="sm" variant="outline" className="h-8 text-xs gap-1">
               <Sparkles className="h-3 w-3" /> Open

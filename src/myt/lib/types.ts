@@ -139,6 +139,7 @@ export interface Lead {
   budget: number;
   moveInDate: string;
   dateConfirmed: boolean;
+  moveInWindow?: 'start' | 'middle' | 'end' | 'flexible';
   status: LeadStatus;
   mytQualified: boolean;
   addedBy: string;
