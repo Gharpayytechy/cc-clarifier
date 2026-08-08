@@ -114,6 +114,18 @@ export function LeadControlPanel() {
     setTab(pendingPostTour ? "post" : upcomingTour ? "tour" : settings.matching.drawerDefaultTab);
   }, [lead, pendingPostTour, upcomingTour, settings.matching.drawerDefaultTab]);
 
+  // 120s target timer — every second in this drawer is logged to Productivity.
+  const me = useIdentityStore((s) => s.currentUser);
+  const timer = useSessionTimer({
+    active: Boolean(selectedLeadId && lead),
+    kind: "drawer",
+    leadId: lead?.id ?? "",
+    leadName: lead?.name ?? "",
+    actorId: me?.id ?? "me",
+    actorName: me?.name ?? "You",
+    outcome: lead ? `Stage ${lead.stage}` : undefined,
+  });
+
   const continueCall = (call: number) => {
     setSelectedCall(call);
     setTab("control");
