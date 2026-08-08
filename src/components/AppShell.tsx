@@ -23,6 +23,8 @@ import { PictureInPictureProvider, PipMount, usePip } from "./pip/PipProvider";
 import { PipButton } from "./pip/PipButton";
 import { usePipRouteSync } from "./pip/usePipSync";
 import { LiveActivityDock } from "./live/LiveActivityDock";
+import { useIdentityStore } from "@/lib/lead-identity/store";
+import { useActivityTracker } from "@/lib/productivity/use-activity-tracker";
 import { runLifecycleSeed } from "@/lib/pipeline/seed-lifecycle";
 
 function PipRouteSyncBridge() {
