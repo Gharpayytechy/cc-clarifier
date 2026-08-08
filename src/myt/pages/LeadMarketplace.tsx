@@ -1,16 +1,19 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useAppState } from '@/myt/lib/app-context';
 import { Lead } from '@/myt/lib/types';
 import { budgetPowerScore, conversionProbability, leadIntent, urgencyExpiry, zoneMedianBudget } from '@/myt/lib/scoring';
 import { UrgencyTimer } from '@/myt/components/UrgencyTimer';
 import { zones, teamMembers } from '@/myt/lib/mock-data';
-import { Phone, Wallet, MapPin, Calendar, Zap, TrendingUp, Hand, Sparkles } from 'lucide-react';
+import { Phone, Wallet, MapPin, Calendar, Zap, TrendingUp, Hand, Sparkles, AlertTriangle, CheckCircle2, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { intentBg } from '@/myt/lib/confidence';
 import { toast } from 'sonner';
 import { useNavigate } from '@/shims/react-router-dom';
 import { LeadControlPanel } from '@/myt/components/LeadControlPanel';
+import { ClaimCallSheet } from '@/myt/components/ClaimCallSheet';
+import { BulkAddLeads } from '@/myt/components/BulkAddLeads';
+import { actionDueLabel, callOutcomes, isIncomplete, nextActions, OWNERSHIP_DAYS, ownershipDay } from '@/myt/lib/ownership';
 
 interface Enriched {
   lead: Lead;
@@ -23,6 +26,7 @@ interface Enriched {
 export default function LeadMarketplace() {
   const { leads, setLeads, currentRole, currentMemberId, globalZoneFilter } = useAppState();
   const navigate = useNavigate();
+  const [claiming, setClaiming] = useState<Lead | null>(null);
 
   const enriched: Enriched[] = useMemo(() => {
     return leads
@@ -39,15 +43,43 @@ export default function LeadMarketplace() {
       .sort((a, b) => b.conversionProb - a.conversionProb);
   }, [leads, globalZoneFilter]);
 
-  const claimLead = (leadId: string) => {
+  const myIncomplete = leads.filter(l => isIncomplete(l) && (!currentMemberId || l.claimedBy === currentMemberId));
+
+  const claimLead = (lead: Lead) => {
     if (currentRole !== 'tcm' || !currentMemberId) {
       toast.error('Pick yourself in the header to claim leads');
       return;
     }
-    setLeads(prev => prev.map(l => l.id === leadId ? { ...l, claimedBy: currentMemberId, status: 'qualified' } : l));
+    const now = new Date().toISOString();
+    setLeads(prev => prev.map(l => l.id === lead.id
+      ? { ...l, claimedBy: currentMemberId, claimedAt: now, status: 'qualified' as const,
+          ownershipExpiresAt: new Date(Date.now() + OWNERSHIP_DAYS * 86_400_000).toISOString() }
+      : l));
+    setClaiming(lead);
+  };
+
+  const releaseLead = (leadId: string) => {
+    setLeads(prev => prev.map(l => l.id === leadId
+      ? { ...l, claimedBy: null, claimedAt: undefined, ownershipExpiresAt: undefined, status: 'new' as const }
+      : l));
+    toast.warning('Lead released back to the marketplace', {
+      description: 'Claiming requires calling and setting the next action on the spot.',
+    });
+  };
+
+  const completeClaim = (leadId: string, p: {
+    outcome: import('@/myt/lib/types').CallOutcome; notes: string;
+    action: import('@/myt/lib/types').NextActionType; dueAt: string; actionNote: string;
+  }) => {
+    const now = new Date().toISOString();
+    setLeads(prev => prev.map(l => l.id === leadId
+      ? { ...l, firstCallAt: l.firstCallAt ?? now, lastTouchAt: now,
+          callOutcome: p.outcome, callNotes: p.notes,
+          nextAction: { type: p.action, dueAt: p.dueAt, note: p.actionNote } }
+      : l));
     const member = teamMembers.find(m => m.id === currentMemberId);
-    toast.success(`Claimed — go schedule the tour now`, {
-      description: `${member?.name} owns this lead`,
+    toast.success('Locked — call logged and next action set', {
+      description: `${member?.name ?? 'You'} owns this lead for ${OWNERSHIP_DAYS} days`,
     });
   };
 
@@ -62,6 +94,7 @@ export default function LeadMarketplace() {
     soft: enriched.filter(e => e.intent === 'soft').length,
     avgProb: enriched.length ? Math.round(enriched.reduce((s, e) => s + e.conversionProb, 0) / enriched.length) : 0,
   };
+
 
   return (
     <div className="space-y-4 animate-slide-up">
