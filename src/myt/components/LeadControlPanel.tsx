@@ -53,7 +53,7 @@ const SIGNAL_TAGS = [
 
 export function LeadControlPanel({ subject, trigger, defaultTab = "overview", onStartTouch }: Props) {
   const [open, setOpen] = useState(false);
-  const { setTours, leads, setLeads } = useAppState();
+  const { setTours, leads, setLeads, currentMemberId } = useAppState();
   const { addEvent, eventsForTour, reports, setReport } = useTourData();
 
   // ----- derive lead + tour from subject + global state -----
