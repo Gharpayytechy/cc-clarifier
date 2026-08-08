@@ -68,6 +68,19 @@ export function LeadControlPanel({ subject, trigger, defaultTab = "overview", on
   const budget = tour?.budget ?? lead?.budget ?? 0;
   const property = tour?.propertyName;
 
+  // 120s target timer for every second the drawer stays open on this lead.
+  const actorId = currentMemberId ?? teamMembers[0]?.id ?? "m1";
+  const actorName = teamMembers.find((m) => m.id === actorId)?.name ?? "Team";
+  const timer = useSessionTimer({
+    active: open,
+    kind: "drawer",
+    leadId: lead?.id ?? tour?.id ?? "unknown",
+    leadName: name,
+    actorId,
+    actorName,
+  });
+
+
   // ----- local state -----
   const [note, setNote] = useState("");
   const [tags, setTags] = useState<string[]>([]);
