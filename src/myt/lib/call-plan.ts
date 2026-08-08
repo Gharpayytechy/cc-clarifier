@@ -255,3 +255,197 @@ export function callScript(stage: CallStage): string[] {
     'Give one reason to restart now, then set the recall window.',
   ];
 }
+
+/** ---------------------------------------------------------------
+ *  THE PLAYBOOK — each call is a different job with a different
+ *  script, a different set of 3-4 questions and its own outcomes.
+ *  Nothing outside the current call is ever rendered.
+ *  --------------------------------------------------------------- */
+
+export interface CallOutcomeOption {
+  value: CallOutcome;
+  label: string;
+  tone: 'good' | 'warn' | 'bad';
+}
+
+export interface CallPlay {
+  stage: CallStage;
+  code: string;
+  name: string;
+  mission: string;
+  /** When this call is allowed to happen at all. */
+  entry: string;
+  /** What makes this call a win. Anything else is a retry. */
+  win: string;
+  colour: 'primary' | 'good' | 'warn' | 'bad';
+  /** First line out of your mouth, before any question. */
+  open: (lead: Lead) => string;
+  /** Max 4 — the only questions shown on this call. */
+  ask: DiscoveryKey[];
+  /** Shown only behind "ask if it comes up". Always skippable. */
+  optional: DiscoveryKey[];
+  /** Two or three moves, stage specific. */
+  moves: string[];
+  /** Outcomes that make sense for THIS call only. */
+  outcomes: CallOutcomeOption[];
+  /** No-pickup ladder: what to do, how long to wait, where it lands. */
+  noAnswer: { retryHours: number; move: string; afterAttempts: number; fallback: CallStage };
+}
+
+const O = {
+  good: (value: CallOutcome, label: string): CallOutcomeOption => ({ value, label, tone: 'good' }),
+  warn: (value: CallOutcome, label: string): CallOutcomeOption => ({ value, label, tone: 'warn' }),
+  bad: (value: CallOutcome, label: string): CallOutcomeOption => ({ value, label, tone: 'bad' }),
+};
+
+export const CALL_PLAYS: Record<CallStage, CallPlay> = {
+  1: {
+    stage: 1, code: 'C1', name: 'Qualify', colour: 'primary',
+    mission: 'Find out if this lead is even real — city, area, budget, move date.',
+    entry: 'Fresh lead, nothing known yet.',
+    win: 'You can name their area, budget and move date without guessing.',
+    open: (l) => `Hi ${l.name.split(' ')[0]}, Gharpayy here about your stay in ${l.area} — 2 minutes, is now okay?`,
+    ask: ['inBangalore', 'areas', 'budget', 'moveIn'],
+    optional: ['personaType', 'roomType', 'genderNeed'],
+    moves: [
+      'Confirm the name, then ask "are you already in Bangalore?" — that one answer decides everything after.',
+      'Area → budget → move date. Never quote a price first.',
+      'Close with: "I will send 3 options on WhatsApp today."',
+    ],
+    outcomes: [
+      O.good('connected-interested', 'Qualified · real requirement'),
+      O.warn('connected-not-now', 'Talked · move date far'),
+      O.warn('busy-callback', 'Busy · asked callback'),
+      O.bad('not-interested', 'Already sorted / not looking'),
+      O.bad('wrong-number', 'Wrong number'),
+    ],
+    noAnswer: { retryHours: 3, move: 'Retry in 3h at a different hour, then a one-line WhatsApp.', afterAttempts: 3, fallback: 5 },
+  },
+  2: {
+    stage: 2, code: 'C2', name: 'Shortlist & visit',
+    colour: 'primary',
+    mission: 'Match 2-3 properties to their commute, then put a visit on the calendar.',
+    entry: 'Call 1 answered — basics are on record.',
+    win: 'A date and time for a visit, agreed out loud.',
+    open: (l) => `Hi ${l.name.split(' ')[0]}, shortlisted 3 places in ${l.area} in your budget — when can you see them?`,
+    ask: ['officeLocation', 'sharing', 'decisionMaker', 'tourSlot'],
+    optional: ['company', 'food', 'stayDuration', 'movingFeasibility'],
+    moves: [
+      'Anchor on commute: "where do you head out to every morning?"',
+      'Offer exactly two slots — today evening or tomorrow morning. Never "when are you free?"',
+      'Ask who else is coming, and confirm they are free at the same slot.',
+    ],
+    outcomes: [
+      O.good('connected-interested', 'Visit slot agreed'),
+      O.warn('connected-not-now', 'Interested · slot not fixed'),
+      O.warn('busy-callback', 'Asked to call later'),
+      O.bad('not-interested', 'Dropped out'),
+    ],
+    noAnswer: { retryHours: 4, move: 'Send the 3 options on WhatsApp with two slots, retry in 4h.', afterAttempts: 3, fallback: 5 },
+  },
+  3: {
+    stage: 3, code: 'C3', name: 'Close', colour: 'good',
+    mission: 'Name the objection, kill it, and ask for the token.',
+    entry: 'Visit done or virtual tour done.',
+    win: 'They say yes to blocking the room.',
+    open: (l) => `Hi ${l.name.split(' ')[0]}, how did the place feel? Shall I block the room for you?`,
+    ask: ['objection', 'competition', 'moveInConfirmed', 'tokenReadiness'],
+    optional: [],
+    moves: [
+      'Ask it straight: "what is stopping you from confirming today?"',
+      'Handle exactly one objection — price, location or timing. Do not stack answers.',
+      'Ask for the token, then stay silent until they speak.',
+    ],
+    outcomes: [
+      O.good('connected-interested', 'Said yes · will pay token'),
+      O.warn('connected-not-now', 'Wants time / comparing'),
+      O.warn('busy-callback', 'Decision maker not available'),
+      O.bad('not-interested', 'Booked elsewhere'),
+    ],
+    noAnswer: { retryHours: 2, move: 'Hot lead — retry in 2h, then WhatsApp a hold-expiry nudge.', afterAttempts: 4, fallback: 5 },
+  },
+  4: {
+    stage: 4, code: 'C4', name: 'Money & handover', colour: 'good',
+    mission: 'Get the token in, then clear KYC and the agreement.',
+    entry: 'They already said yes on Call 3.',
+    win: 'Payment landed and the move-in date is locked.',
+    open: (l) => `Hi ${l.name.split(' ')[0]}, sending the payment link now — I will stay on the line while you pay.`,
+    ask: ['tokenAmount', 'paymentMode', 'agreementReady'],
+    optional: [],
+    moves: [
+      'Send the link while on the call. Do not hang up before it lands.',
+      'Read out the KYC list once: ID, photo, one emergency contact.',
+      'Confirm the move-in date and who hands over the keys.',
+    ],
+    outcomes: [
+      O.good('connected-interested', 'Token paid / link sent live'),
+      O.warn('connected-not-now', 'Will pay later today'),
+      O.warn('busy-callback', 'Payment blocked · needs approval'),
+      O.bad('not-interested', 'Backed out'),
+    ],
+    noAnswer: { retryHours: 1, move: 'Money call — retry within the hour, the room hold is ticking.', afterAttempts: 4, fallback: 5 },
+  },
+  5: {
+    stage: 5, code: 'C5', name: 'Revive', colour: 'warn',
+    mission: 'Name why it died, give one reason to restart, set the recall window.',
+    entry: 'Went cold, or no pickup after the retry ladder.',
+    win: 'Either a fresh date on the calendar, or an honest "dead".',
+    open: (l) => `Hi ${l.name.split(' ')[0]}, checking in — is the ${l.area} plan still on, or has it changed?`,
+    ask: ['revivalReason', 'recallWindow'],
+    optional: [],
+    moves: [
+      'Say why you are calling back before pitching anything.',
+      'One new reason to restart — a new property, a price drop, a slot.',
+      'If it is dead, mark it dead. A clean dead beats a fake maybe.',
+    ],
+    outcomes: [
+      O.good('connected-interested', 'Revived · back in play'),
+      O.warn('connected-not-now', 'Later · park it'),
+      O.bad('not-interested', 'Dead · close it out'),
+    ],
+    noAnswer: { retryHours: 72, move: 'One WhatsApp, then park it for the next cycle.', afterAttempts: 2, fallback: 5 },
+  },
+};
+
+export function play(stage: CallStage) {
+  return CALL_PLAYS[stage];
+}
+
+export function fieldByKey(k: DiscoveryKey) {
+  return DISCOVERY_FIELDS.find((f) => f.key === k)!;
+}
+
+export function askFields(stage: CallStage): DiscoveryField[] {
+  return CALL_PLAYS[stage].ask.map(fieldByKey).filter(Boolean);
+}
+
+export function optionalFields(stage: CallStage): DiscoveryField[] {
+  return CALL_PLAYS[stage].optional.map(fieldByKey).filter(Boolean);
+}
+
+/** Attempts already made at this stage — drives the no-pickup ladder. */
+export function attemptsAtStage(l: Pick<Lead, 'touches'>, stage: CallStage) {
+  return (l.touches ?? []).filter((t) => t.stage === stage).length;
+}
+
+/** What happens when they don't pick up. Call 2 never runs if Call 1 never connected. */
+export function noAnswerPlan(stage: CallStage, attempts: number) {
+  const p = CALL_PLAYS[stage].noAnswer;
+  const nextAttempt = attempts + 1;
+  const exhausted = nextAttempt >= p.afterAttempts;
+  return {
+    attempt: nextAttempt,
+    max: p.afterAttempts,
+    exhausted,
+    retryHours: exhausted ? 24 : p.retryHours,
+    stage: exhausted ? p.fallback : stage,
+    move: exhausted
+      ? `Attempt ${nextAttempt} of ${p.afterAttempts} — stop dialling ${CALL_PLAYS[stage].code}. It drops to Call 5 · Revive.`
+      : p.move,
+  };
+}
+
+/** Only the questions this call owns that are still blank. */
+export function openAsks(d: LeadDiscovery | undefined, stage: CallStage) {
+  return askFields(stage).filter((f) => !filled(d, f.key));
+}
