@@ -36,6 +36,9 @@ import type { LeadStage, FollowUpPriority, SequenceKind } from "@/lib/types";
 import { toast } from "sonner";
 import { useMountedNow } from "@/hooks/use-now";
 import { sendTourMessage as sendOwnerTourMessage } from "@/owner/messaging";
+import { useSessionTimer } from "@/lib/productivity/use-session-timer";
+import { SessionTimerBadge } from "@/components/productivity/SessionTimerBadge";
+import { useIdentityStore } from "@/lib/lead-identity/store";
 import { useSettings } from "@/myt/lib/settings-context";
 import { LeadCallLadder } from "./leads/LeadCallLadder";
 
