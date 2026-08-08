@@ -81,6 +81,22 @@ export function ClaimCallSheet({ lead, open, mode = 'claim', channel = 'call', i
   const stage: CallStage = initialStage ?? (lead ? currentStage(lead) : 1);
   const p = play(stage);
 
+  // 120s target: the whole claim → call → next-action loop is timed.
+  const { currentMemberId } = useAppState();
+  const actorId = currentMemberId ?? teamMembers[0]?.id ?? 'm1';
+  const actorName = teamMembers.find((m) => m.id === actorId)?.name ?? 'Team';
+  const timer = useSessionTimer({
+    active: open && Boolean(lead),
+    kind: mode === 'claim' ? 'claim' : 'call',
+    leadId: lead?.id ?? '',
+    leadName: lead?.name ?? '',
+    actorId,
+    actorName,
+    outcome: outcome ?? undefined,
+  });
+
+
+
   useEffect(() => {
     if (open && lead) {
       const st = currentStage(lead);
