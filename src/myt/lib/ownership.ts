@@ -163,3 +163,91 @@ export function parseBulkLeads(raw: string) {
 
   return { parsed, errors };
 }
+
+/** Per-owner performance from touch history — who's best, who's worst. */
+export interface OwnerStat {
+  id: string;
+  name: string;
+  owned: number;
+  touchesToday: number;
+  connectedToday: number;
+  toursSet: number;
+  overdue: number;
+  incomplete: number;
+  score: number;
+}
+
+export function ownerStats(leads: Lead[], members: { id: string; name: string }[]): OwnerStat[] {
+  const now = Date.now();
+  const stats = new Map<string, OwnerStat>();
+  const ensure = (id: string) => {
+    if (!stats.has(id)) {
+      const name = members.find((m) => m.id === id)?.name ?? 'Unknown';
+      stats.set(id, { id, name, owned: 0, touchesToday: 0, connectedToday: 0, toursSet: 0, overdue: 0, incomplete: 0, score: 0 });
+    }
+    return stats.get(id)!;
+  };
+
+  leads.forEach((l) => {
+    if (l.claimedBy) {
+      const s = ensure(l.claimedBy);
+      s.owned++;
+      if (isIncomplete(l)) s.incomplete++;
+      if (l.nextAction && new Date(l.nextAction.dueAt).getTime() < now) s.overdue++;
+    }
+    (l.touches ?? []).forEach((t) => {
+      const s = ensure(t.by);
+      if (isToday(t.at)) {
+        s.touchesToday++;
+        if (isConnected(t.outcome)) s.connectedToday++;
+      }
+      if (t.action === 'schedule-tour') s.toursSet++;
+    });
+  });
+
+  return Array.from(stats.values())
+    .map((s) => ({
+      ...s,
+      score: Math.max(
+        0,
+        s.connectedToday * 10 + s.toursSet * 12 + s.touchesToday * 3 - s.overdue * 6 - s.incomplete * 10,
+      ),
+    }))
+    .sort((a, b) => b.score - a.score);
+}
+
+/** Forward-looking view of the board — what's coming, not what's done. */
+export function marketPulse(leads: Lead[]) {
+  const now = Date.now();
+  const open = leads.filter((l) => !l.claimedBy && l.status !== 'dead' && l.status !== 'tour-scheduled');
+  const owned = leads.filter((l) => Boolean(l.claimedBy));
+  const claimedToday = leads.filter((l) => l.claimedAt && isToday(l.claimedAt)).length;
+  const dueNext2h = owned.filter(
+    (l) => l.nextAction && new Date(l.nextAction.dueAt).getTime() - now < 2 * 3600_000,
+  ).length;
+  const overdue = owned.filter((l) => l.nextAction && new Date(l.nextAction.dueAt).getTime() < now).length;
+  const toursQueued = owned.filter((l) => l.nextAction?.type === 'schedule-tour').length;
+  const tokensQueued = owned.filter((l) => l.nextAction?.type === 'collect-token').length;
+  const hotOpen = open.filter((l) => (l.conversionProbability ?? 0) >= 70).length;
+  const expiringOwnership = owned.filter(
+    (l) => l.ownershipExpiresAt && new Date(l.ownershipExpiresAt).getTime() - now < 3 * 86_400_000,
+  ).length;
+  const expectedBookings = Math.round(
+    leads.reduce((s, l) => s + (l.conversionProbability ?? 0) / 100, 0),
+  );
+  const pipelineValue = leads.reduce((s, l) => s + l.budget * ((l.conversionProbability ?? 0) / 100), 0);
+
+  return {
+    open: open.length,
+    owned: owned.length,
+    claimedToday,
+    dueNext2h,
+    overdue,
+    toursQueued,
+    tokensQueued,
+    hotOpen,
+    expiringOwnership,
+    expectedBookings,
+    pipelineValue,
+  };
+}

@@ -69,6 +69,7 @@ import { Route as MytScoreRouteImport } from './routes/myt/score'
 import { Route as MytScheduleRouteImport } from './routes/myt/schedule'
 import { Route as MytPropertiesRouteImport } from './routes/myt/properties'
 import { Route as MytOwnersCompareRouteImport } from './routes/myt/owners-compare'
+import { Route as MytMyLeadsRouteImport } from './routes/myt/my-leads'
 import { Route as MytMismatchRouteImport } from './routes/myt/mismatch'
 import { Route as MytMarketplaceRouteImport } from './routes/myt/marketplace'
 import { Route as MytLeadsRouteImport } from './routes/myt/leads'
@@ -390,6 +391,11 @@ const MytOwnersCompareRoute = MytOwnersCompareRouteImport.update({
   path: '/myt/owners-compare',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MytMyLeadsRoute = MytMyLeadsRouteImport.update({
+  id: '/myt/my-leads',
+  path: '/myt/my-leads',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MytMismatchRoute = MytMismatchRouteImport.update({
   id: '/myt/mismatch',
   path: '/myt/mismatch',
@@ -531,6 +537,7 @@ export interface FileRoutesByFullPath {
   '/myt/leads': typeof MytLeadsRoute
   '/myt/marketplace': typeof MytMarketplaceRoute
   '/myt/mismatch': typeof MytMismatchRoute
+  '/myt/my-leads': typeof MytMyLeadsRoute
   '/myt/owners-compare': typeof MytOwnersCompareRoute
   '/myt/properties': typeof MytPropertiesRoute
   '/myt/schedule': typeof MytScheduleRoute
@@ -612,6 +619,7 @@ export interface FileRoutesByTo {
   '/myt/leads': typeof MytLeadsRoute
   '/myt/marketplace': typeof MytMarketplaceRoute
   '/myt/mismatch': typeof MytMismatchRoute
+  '/myt/my-leads': typeof MytMyLeadsRoute
   '/myt/owners-compare': typeof MytOwnersCompareRoute
   '/myt/properties': typeof MytPropertiesRoute
   '/myt/schedule': typeof MytScheduleRoute
@@ -695,6 +703,7 @@ export interface FileRoutesById {
   '/myt/leads': typeof MytLeadsRoute
   '/myt/marketplace': typeof MytMarketplaceRoute
   '/myt/mismatch': typeof MytMismatchRoute
+  '/myt/my-leads': typeof MytMyLeadsRoute
   '/myt/owners-compare': typeof MytOwnersCompareRoute
   '/myt/properties': typeof MytPropertiesRoute
   '/myt/schedule': typeof MytScheduleRoute
@@ -779,6 +788,7 @@ export interface FileRouteTypes {
     | '/myt/leads'
     | '/myt/marketplace'
     | '/myt/mismatch'
+    | '/myt/my-leads'
     | '/myt/owners-compare'
     | '/myt/properties'
     | '/myt/schedule'
@@ -860,6 +870,7 @@ export interface FileRouteTypes {
     | '/myt/leads'
     | '/myt/marketplace'
     | '/myt/mismatch'
+    | '/myt/my-leads'
     | '/myt/owners-compare'
     | '/myt/properties'
     | '/myt/schedule'
@@ -942,6 +953,7 @@ export interface FileRouteTypes {
     | '/myt/leads'
     | '/myt/marketplace'
     | '/myt/mismatch'
+    | '/myt/my-leads'
     | '/myt/owners-compare'
     | '/myt/properties'
     | '/myt/schedule'
@@ -1024,6 +1036,7 @@ export interface RootRouteChildren {
   MytLeadsRoute: typeof MytLeadsRoute
   MytMarketplaceRoute: typeof MytMarketplaceRoute
   MytMismatchRoute: typeof MytMismatchRoute
+  MytMyLeadsRoute: typeof MytMyLeadsRoute
   MytOwnersCompareRoute: typeof MytOwnersCompareRoute
   MytPropertiesRoute: typeof MytPropertiesRoute
   MytScheduleRoute: typeof MytScheduleRoute
@@ -1472,6 +1485,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MytOwnersCompareRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/myt/my-leads': {
+      id: '/myt/my-leads'
+      path: '/myt/my-leads'
+      fullPath: '/myt/my-leads'
+      preLoaderRoute: typeof MytMyLeadsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/myt/mismatch': {
       id: '/myt/mismatch'
       path: '/myt/mismatch'
@@ -1725,6 +1745,7 @@ const rootRouteChildren: RootRouteChildren = {
   MytLeadsRoute: MytLeadsRoute,
   MytMarketplaceRoute: MytMarketplaceRoute,
   MytMismatchRoute: MytMismatchRoute,
+  MytMyLeadsRoute: MytMyLeadsRoute,
   MytOwnersCompareRoute: MytOwnersCompareRoute,
   MytPropertiesRoute: MytPropertiesRoute,
   MytScheduleRoute: MytScheduleRoute,
@@ -1753,3 +1774,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
