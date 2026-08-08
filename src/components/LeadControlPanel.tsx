@@ -176,6 +176,8 @@ export function LeadControlPanel() {
                 {lead.phone} · via {lead.source} · assigned {tcm?.name ?? "—"} ({tcm?.zone ?? "—"})
               </SheetDescription>
             </div>
+            <div className="flex shrink-0 items-center gap-1.5">
+            <SessionTimerBadge elapsed={timer.elapsed} />
             <button
               onClick={() => selectLead(null)}
               className="h-7 w-7 shrink-0 rounded-md hover:bg-muted flex items-center justify-center"
