@@ -150,7 +150,38 @@ export interface Lead {
   urgencyExpiresAt?: string;       // ISO timestamp
   conversionProbability?: number;  // 0-100
   claimedBy?: string | null;       // TCM id who claimed
+  // Claim → call → next action (enforced on-spot flow)
+  claimedAt?: string;
+  firstCallAt?: string;
+  callOutcome?: CallOutcome;
+  callNotes?: string;
+  nextAction?: NextAction | null;
+  ownershipExpiresAt?: string;     // claimedAt + 15 days
+  lastTouchAt?: string;
 }
+
+export type CallOutcome =
+  | 'connected-interested'
+  | 'connected-not-now'
+  | 'no-answer'
+  | 'busy-callback'
+  | 'wrong-number'
+  | 'not-interested';
+
+export type NextActionType =
+  | 'call-back'
+  | 'whatsapp-options'
+  | 'schedule-tour'
+  | 'send-quote'
+  | 'collect-token'
+  | 'nurture';
+
+export interface NextAction {
+  type: NextActionType;
+  dueAt: string;
+  note?: string;
+}
+
 
 // Bookings
 export type AgreementStatus = 'pending' | 'signed' | 'moved-in';

@@ -1,16 +1,20 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useAppState } from '@/myt/lib/app-context';
 import { Lead } from '@/myt/lib/types';
 import { budgetPowerScore, conversionProbability, leadIntent, urgencyExpiry, zoneMedianBudget } from '@/myt/lib/scoring';
 import { UrgencyTimer } from '@/myt/components/UrgencyTimer';
 import { zones, teamMembers } from '@/myt/lib/mock-data';
-import { Phone, Wallet, MapPin, Calendar, Zap, TrendingUp, Hand, Sparkles } from 'lucide-react';
+import { Phone, Wallet, MapPin, Calendar, Zap, TrendingUp, Hand, Sparkles, AlertTriangle, CheckCircle2, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { intentBg } from '@/myt/lib/confidence';
 import { toast } from 'sonner';
 import { useNavigate } from '@/shims/react-router-dom';
 import { LeadControlPanel } from '@/myt/components/LeadControlPanel';
+import { ClaimCallSheet } from '@/myt/components/ClaimCallSheet';
+import { BulkAddLeads } from '@/myt/components/BulkAddLeads';
+import { actionDueLabel, callOutcomes, isIncomplete, nextActions, OWNERSHIP_DAYS, ownershipDay } from '@/myt/lib/ownership';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface Enriched {
   lead: Lead;
@@ -21,8 +25,13 @@ interface Enriched {
 }
 
 export default function LeadMarketplace() {
-  const { leads, setLeads, currentRole, currentMemberId, globalZoneFilter } = useAppState();
+  const { leads, setLeads, currentMemberId, setCurrentMemberId, globalZoneFilter } = useAppState();
   const navigate = useNavigate();
+  const [claiming, setClaiming] = useState<Lead | null>(null);
+
+  const owners = useMemo(() => teamMembers.filter(m => m.role === 'tcm' || m.role === 'flow-ops'), []);
+  const actorId = currentMemberId ?? owners[0]?.id ?? 'm1';
+  const actorName = teamMembers.find(m => m.id === actorId)?.name ?? 'Team';
 
   const enriched: Enriched[] = useMemo(() => {
     return leads
@@ -39,16 +48,41 @@ export default function LeadMarketplace() {
       .sort((a, b) => b.conversionProb - a.conversionProb);
   }, [leads, globalZoneFilter]);
 
-  const claimLead = (leadId: string) => {
-    if (currentRole !== 'tcm' || !currentMemberId) {
-      toast.error('Pick yourself in the header to claim leads');
-      return;
-    }
-    setLeads(prev => prev.map(l => l.id === leadId ? { ...l, claimedBy: currentMemberId, status: 'qualified' } : l));
-    const member = teamMembers.find(m => m.id === currentMemberId);
-    toast.success(`Claimed — go schedule the tour now`, {
-      description: `${member?.name} owns this lead`,
+  const myIncomplete = leads.filter(l => isIncomplete(l) && l.claimedBy === actorId);
+
+  const claimLead = (lead: Lead) => {
+    const now = new Date().toISOString();
+    setLeads(prev => prev.map(l => l.id === lead.id
+      ? { ...l, claimedBy: actorId, claimedAt: now, status: 'qualified' as const,
+          ownershipExpiresAt: new Date(Date.now() + OWNERSHIP_DAYS * 86_400_000).toISOString() }
+      : l));
+    setClaiming(lead);
+  };
+
+
+  const releaseLead = (leadId: string) => {
+    setLeads(prev => prev.map(l => l.id === leadId
+      ? { ...l, claimedBy: null, claimedAt: undefined, ownershipExpiresAt: undefined, status: 'new' as const }
+      : l));
+    toast.warning('Lead released back to the marketplace', {
+      description: 'Claiming requires calling and setting the next action on the spot.',
     });
+  };
+
+  const completeClaim = (leadId: string, p: {
+    outcome: import('@/myt/lib/types').CallOutcome; notes: string;
+    action: import('@/myt/lib/types').NextActionType; dueAt: string; actionNote: string;
+  }) => {
+    const now = new Date().toISOString();
+    setLeads(prev => prev.map(l => l.id === leadId
+      ? { ...l, firstCallAt: l.firstCallAt ?? now, lastTouchAt: now,
+          callOutcome: p.outcome, callNotes: p.notes,
+          nextAction: { type: p.action, dueAt: p.dueAt, note: p.actionNote } }
+      : l));
+    toast.success('Locked — call logged and next action set', {
+      description: `${actorName} owns this lead for ${OWNERSHIP_DAYS} days`,
+    });
+
   };
 
   const scheduleFromLead = (l: Lead) => {
@@ -63,19 +97,58 @@ export default function LeadMarketplace() {
     avgProb: enriched.length ? Math.round(enriched.reduce((s, e) => s + e.conversionProb, 0) / enriched.length) : 0,
   };
 
+
   return (
     <div className="space-y-4 animate-slide-up">
-      <div>
-        <h1 className="text-xl md:text-2xl font-heading font-bold text-foreground flex items-center gap-2">
-          <Zap className="h-5 w-5 text-role-hr" />
-          Lead Marketplace
-        </h1>
-        <p className="text-xs text-muted-foreground">
-          {currentRole === 'tcm'
-            ? 'Live unassigned leads — claim before they expire'
-            : 'Watch demand flow through the funnel in real time'}
-        </p>
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h1 className="text-xl md:text-2xl font-heading font-bold text-foreground flex items-center gap-2">
+            <Zap className="h-5 w-5 text-role-hr" />
+            Lead Marketplace
+          </h1>
+          <p className="text-xs text-muted-foreground">
+            Claim → call on the spot → log outcome → set next action. Then own it for 15 days.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Working as</span>
+            <Select value={actorId} onValueChange={setCurrentMemberId}>
+              <SelectTrigger className="h-8 w-40 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {owners.map(m => (
+                  <SelectItem key={m.id} value={m.id} className="text-xs">{m.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <BulkAddLeads
+            onAdd={(newLeads) => {
+              setLeads(prev => [...newLeads, ...prev]);
+              toast.success(`${newLeads.length} leads added to the marketplace`);
+            }}
+            addedBy={actorId}
+            addedByName={actorName}
+          />
+        </div>
+
       </div>
+
+      {myIncomplete.length > 0 && (
+        <div className="rounded-xl border border-danger/40 bg-danger/5 p-3 space-y-2">
+          <div className="flex items-center gap-2 text-xs font-semibold text-danger">
+            <AlertTriangle className="h-4 w-4" />
+            {myIncomplete.length} claimed lead{myIncomplete.length === 1 ? '' : 's'} without a logged call or next action
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {myIncomplete.map(l => (
+              <Button key={l.id} size="sm" variant="outline" className="h-7 text-[11px]" onClick={() => setClaiming(l)}>
+                Finish {l.name}
+              </Button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
         <Stat label="Hard" value={summary.hard} accent="green" />
@@ -89,6 +162,7 @@ export default function LeadMarketplace() {
           <div className="glass-card p-8 text-center text-sm text-muted-foreground">No live leads right now. New ones surface as Flow Ops adds them.</div>
         )}
         {enriched.map(e => (
+
           <div
             key={e.lead.id}
             className={cn(
@@ -96,7 +170,7 @@ export default function LeadMarketplace() {
               e.intent === 'hard' && 'border-role-tcm/30 bg-role-tcm/5',
               e.intent === 'medium' && 'border-role-hr/20 bg-role-hr/5',
               e.intent === 'soft' && 'border-border bg-surface-2/40',
-              e.lead.claimedBy && 'opacity-60'
+              e.lead.claimedBy && !isIncomplete(e.lead) && 'opacity-70'
             )}
           >
             <div className="flex items-start justify-between gap-2">
@@ -108,7 +182,12 @@ export default function LeadMarketplace() {
                   </span>
                   {e.lead.claimedBy && (
                     <span className="text-[9px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
-                      Claimed
+                      {teamMembers.find(m => m.id === e.lead.claimedBy)?.name ?? 'Claimed'} · Day {ownershipDay(e.lead)}/{OWNERSHIP_DAYS}
+                    </span>
+                  )}
+                  {isIncomplete(e.lead) && (
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-danger/10 text-danger border border-danger/30">
+                      Call + next action pending
                     </span>
                   )}
                 </div>
@@ -128,6 +207,27 @@ export default function LeadMarketplace() {
               <ScoreInline label="Conversion prob" value={e.conversionProb} icon={<TrendingUp className="h-3 w-3" />} />
             </div>
 
+            {e.lead.nextAction && (
+              <div className="flex items-center gap-2 text-[11px] rounded-lg border bg-surface-2/60 px-2 py-1.5 flex-wrap">
+                <CheckCircle2 className="h-3 w-3 text-role-tcm" />
+                <span className="text-foreground font-medium">
+                  {nextActions.find(a => a.value === e.lead.nextAction!.type)?.label}
+                </span>
+                {e.lead.nextAction.note && <span className="text-muted-foreground">· {e.lead.nextAction.note}</span>}
+                <span className={cn(
+                  'flex items-center gap-1 ml-auto',
+                  actionDueLabel(e.lead.nextAction.dueAt).overdue ? 'text-danger' : 'text-muted-foreground'
+                )}>
+                  <Clock className="h-3 w-3" />{actionDueLabel(e.lead.nextAction.dueAt).text}
+                </span>
+                {e.lead.callOutcome && (
+                  <span className="text-muted-foreground w-full">
+                    Last call: {callOutcomes.find(c => c.value === e.lead.callOutcome)?.label}
+                  </span>
+                )}
+              </div>
+            )}
+
             <div className="flex gap-2 pt-1">
               <LeadControlPanel
                 subject={{ kind: 'lead', lead: e.lead }}
@@ -137,12 +237,22 @@ export default function LeadMarketplace() {
                   </Button>
                 }
               />
-              {currentRole === 'tcm' && !e.lead.claimedBy && (
-                <Button size="sm" onClick={() => claimLead(e.lead.id)} className="h-8 text-xs flex-1">
-                  <Hand className="h-3 w-3 mr-1" /> Claim
+              {!e.lead.claimedBy && (
+                <Button size="sm" onClick={() => claimLead(e.lead)} className="h-8 text-xs flex-1">
+                  <Hand className="h-3 w-3 mr-1" /> Claim & call now
                 </Button>
               )}
-              {(currentRole === 'flow-ops' || (currentRole === 'tcm' && e.lead.claimedBy === currentMemberId)) && (
+              {isIncomplete(e.lead) && e.lead.claimedBy === actorId && (
+                <Button size="sm" variant="destructive" onClick={() => setClaiming(e.lead)} className="h-8 text-xs flex-1">
+                  Finish call log
+                </Button>
+              )}
+              {e.lead.claimedBy === actorId && !isIncomplete(e.lead) && (
+                <Button size="sm" variant="outline" onClick={() => setClaiming(e.lead)} className="h-8 text-xs">
+                  Log touch
+                </Button>
+              )}
+              {(!e.lead.claimedBy || e.lead.claimedBy === actorId) && (
                 <Button size="sm" variant="outline" onClick={() => scheduleFromLead(e.lead)} className="h-8 text-xs flex-1">
                   Schedule tour →
                 </Button>
@@ -151,9 +261,21 @@ export default function LeadMarketplace() {
           </div>
         ))}
       </div>
+
+      <ClaimCallSheet
+        lead={claiming}
+        open={Boolean(claiming)}
+        onOpenChange={(v) => { if (!v) setClaiming(null); }}
+        onComplete={(p) => { if (claiming) completeClaim(claiming.id, p); setClaiming(null); }}
+        onAbandon={() => {
+          if (claiming && isIncomplete(claiming)) releaseLead(claiming.id);
+          setClaiming(null);
+        }}
+      />
     </div>
   );
 }
+
 
 function Stat({ label, value, accent }: { label: string; value: string | number; accent?: 'green' | 'amber' | 'primary' }) {
   return (
