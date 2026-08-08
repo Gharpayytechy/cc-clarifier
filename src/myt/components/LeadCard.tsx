@@ -30,7 +30,7 @@ interface Props {
   actorId: string;
   /** 'market' = unclaimed board (single Claim action). 'owned' = execution queue. */
   variant: 'market' | 'owned';
-  onClaim?: (l: Lead) => void;
+  onClaim?: (l: Lead, channel?: TouchChannel) => void;
   onTouch?: (l: Lead, ch: TouchChannel) => void;
   onFinish?: (l: Lead) => void;
   onRelease?: (id: string) => void;
@@ -233,7 +233,7 @@ export function LeadCard({ e, actorId, variant, onClaim, onTouch, onFinish, onRe
       <div className="flex flex-wrap gap-2 pt-1">
         <LeadControlPanel
           subject={{ kind: 'lead', lead: l }}
-          onStartTouch={(lead, channel) => variant === 'market' ? onClaim?.(lead) : onTouch?.(lead, channel)}
+          onStartTouch={(lead, channel) => variant === 'market' ? onClaim?.(lead, channel) : onTouch?.(lead, channel)}
           trigger={
             <Button size="sm" variant="outline" className="h-8 text-xs gap-1">
               <Sparkles className="h-3 w-3" /> Open

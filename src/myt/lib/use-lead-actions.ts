@@ -23,13 +23,13 @@ export function useLeadActions() {
     setActive(lead);
   };
 
-  const claimLead = (lead: Lead) => {
+  const claimLead = (lead: Lead, channel: TouchChannel = 'call') => {
     const now = new Date().toISOString();
     setLeads(prev => prev.map(l => l.id === lead.id
       ? { ...l, claimedBy: actorId, claimedAt: now, status: 'qualified' as const,
           ownershipExpiresAt: new Date(Date.now() + OWNERSHIP_DAYS * 86_400_000).toISOString() }
       : l));
-    openSheet({ ...lead, claimedBy: actorId, claimedAt: now }, 'claim', 'call');
+    openSheet({ ...lead, claimedBy: actorId, claimedAt: now }, 'claim', channel);
     toast.success(`Claimed — ${lead.name} is yours for ${OWNERSHIP_DAYS} days`, {
       description: 'It has moved out of the marketplace into My Leads.',
     });

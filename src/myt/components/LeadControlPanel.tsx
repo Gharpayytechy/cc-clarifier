@@ -122,8 +122,10 @@ export function LeadControlPanel({ subject, trigger, defaultTab = "overview", on
   const callNow = () => {
     if (!phone) return;
     if (lead && onStartTouch) {
-      setOpen(false);
-      window.setTimeout(() => onStartTouch(lead, 'call'), 120);
+      window.setTimeout(() => {
+        setOpen(false);
+        onStartTouch(lead, 'call');
+      }, 0);
       return;
     }
     window.location.href = `tel:${phone.replace(/\s/g, "")}`;
@@ -132,8 +134,10 @@ export function LeadControlPanel({ subject, trigger, defaultTab = "overview", on
 
   const startWhatsApp = () => {
     if (lead && onStartTouch) {
-      setOpen(false);
-      window.setTimeout(() => onStartTouch(lead, 'whatsapp'), 120);
+      window.setTimeout(() => {
+        setOpen(false);
+        onStartTouch(lead, 'whatsapp');
+      }, 0);
       return;
     }
     sendWhatsApp(`Hi ${name}, this is regarding your Gharpayy tour. Can we connect?`);
