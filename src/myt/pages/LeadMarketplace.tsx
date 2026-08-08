@@ -78,10 +78,10 @@ export default function LeadMarketplace() {
           callOutcome: p.outcome, callNotes: p.notes,
           nextAction: { type: p.action, dueAt: p.dueAt, note: p.actionNote } }
       : l));
-    const member = teamMembers.find(m => m.id === currentMemberId);
     toast.success('Locked — call logged and next action set', {
-      description: `${member?.name ?? 'You'} owns this lead for ${OWNERSHIP_DAYS} days`,
+      description: `${actorName} owns this lead for ${OWNERSHIP_DAYS} days`,
     });
+
   };
 
   const scheduleFromLead = (l: Lead) => {
