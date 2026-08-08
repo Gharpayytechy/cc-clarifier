@@ -20,25 +20,34 @@ const KIND_LABEL: Record<SessionKind, string> = {
 
 export function ProductivityBoard() {
   const sessions = useProductivity((s) => s.sessions);
+  const pages = useProductivity((s) => s.pages);
+  const marks = useProductivity((s) => s.marks);
   const clear = useProductivity((s) => s.clear);
   const [range, setRange] = useState<Range>("today");
 
-  const scoped = useMemo(() => {
-    const now = new Date();
-    return sessions.filter((s) => {
-      if (range === "all") return true;
-      if (range === "today") return isSameDay(s.startedAt, now);
-      return Date.parse(s.startedAt) >= Date.now() - 7 * 86_400_000;
-    });
-  }, [sessions, range]);
+  const inRange = (iso: string) => {
+    if (range === "all") return true;
+    if (range === "today") return isSameDay(iso, new Date());
+    return Date.parse(iso) >= Date.now() - 7 * 86_400_000;
+  };
+
+  const scoped = useMemo(() => sessions.filter((s) => inRange(s.startedAt)), [sessions, range]);
+  const scopedPages = useMemo(() => pages.filter((p) => inRange(p.lastAt)), [pages, range]);
+  const scopedMarks = useMemo(() => marks.filter((m) => inRange(m.lastActionAt)), [marks, range]);
 
   const people = useMemo(() => rollupByPerson(scoped), [scoped]);
   const leads = useMemo(() => rollupByLead(scoped), [scoped]);
+  const days = useMemo(
+    () => dayBreakdown(scoped, scopedPages, scopedMarks),
+    [scoped, scopedPages, scopedMarks],
+  );
 
   const totalSec = scoped.reduce((a, s) => a + s.durationSec, 0);
   const over = scoped.filter((s) => s.overTarget).length;
   const uniqueLeads = new Set(scoped.map((s) => s.leadId)).size;
   const avg = scoped.length ? Math.round(totalSec / scoped.length) : 0;
+  const idleTotal = scopedPages.reduce((a, p) => a + p.idleSec, 0);
+
 
   return (
     <div className="space-y-4">
