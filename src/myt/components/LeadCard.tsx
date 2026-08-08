@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { intentBg } from '@/myt/lib/confidence';
-import { currentStage, discoveryProgress, missingAll, waStatusMeta, CALL_STAGES } from '@/myt/lib/call-plan';
+import { currentStage, discoveryProgress, missingAll, waStatusMeta, CALL_STAGES, closingReadiness, readinessTone } from '@/myt/lib/call-plan';
 import { LeadControlPanel } from '@/myt/components/LeadControlPanel';
 import {
   actionDueLabel, callOutcomes, isIncomplete, nextActions, OWNERSHIP_DAYS, ownershipDay,
