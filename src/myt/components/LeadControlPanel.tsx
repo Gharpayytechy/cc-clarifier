@@ -243,6 +243,7 @@ export function LeadControlPanel({ subject, trigger, defaultTab = "overview", on
                     <AlertTriangle className="h-3 w-3" /> Update required
                   </Badge>
                 )}
+                <SessionTimerBadge elapsed={timer.elapsed} />
               </SheetTitle>
               <p className="text-[11px] text-muted-foreground mt-1">
                 {phone && <span className="mr-2">📞 {phone}</span>}
