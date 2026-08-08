@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { intentBg } from '@/myt/lib/confidence';
+import { currentStage, discoveryProgress, missingAll, waStatusMeta, CALL_STAGES } from '@/myt/lib/call-plan';
 import { LeadControlPanel } from '@/myt/components/LeadControlPanel';
 import {
   actionDueLabel, callOutcomes, isIncomplete, nextActions, OWNERSHIP_DAYS, ownershipDay,
@@ -110,6 +111,39 @@ export function LeadCard({ e, actorId, variant, onClaim, onTouch, onFinish, onRe
           ))}
         </div>
       )}
+
+      {/* WhatsApp state + 3-call ladder + what we still don't know */}
+      <div className="rounded-lg border bg-surface-2/50 px-2 py-1.5 space-y-1">
+        <div className="flex items-center gap-2 flex-wrap text-[10px]">
+          <span className={cn(
+            'px-1.5 py-0.5 rounded border',
+            !l.waStatus ? 'border-border text-muted-foreground'
+              : waStatusMeta(l.waStatus)?.tone === 'good' ? 'bg-role-tcm/10 border-role-tcm/40 text-role-tcm'
+              : waStatusMeta(l.waStatus)?.tone === 'bad' ? 'bg-danger/10 border-danger/40 text-danger'
+              : 'bg-role-hr/10 border-role-hr/40 text-role-hr'
+          )}>
+            WA: {waStatusMeta(l.waStatus)?.label ?? 'not checked'}
+          </span>
+          {l.waLabel && <span className="px-1.5 py-0.5 rounded border border-border text-muted-foreground">Label {l.waLabel}</span>}
+          <span className="px-1.5 py-0.5 rounded border border-primary/40 bg-primary/10 text-primary">
+            {CALL_STAGES.find(c => c.stage === currentStage(l))?.title}
+          </span>
+          <span className="ml-auto text-muted-foreground tabular-nums">
+            Info {discoveryProgress(l.discovery).done}/{discoveryProgress(l.discovery).total}
+          </span>
+        </div>
+        {missingAll(l.discovery).length > 0 && (
+          <div className="text-[10px] text-muted-foreground">
+            Still needed: {missingAll(l.discovery).slice(0, 5).map(f => f.label).join(', ')}
+            {missingAll(l.discovery).length > 5 && ` +${missingAll(l.discovery).length - 5}`}
+          </div>
+        )}
+        {l.nextCall && (
+          <div className="text-[10px] text-primary">
+            Next planned call — Call {l.nextCall.stage} on {new Date(l.nextCall.dueAt).toLocaleString()} · {l.nextCall.purpose}
+          </div>
+        )}
+      </div>
 
       <div className="grid grid-cols-2 gap-2">
         <ScoreInline label="Budget power" value={e.budgetPower} icon={<Wallet className="h-3 w-3" />} />
