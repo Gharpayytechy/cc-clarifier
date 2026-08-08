@@ -39,6 +39,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   const path = router.location.pathname;
   const [now, mounted] = useMountedNow();
 
+  // Attendance + idle tracking for the Productivity board.
+  const me = useIdentityStore((s) => s.currentUser);
+  useActivityTracker(me?.id ?? "me", me?.name ?? "You");
+
   const filterTcm = role === "tcm" ? currentTcmId : undefined;
   const queue = useMemo(
     () => (mounted ? buildDoNextQueue(leads, tours, followUps, now, filterTcm) : []),
