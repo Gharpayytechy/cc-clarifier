@@ -1,0 +1,108 @@
+import { CheckCircle2, Circle, Gauge, PhoneOff, Target } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Lead } from '@/myt/lib/types';
+import {
+  CALL_PLAYS, STAGE_ORDER, currentStage, closingReadiness, readinessTone,
+  readinessVerdict, play, askFields, filled, attemptsAtStage, waStatusMeta,
+} from '@/myt/lib/call-plan';
+
+/**
+ * The same ladder the call sheet runs on, in read-only form:
+ * which call this lead is on, what that call needs, and how close to closeable.
+ */
+export function CallLadder({ lead, compact = false }: { lead: Lead; compact?: boolean }) {
+  const stage = currentStage(lead);
+  const p = play(stage);
+  const r = closingReadiness(lead);
+  const tone = readinessTone(r.pct);
+  const attempts = attemptsAtStage(lead, stage);
+  const open = askFields(stage).filter((f) => !filled(lead.discovery, f.key));
+  const wa = waStatusMeta(lead.waStatus);
+
+  return (
+    <div className="rounded-xl border bg-surface-2/40 p-3 space-y-2.5">
+      <div className="flex items-center gap-2">
+        <span className={cn('text-[10px] font-bold px-1.5 py-0.5 rounded-md border',
+          p.colour === 'good' ? 'bg-role-tcm/10 border-role-tcm/40 text-role-tcm'
+            : p.colour === 'warn' ? 'bg-role-hr/10 border-role-hr/40 text-role-hr'
+            : 'bg-primary/10 border-primary/40 text-primary')}>{p.code}</span>
+        <div className="text-xs font-semibold">Call {stage} · {p.name}</div>
+        <span className={cn('ml-auto text-[10px] font-semibold',
+          tone === 'good' ? 'text-role-tcm' : tone === 'warn' ? 'text-role-hr' : 'text-danger')}>
+          {r.pct}%
+        </span>
+      </div>
+
+      <div className="h-1.5 rounded-full bg-surface-3 overflow-hidden">
+        <div className={cn('h-full rounded-full transition-all',
+          tone === 'good' ? 'bg-role-tcm' : tone === 'warn' ? 'bg-role-hr' : 'bg-danger')}
+          style={{ width: `${r.pct}%` }} />
+      </div>
+
+      <div className="text-[11px] text-muted-foreground flex items-start gap-1.5">
+        <Gauge className="h-3 w-3 mt-0.5 shrink-0" /> {readinessVerdict(r)}
+      </div>
+
+      {/* the 5 rungs — done / current / locked */}
+      <div className="flex items-center gap-1">
+        {STAGE_ORDER.map((s) => {
+          const done = s < stage;
+          const now = s === stage;
+          return (
+            <div key={s} title={`${CALL_PLAYS[s].code} · ${CALL_PLAYS[s].name} — ${CALL_PLAYS[s].mission}`}
+              className={cn('flex-1 rounded-lg border px-1.5 py-1 text-center transition-colors',
+                done ? 'border-role-tcm/40 bg-role-tcm/10 text-role-tcm'
+                  : now ? 'border-primary bg-primary/10 text-primary font-semibold'
+                  : 'border-border text-muted-foreground/50')}>
+              <div className="text-[10px] leading-none">{s}</div>
+              <div className="text-[9px] leading-tight truncate">{CALL_PLAYS[s].name}</div>
+            </div>
+          );
+        })}
+      </div>
+
+      {!compact && (
+        <>
+          <div className="text-[11px]">
+            <span className="text-muted-foreground">This call wins when: </span>{p.win}
+          </div>
+
+          {open.length > 0 && (
+            <div className="space-y-1">
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">
+                Ask on {p.code} · {open.length} left
+              </div>
+              {open.map((f) => (
+                <div key={f.key} className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                  <Circle className="h-2.5 w-2.5" /> {f.label}
+                </div>
+              ))}
+            </div>
+          )}
+          {open.length === 0 && (
+            <div className="text-[11px] text-role-tcm flex items-center gap-1.5">
+              <CheckCircle2 className="h-3 w-3" /> {p.code} data complete — move to Call {Math.min(stage + 1, 5)}.
+            </div>
+          )}
+
+          {attempts > 0 && (
+            <div className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+              <PhoneOff className="h-3 w-3" /> {attempts} attempt{attempts === 1 ? '' : 's'} logged on {p.code} — {p.noAnswer.move}
+            </div>
+          )}
+
+          {wa && (
+            <div className="text-[11px] text-muted-foreground">WhatsApp: {wa.label}{lead.waLabel ? ` · ${lead.waLabel}` : ''}</div>
+          )}
+
+          {lead.nextCall && (
+            <div className="text-[11px] text-primary flex items-center gap-1.5">
+              <Target className="h-3 w-3" />
+              Next: Call {lead.nextCall.stage} · {play(lead.nextCall.stage).name} — {new Date(lead.nextCall.dueAt).toLocaleString()}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
