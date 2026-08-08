@@ -242,7 +242,7 @@ export function ClaimCallSheet({ lead, open, mode = 'claim', channel = 'call', o
                   rows={2}
                   className="text-xs"
                   placeholder="Paste / summarise: area asked, budget mentioned, move-in, whether they're in Bangalore…"
-                  value={discovery.objection ? '' : notes}
+                  value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                 />
               </div>
