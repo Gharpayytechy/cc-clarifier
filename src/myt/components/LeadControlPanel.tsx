@@ -20,6 +20,8 @@ import { intentBg, confirmationLabel } from "@/myt/lib/confidence";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { format, formatDistanceToNow } from "date-fns";
+import { CallLadder } from "@/myt/components/CallLadder";
+
 
 type Subject =
   | { kind: "tour"; tour: Tour }
@@ -246,7 +248,9 @@ export function LeadControlPanel({ subject, trigger, defaultTab = "overview" }: 
 
           {/* ---- OVERVIEW ---- */}
           <TabsContent value="overview" className="mt-3 space-y-3">
+            {lead && <CallLadder lead={lead} />}
             <div className="grid grid-cols-2 gap-2 text-xs">
+
               <Info icon={<Wallet className="h-3.5 w-3.5" />} label="Budget" value={`₹${budget.toLocaleString()}/mo`} />
               <Info icon={<MapPin className="h-3.5 w-3.5" />} label="Area" value={area} />
               {tour && <Info icon={<Building2 className="h-3.5 w-3.5" />} label="Property" value={property!} />}
