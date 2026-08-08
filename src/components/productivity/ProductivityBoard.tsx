@@ -1,13 +1,13 @@
 import { useMemo, useState } from "react";
 import {
   useProductivity, rollupByPerson, rollupByLead, productivityScore,
-  fmtDuration, isSameDay, TARGET_SEC, SessionKind,
+  fmtDuration, isSameDay, TARGET_SEC, SessionKind, dayBreakdown, IDLE_AFTER_SEC,
 } from "@/lib/productivity/store";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import { Timer, Users, Target, AlertTriangle, Gauge } from "lucide-react";
+import { Timer, Users, Target, AlertTriangle, Gauge, Coffee } from "lucide-react";
 
 type Range = "today" | "7d" | "all";
 
@@ -20,25 +20,34 @@ const KIND_LABEL: Record<SessionKind, string> = {
 
 export function ProductivityBoard() {
   const sessions = useProductivity((s) => s.sessions);
+  const pages = useProductivity((s) => s.pages);
+  const marks = useProductivity((s) => s.marks);
   const clear = useProductivity((s) => s.clear);
   const [range, setRange] = useState<Range>("today");
 
-  const scoped = useMemo(() => {
-    const now = new Date();
-    return sessions.filter((s) => {
-      if (range === "all") return true;
-      if (range === "today") return isSameDay(s.startedAt, now);
-      return Date.parse(s.startedAt) >= Date.now() - 7 * 86_400_000;
-    });
-  }, [sessions, range]);
+  const inRange = (iso: string) => {
+    if (range === "all") return true;
+    if (range === "today") return isSameDay(iso, new Date());
+    return Date.parse(iso) >= Date.now() - 7 * 86_400_000;
+  };
+
+  const scoped = useMemo(() => sessions.filter((s) => inRange(s.startedAt)), [sessions, range]);
+  const scopedPages = useMemo(() => pages.filter((p) => inRange(p.lastAt)), [pages, range]);
+  const scopedMarks = useMemo(() => marks.filter((m) => inRange(m.lastActionAt)), [marks, range]);
 
   const people = useMemo(() => rollupByPerson(scoped), [scoped]);
   const leads = useMemo(() => rollupByLead(scoped), [scoped]);
+  const days = useMemo(
+    () => dayBreakdown(scoped, scopedPages, scopedMarks),
+    [scoped, scopedPages, scopedMarks],
+  );
 
   const totalSec = scoped.reduce((a, s) => a + s.durationSec, 0);
   const over = scoped.filter((s) => s.overTarget).length;
   const uniqueLeads = new Set(scoped.map((s) => s.leadId)).size;
   const avg = scoped.length ? Math.round(totalSec / scoped.length) : 0;
+  const idleTotal = scopedPages.reduce((a, p) => a + p.idleSec, 0);
+
 
   return (
     <div className="space-y-4">
@@ -61,19 +70,76 @@ export function ProductivityBoard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
         <Kpi icon={<Timer className="h-3 w-3" />} label="Time on leads" value={fmtDuration(totalSec)} />
+        <Kpi icon={<Coffee className="h-3 w-3" />} label="Idle time" value={fmtDuration(idleTotal)} accent={idleTotal > totalSec ? "red" : idleTotal ? "amber" : "green"} />
         <Kpi icon={<Target className="h-3 w-3" />} label="Leads touched" value={String(uniqueLeads)} />
         <Kpi icon={<Gauge className="h-3 w-3" />} label="Avg per session" value={fmtDuration(avg)} accent={avg > TARGET_SEC ? "red" : "green"} />
         <Kpi icon={<AlertTriangle className="h-3 w-3" />} label={`Over ${TARGET_SEC}s`} value={`${over}/${scoped.length}`} accent={over ? "amber" : "green"} />
       </div>
 
-      <Tabs defaultValue="people">
+      <Tabs defaultValue="day">
         <TabsList>
+          <TabsTrigger value="day"><Coffee className="mr-1 h-3.5 w-3.5" />Where the day went</TabsTrigger>
           <TabsTrigger value="people"><Users className="mr-1 h-3.5 w-3.5" />People</TabsTrigger>
           <TabsTrigger value="leads">Per lead</TabsTrigger>
           <TabsTrigger value="log">Session log</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="day" className="mt-3 space-y-2">
+          {days.length === 0 && <Empty />}
+          {days.map((d) => {
+            const bars = [
+              { key: "lead", label: "On leads", sec: d.leadSec, cls: "bg-primary" },
+              { key: "other", label: "Other CRM pages", sec: d.otherSec, cls: "bg-accent" },
+              { key: "idle", label: `Idle (>${IDLE_AFTER_SEC}s no input)`, sec: d.idleSec, cls: "bg-muted-foreground/50" },
+              { key: "away", label: "Away / app closed", sec: d.unaccountedSec, cls: "bg-destructive/60" },
+            ];
+            const denom = Math.max(1, bars.reduce((a, b) => a + b.sec, 0));
+            const t = (iso?: string) =>
+              iso ? new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—";
+            return (
+              <div key={d.actorId} className="rounded-xl border bg-card p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="text-sm font-semibold">{d.actorName}</div>
+                  <div className="font-mono text-[11px] tabular-nums text-muted-foreground">
+                    Started {t(d.firstActionAt)} · Last action {t(d.lastActionAt)} · Span {fmtDuration(d.spanSec)}
+                  </div>
+                </div>
+
+                <div className="mt-2 flex h-2.5 overflow-hidden rounded-full bg-muted">
+                  {bars.map((b) => b.sec > 0 && (
+                    <div key={b.key} className={cn("h-full", b.cls)} style={{ width: `${(b.sec / denom) * 100}%` }} title={`${b.label} · ${fmtDuration(b.sec)}`} />
+                  ))}
+                </div>
+                <div className="mt-1.5 grid grid-cols-2 gap-x-4 gap-y-0.5 text-[11px] md:grid-cols-4">
+                  {bars.map((b) => (
+                    <span key={b.key} className="flex items-center gap-1.5 text-muted-foreground">
+                      <span className={cn("h-2 w-2 rounded-full", b.cls)} />
+                      {b.label} <span className="font-mono tabular-nums text-foreground">{fmtDuration(b.sec)}</span>
+                    </span>
+                  ))}
+                </div>
+
+                {d.pages.length > 0 && (
+                  <div className="mt-2 space-y-1 border-t pt-2">
+                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Page by page</div>
+                    {d.pages.slice(0, 8).map((p) => (
+                      <div key={p.path} className="flex items-center justify-between gap-2 text-[11px]">
+                        <span className="min-w-0 flex-1 truncate">{p.label}</span>
+                        <span className="font-mono tabular-nums text-muted-foreground">
+                          {fmtDuration(p.activeSec)} active
+                          {p.idleSec > 0 && <span className="text-destructive"> · {fmtDuration(p.idleSec)} idle</span>}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </TabsContent>
+
 
         <TabsContent value="people" className="mt-3 space-y-2">
           {people.length === 0 && <Empty />}

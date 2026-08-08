@@ -23,6 +23,8 @@ import { PictureInPictureProvider, PipMount, usePip } from "./pip/PipProvider";
 import { PipButton } from "./pip/PipButton";
 import { usePipRouteSync } from "./pip/usePipSync";
 import { LiveActivityDock } from "./live/LiveActivityDock";
+import { useIdentityStore } from "@/lib/lead-identity/store";
+import { useActivityTracker } from "@/lib/productivity/use-activity-tracker";
 import { runLifecycleSeed } from "@/lib/pipeline/seed-lifecycle";
 
 function PipRouteSyncBridge() {
@@ -38,6 +40,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouterState();
   const path = router.location.pathname;
   const [now, mounted] = useMountedNow();
+
+  // Attendance + idle tracking for the Productivity board.
+  const me = useIdentityStore((s) => s.currentUser);
+  useActivityTracker(me?.id ?? "me", me?.name ?? "You");
 
   const filterTcm = role === "tcm" ? currentTcmId : undefined;
   const queue = useMemo(
