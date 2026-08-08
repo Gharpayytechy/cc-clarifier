@@ -100,7 +100,43 @@ export const useProductivity = create<State>()(
       },
       note: (id, outcome) =>
         set((st) => ({ sessions: st.sessions.map((x) => (x.id === id ? { ...x, outcome } : x)) })),
-      clear: () => set({ sessions: [] }),
+      markAction: (actorId, actorName) => {
+        const now = new Date().toISOString();
+        const day = dayKey();
+        set((st) => {
+          const i = st.marks.findIndex((m) => m.actorId === actorId && m.day === day);
+          if (i === -1) {
+            return { marks: [...st.marks, { actorId, actorName, day, firstActionAt: now, lastActionAt: now }] };
+          }
+          const marks = st.marks.slice();
+          marks[i] = { ...marks[i], actorName, lastActionAt: now };
+          return { marks };
+        });
+      },
+      heartbeat: ({ actorId, actorName, path, activeSec, idleSec }) => {
+        if (activeSec <= 0 && idleSec <= 0) return;
+        const now = new Date().toISOString();
+        const day = dayKey();
+        set((st) => {
+          const i = st.pages.findIndex((p) => p.actorId === actorId && p.day === day && p.path === path);
+          if (i === -1) {
+            const entry: PageStint = {
+              id: `pg_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+              actorId, actorName, path, day, startedAt: now, lastAt: now, activeSec, idleSec,
+            };
+            return { pages: [...st.pages, entry].slice(-2000) };
+          }
+          const pages = st.pages.slice();
+          const cur = pages[i]!;
+          pages[i] = {
+            ...cur, actorName, lastAt: now,
+            activeSec: cur.activeSec + activeSec,
+            idleSec: cur.idleSec + idleSec,
+          };
+          return { pages };
+        });
+      },
+      clear: () => set({ sessions: [], pages: [], marks: [] }),
     }),
     { name: "gharpayy-productivity-v1" },
   ),
