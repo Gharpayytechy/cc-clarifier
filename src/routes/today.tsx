@@ -48,7 +48,7 @@ function TodayPage() {
             <h1 className="font-display text-2xl font-semibold tracking-tight">
               {mounted ? greeting(now) : "Hello"}{me ? `, ${me.name.split(" ")[0]}` : ""}.
             </h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground" suppressHydrationWarning>
               {top.length === 0
                 ? "Inbox zero. Nothing pending right now."
                 : `${queue.length} action${queue.length > 1 ? "s" : ""} ranked. Start at the top.`}

@@ -160,7 +160,7 @@ export function ClaimCallSheet({ lead, open, mode = 'claim', channel = 'call', i
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) close(mode === 'claim'); }}>
-       <DialogContent className="flex h-[calc(100dvh-0.5rem)] max-h-[36rem] w-[calc(100vw-0.5rem)] max-w-xl flex-col gap-0 overflow-hidden border-primary/25 bg-card p-0 shadow-2xl" onInteractOutside={(e) => e.preventDefault()}>
+       <DialogContent className="flex h-[calc(100dvh-0.5rem)] max-h-[42rem] w-[calc(100vw-0.5rem)] max-w-xl flex-col gap-0 overflow-hidden border-primary/25 bg-card p-0 shadow-2xl" onInteractOutside={(e) => e.preventDefault()}>
         {/* --------- header: who, which call, how ready --------- */}
          <div className="shrink-0 space-y-1.5 border-b border-primary/20 bg-secondary/70 px-4 py-2">
           <DialogHeader className="space-y-1">
@@ -192,10 +192,10 @@ export function ClaimCallSheet({ lead, open, mode = 'claim', channel = 'call', i
           <Trail step={step} missed={missed} />
         </div>
 
-         <div className="min-h-0 flex-1 overflow-hidden px-4 py-2.5">
+         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-2.5">
           {/* ---------------- WA ---------------- */}
           {step === 'wa' && (
-             <div className="flex h-full flex-col gap-2">
+             <div className="flex min-h-full flex-col gap-2">
               <div>
                 <Head>Is there a WhatsApp chat already?</Head>
                 <Why>This prevents duplicate messages and tells you how warm the conversation already is.</Why>
@@ -233,7 +233,7 @@ export function ClaimCallSheet({ lead, open, mode = 'claim', channel = 'call', i
                   value={chatNotes} onChange={(e) => setChatNotes(e.target.value)} />
               )}
 
-              <div className="mt-auto"><Nav
+              <div className="mt-auto sticky bottom-0 -mx-4 mt-auto border-t border-border bg-card px-4 py-2"><Nav
                 back={<Button variant="ghost" size="sm" className="text-xs" onClick={() => close(mode === 'claim')}>
                   {mode === 'claim' ? 'Release lead' : 'Cancel'}
                 </Button>}
@@ -248,7 +248,7 @@ export function ClaimCallSheet({ lead, open, mode = 'claim', channel = 'call', i
 
           {/* ---------------- BRIEF (only when something is genuinely missing) ---------------- */}
           {step === 'brief' && (
-             <div className="flex h-full flex-col gap-2">
+             <div className="flex min-h-full flex-col gap-2">
               <div><Head>Known before you dial</Head>
               <Why>These facts keep the opening relevant and stop a valuable call from becoming a generic pitch.</Why>
               <p className="mt-1 text-[10px] text-muted-foreground">
@@ -264,7 +264,7 @@ export function ClaimCallSheet({ lead, open, mode = 'claim', channel = 'call', i
                   "Try nearby" — don't burn a call. Release it so it reroutes to the right zone.
                 </div>
               )}
-              <div className="mt-auto"><Nav
+              <div className="mt-auto sticky bottom-0 -mx-4 mt-auto border-t border-border bg-card px-4 py-2"><Nav
                 back={<Button variant="ghost" size="sm" className="text-xs" onClick={() => setStep('wa')}>Back</Button>}
                  next={<Button size="sm" disabled={briefLeft.length > 0} onClick={() => setStep('dial')}>
                    {briefLeft.length ? `Complete ${briefLeft.length} required` : `Start ${p.code}`} <ArrowRight className="h-3 w-3 ml-1" />
@@ -275,7 +275,7 @@ export function ClaimCallSheet({ lead, open, mode = 'claim', channel = 'call', i
 
           {/* ---------------- DIAL ---------------- */}
           {step === 'dial' && (
-             <div className="flex h-full flex-col gap-2">
+             <div className="flex min-h-full flex-col gap-2">
               <Why>Using the same proven opener makes every call clear, confident, and measurable.</Why>
               <div className="rounded-xl border border-primary/40 bg-primary/5 p-3">
                 <div className="text-[10px] uppercase tracking-wide text-primary font-semibold">Open with this</div>
@@ -309,7 +309,7 @@ export function ClaimCallSheet({ lead, open, mode = 'claim', channel = 'call', i
                   </a>
                 </Button>
               </div>
-              <div className="mt-auto"><Nav
+              <div className="mt-auto sticky bottom-0 -mx-4 mt-auto border-t border-border bg-card px-4 py-2"><Nav
                 back={<Button variant="ghost" size="sm" className="text-xs" onClick={() => setStep(brief.length ? 'brief' : 'wa')}>Back</Button>}
                 next={<Button variant="ghost" size="sm" className="text-xs" onClick={() => setStep('pickup')}>
                   Already reached out <ArrowRight className="h-3 w-3 ml-1" />
@@ -320,7 +320,7 @@ export function ClaimCallSheet({ lead, open, mode = 'claim', channel = 'call', i
 
           {/* ---------------- PICKUP GATE ---------------- */}
           {step === 'pickup' && (
-             <div className="flex h-full flex-col gap-2">
+             <div className="flex min-h-full flex-col gap-2">
               <div><Head>Did they pick up?</Head>
               <Why>One tap sends you down the correct path; unanswered calls never create fake discovery data.</Why>
               <p className="mt-1 text-[10px] text-muted-foreground">
@@ -340,13 +340,13 @@ export function ClaimCallSheet({ lead, open, mode = 'claim', channel = 'call', i
                   <AlertTriangle className="h-4 w-4 mr-2" /> Wrong number
                 </Button>
               </div>
-              <div className="mt-auto"><Nav back={<Button variant="ghost" size="sm" className="text-xs" onClick={() => setStep('dial')}>Back</Button>} next={null} /></div>
+              <div className="mt-auto sticky bottom-0 -mx-4 mt-auto border-t border-border bg-card px-4 py-2"><Nav back={<Button variant="ghost" size="sm" className="text-xs" onClick={() => setStep('dial')}>Back</Button>} next={null} /></div>
             </div>
           )}
 
           {/* ---------------- ASK — only this call's questions ---------------- */}
           {step === 'ask' && (
-             <div className="flex h-full flex-col gap-2">
+             <div className="flex min-h-full flex-col gap-2">
               <div><Head>{p.code} questions · {asks.length} only</Head>
               <Why>Each answer removes uncertainty from the next call and moves this lead closer to a booking.</Why></div>
               <Fields fields={asks} discovery={discovery} setField={setField}
@@ -363,7 +363,7 @@ export function ClaimCallSheet({ lead, open, mode = 'claim', channel = 'call', i
                 )
               )}
 
-              <div className="mt-auto"><Nav
+              <div className="mt-auto sticky bottom-0 -mx-4 mt-auto border-t border-border bg-card px-4 py-2"><Nav
                 back={<Button variant="ghost" size="sm" className="text-xs" onClick={() => setStep('pickup')}>Back</Button>}
                  next={<Button size="sm" disabled={askLeft.length > 0} onClick={() => setStep('wrap')}>
                    {askLeft.length ? `Complete ${askLeft.length} required` : 'All captured — wrap up'}
@@ -375,7 +375,7 @@ export function ClaimCallSheet({ lead, open, mode = 'claim', channel = 'call', i
 
           {/* ---------------- WRAP ---------------- */}
           {step === 'wrap' && (
-             <div className="flex h-full flex-col gap-2">
+             <div className="flex min-h-full flex-col gap-2">
               <Why>A dated next action keeps ownership useful: no lead leaves this flow without a clear next moment.</Why>
               {missed || outcome === 'busy-callback' ? (
                 <div className="rounded-xl border border-role-hr/40 bg-role-hr/5 p-3 text-[11px] space-y-1">
@@ -471,7 +471,7 @@ export function ClaimCallSheet({ lead, open, mode = 'claim', channel = 'call', i
                     {captured.length ? ` · ${captured.length} new answer${captured.length === 1 ? '' : 's'}` : ''}.
                   </div>
 
-                  <Button className="mt-auto w-full h-10" disabled={!outcome || !action || !dueAt || !nextAt} onClick={finish}>
+                  <Button className="sticky bottom-0 w-full h-10" disabled={!outcome || !action || !dueAt || !nextAt} onClick={finish}>
                     <CheckCircle2 className="h-4 w-4 mr-1" />
                     {mode === 'claim' ? 'Lock ownership & next call' : 'Save call & next call'}
                   </Button>
