@@ -182,6 +182,30 @@ export interface NextAction {
   note?: string;
 }
 
+export type TouchChannel = 'call' | 'whatsapp';
+
+export interface LeadTouch {
+  id: string;
+  at: string;
+  by: string;
+  byName: string;
+  channel: TouchChannel;
+  outcome: CallOutcome;
+  notes: string;
+  action: NextActionType;
+  dueAt: string;
+  actionNote?: string;
+  tags: string[];
+}
+
+export interface LeadNote {
+  id: string;
+  at: string;
+  by: string;
+  byName: string;
+  text: string;
+}
+
 
 // Bookings
 export type AgreementStatus = 'pending' | 'signed' | 'moved-in';
