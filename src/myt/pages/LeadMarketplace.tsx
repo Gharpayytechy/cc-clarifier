@@ -24,9 +24,13 @@ interface Enriched {
 }
 
 export default function LeadMarketplace() {
-  const { leads, setLeads, currentRole, currentMemberId, globalZoneFilter } = useAppState();
+  const { leads, setLeads, currentMemberId, setCurrentMemberId, globalZoneFilter } = useAppState();
   const navigate = useNavigate();
   const [claiming, setClaiming] = useState<Lead | null>(null);
+
+  const owners = useMemo(() => teamMembers.filter(m => m.role === 'tcm' || m.role === 'flow-ops'), []);
+  const actorId = currentMemberId ?? owners[0]?.id ?? 'm1';
+  const actorName = teamMembers.find(m => m.id === actorId)?.name ?? 'Team';
 
   const enriched: Enriched[] = useMemo(() => {
     return leads
@@ -43,20 +47,17 @@ export default function LeadMarketplace() {
       .sort((a, b) => b.conversionProb - a.conversionProb);
   }, [leads, globalZoneFilter]);
 
-  const myIncomplete = leads.filter(l => isIncomplete(l) && (!currentMemberId || l.claimedBy === currentMemberId));
+  const myIncomplete = leads.filter(l => isIncomplete(l) && l.claimedBy === actorId);
 
   const claimLead = (lead: Lead) => {
-    if (currentRole !== 'tcm' || !currentMemberId) {
-      toast.error('Pick yourself in the header to claim leads');
-      return;
-    }
     const now = new Date().toISOString();
     setLeads(prev => prev.map(l => l.id === lead.id
-      ? { ...l, claimedBy: currentMemberId, claimedAt: now, status: 'qualified' as const,
+      ? { ...l, claimedBy: actorId, claimedAt: now, status: 'qualified' as const,
           ownershipExpiresAt: new Date(Date.now() + OWNERSHIP_DAYS * 86_400_000).toISOString() }
       : l));
     setClaiming(lead);
   };
+
 
   const releaseLead = (leadId: string) => {
     setLeads(prev => prev.map(l => l.id === leadId
