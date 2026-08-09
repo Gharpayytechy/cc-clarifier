@@ -41,6 +41,8 @@ import { SessionTimerBadge } from "@/components/productivity/SessionTimerBadge";
 import { useIdentityStore } from "@/lib/lead-identity/store";
 import { useSettings } from "@/myt/lib/settings-context";
 import { LeadCallLadder } from "./leads/LeadCallLadder";
+import { LogActivityDialog } from "./leads/LogActivityDialog";
+import { LeadFollowUpsPanel } from "./leads/LeadFollowUpsPanel";
 
 const TAG_OPTIONS = ["price-issue", "location-mismatch", "parents-involved", "urgent", "budget-low"];
 const OBJECTIONS = ["Budget", "Location", "Amenities", "Timing", "Parents", "Comparing options", "Other"];
@@ -97,6 +99,7 @@ export function LeadControlPanel() {
   const [note, setNote] = useState("");
   const [customMsg, setCustomMsg] = useState("");
   const [selectedCall, setSelectedCall] = useState(1);
+  const [logOpen, setLogOpen] = useState(false);
   const drawerScrollRef = useRef<HTMLDivElement>(null);
   const actionEngineRef = useRef<HTMLDivElement>(null);
 
