@@ -762,6 +762,12 @@ export function LeadControlPanel() {
             </TabsContent>
           </Tabs>
         </div>
+        <LogActivityDialog
+          lead={lead}
+          open={logOpen}
+          onOpenChange={setLogOpen}
+          onLogged={() => setTab("followups")}
+        />
       </SheetContent>
     </Sheet>
   );
