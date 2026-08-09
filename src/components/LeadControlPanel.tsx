@@ -205,6 +205,23 @@ export function LeadControlPanel() {
             <Meta icon={Wallet} label="Budget" value={`₹${(lead.budget / 1000).toFixed(0)}k`} />
             <Meta icon={MapPin} label="Area" value={lead.preferredArea} />
           </div>
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <Button size="sm" className="h-8 flex-1 min-w-[160px]" onClick={() => setLogOpen(true)}>
+              <ActivityIcon className="mr-1.5 h-3.5 w-3.5" /> + Log activity
+            </Button>
+            <Button size="sm" variant="outline" className="h-8" asChild>
+              <a href={`tel:${lead.phone}`}><Phone className="mr-1.5 h-3.5 w-3.5" /> Call</a>
+            </Button>
+            <Button size="sm" variant="outline" className="h-8" asChild>
+              <a href={`https://wa.me/${lead.phone.replace(/\D/g, "")}`} target="_blank" rel="noreferrer">
+                <MessageSquare className="mr-1.5 h-3.5 w-3.5" /> WhatsApp
+              </a>
+            </Button>
+            <Button size="sm" variant="ghost" className="h-8" onClick={() => setTab("followups")}>
+              <BellRing className="mr-1.5 h-3.5 w-3.5" />
+              {openFollowUps.length ? `${openFollowUps.length} follow-up${openFollowUps.length === 1 ? "" : "s"}` : "No follow-up"}
+            </Button>
+          </div>
         </SheetHeader>
         <LeadCallLadder
           lead={lead}
@@ -237,10 +254,13 @@ export function LeadControlPanel() {
             )}
           </div>
           <Tabs value={tab} onValueChange={setTab} className="px-5 py-4">
-            <TabsList className="grid h-auto w-full grid-cols-4 gap-1 sm:grid-cols-7">
+            <TabsList className="grid h-auto w-full grid-cols-4 gap-1 sm:grid-cols-8">
               <TabsTrigger value="best-fit" className="text-xs">Best Fit</TabsTrigger>
               <TabsTrigger value="dossier" className="text-xs">Dossier</TabsTrigger>
               <TabsTrigger value="control" className="text-xs">Control</TabsTrigger>
+              <TabsTrigger value="followups" className="text-xs">
+                Follow-ups {overdueFollowUps.length > 0 && <span className="ml-1 h-1.5 w-1.5 rounded-full bg-destructive" />}
+              </TabsTrigger>
               <TabsTrigger value="tour" className="text-xs">Tour</TabsTrigger>
               <TabsTrigger value="post" className="text-xs">
                 Post {pendingPostTour && <span className="ml-1 h-1.5 w-1.5 rounded-full bg-destructive" />}
@@ -248,6 +268,13 @@ export function LeadControlPanel() {
               <TabsTrigger value="handoff" className="text-xs">Handoff</TabsTrigger>
               <TabsTrigger value="log" className="text-xs">Log</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="followups" className="space-y-4 pt-4">
+              <Section title="Follow-up engine">
+                <LeadFollowUpsPanel lead={lead} onLogActivity={() => setLogOpen(true)} />
+              </Section>
+            </TabsContent>
+
 
             <TabsContent value="dossier" className="space-y-4 pt-4">
               <LeadDossierPanel lead={lead} />
