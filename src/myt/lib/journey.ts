@@ -17,24 +17,24 @@ export interface JourneyStep {
 }
 
 export const JOURNEY: JourneyStep[] = [
-  { id: 'S1', code: 'S1', label: 'In BLR', why: 'Is the person in / coming to Bangalore at all?' },
-  { id: 'PDF', code: 'PDF', label: 'Options sent', sub: true, why: 'Property PDF / options shared on WhatsApp.' },
-  { id: 'S2', code: 'S2', label: 'Where', why: 'Which area they want to stay in.' },
-  { id: 'AMEN', code: 'AMEN', label: 'Amenities', sub: true, why: 'Food, sharing and must-have amenities agreed.' },
-  { id: 'S3', code: 'S3', label: 'Exact date', why: 'A confirmed move-in date, not a guess.' },
-  { id: 'LOC', code: 'LOC', label: 'Location', sub: true, why: 'Office / college location captured.' },
-  { id: 'S4', code: 'S4', label: 'Loc feasible', why: 'Commute from our PG actually works for them.' },
-  { id: 'S5', code: 'S5', label: 'V-tour / physical', why: 'A tour is booked — virtual or physical.' },
-  { id: 'S6', code: 'S6', label: 'Tour done', why: 'They have seen the property.' },
-  { id: 'S7', code: 'S7', label: 'Quotation', why: 'Price, deposit and terms sent in writing.' },
-  { id: 'S8', code: 'S8', label: 'Booking done', why: 'Token collected — lead is closed won.' },
+  { id: 'S1', code: 'S1 IN BLR', label: 'IN BLR', why: 'Is the person in / coming to Bangalore at all?' },
+  { id: 'PDF', code: 'S PDF2', label: 'PDF SENT', sub: true, why: 'Property PDF / options shared on WhatsApp.' },
+  { id: 'S2', code: 'S2 WHERE', label: 'WHERE', why: 'Which area they want to stay in.' },
+  { id: 'AMEN', code: 'S AMEN', label: 'AMENITIES', sub: true, why: 'Food, sharing and must-have amenities agreed.' },
+  { id: 'S3', code: 'S3 EXACTDATE', label: 'EXACT DATE', why: 'A confirmed move-in date, not a guess.' },
+  { id: 'LOC', code: 'S LOCATION', label: 'LOCATION', sub: true, why: 'Office / college location captured.' },
+  { id: 'S4', code: 'S4 LOC FEASIBLE', label: 'LOC FEASIBLE', why: 'Commute from our PG actually works for them.' },
+  { id: 'S5', code: 'S5 VTOUR OR PHYSICAL', label: 'VTOUR OR PHYSICAL', why: 'A tour is booked — virtual or physical.' },
+  { id: 'S6', code: 'S6 TOUR DONE', label: 'TOUR DONE', why: 'They have seen the property.' },
+  { id: 'S7', code: 'S7 QUOTATION', label: 'QUOTATION', why: 'Price, deposit and terms sent in writing.' },
+  { id: 'S8', code: 'S8 BOOKING DONE', label: 'BOOKING DONE', why: 'Token collected — lead is closed won.' },
 ];
 
 export type BlockerId = 'NR' | 'NU' | 'NO';
 export const BLOCKERS: Record<BlockerId, { label: string; why: string }> = {
-  NR: { label: 'No respond', why: 'Repeated calls / messages with no reply.' },
-  NU: { label: 'No update after tour', why: 'Tour happened but no decision since.' },
-  NO: { label: 'Objections', why: 'An open objection is blocking the close.' },
+  NR: { label: 'NO RESPOND', why: 'Repeated calls / messages with no reply.' },
+  NU: { label: 'NO UPDATE AFTER TOUR', why: 'Tour happened but no decision since.' },
+  NO: { label: 'OBJECTIONS', why: 'An open objection is blocking the close.' },
 };
 
 const has = (v?: string) => !!v && v.trim().length > 0;
