@@ -280,7 +280,10 @@ export function LeadControlPanel({ subject, trigger, defaultTab = "overview", on
               </Select>
             )}
           </div>
+
+          {lead && <JourneyTrack lead={lead} className="pt-1.5" />}
         </SheetHeader>
+
 
         {/* Tabs */}
         <Tabs defaultValue={stale ? "post-tour" : defaultTab} className="flex min-h-0 flex-1 flex-col p-3">
