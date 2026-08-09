@@ -43,6 +43,7 @@ function LeadsPage() {
   const [, mounted] = useMountedNow();
   const [q, setQ] = useState("");
   const [stage, setStage] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<"confidence" | "moveIn" | "updated">("confidence");
   const [view, setView] = useState<LeadViewMode>("table");
 
   const filtered = useMemo(() => {
