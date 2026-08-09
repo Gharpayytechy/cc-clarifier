@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSessionTimer } from '@/lib/productivity/use-session-timer';
+import { JourneyTrack } from '@/myt/components/JourneyTrack';
 import { SessionTimerBadge } from '@/components/productivity/SessionTimerBadge';
 import { useAppState } from '@/myt/lib/app-context';
 import { teamMembers } from '@/myt/lib/mock-data';
@@ -210,7 +211,9 @@ export function ClaimCallSheet({ lead, open, mode = 'claim', channel = 'call', i
               {readiness.pct}% {readiness.closeable ? 'closeable' : 'effort'}
             </span>
           </div>
+          <JourneyTrack lead={{ ...lead, discovery: { ...(lead.discovery ?? {}), ...discovery } }} />
           <Trail step={step} missed={missed} />
+
         </div>
 
          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-2.5">

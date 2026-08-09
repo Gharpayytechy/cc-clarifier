@@ -20,6 +20,7 @@ import { intentBg, confirmationLabel } from "@/myt/lib/confidence";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { format, formatDistanceToNow } from "date-fns";
+import { JourneyTrack } from "@/myt/components/JourneyTrack";
 import { CallLadder } from "@/myt/components/CallLadder";
 import { currentStage, play } from "@/myt/lib/call-plan";
 import { teamMembers } from "@/myt/lib/mock-data";
@@ -280,7 +281,10 @@ export function LeadControlPanel({ subject, trigger, defaultTab = "overview", on
               </Select>
             )}
           </div>
+
+          {lead && <JourneyTrack lead={lead} className="pt-1.5" />}
         </SheetHeader>
+
 
         {/* Tabs */}
         <Tabs defaultValue={stale ? "post-tour" : defaultTab} className="flex min-h-0 flex-1 flex-col p-3">
