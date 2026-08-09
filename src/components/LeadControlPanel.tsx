@@ -64,7 +64,7 @@ function callNumberForStage(stage: LeadStage) {
 
 export function LeadControlPanel() {
   const {
-    selectedLeadId, selectLead, leads, properties, tours, activities, tcms,
+    selectedLeadId, selectLead, leads, properties, tours, activities, tcms, followUps,
     setLeadStage, setLeadIntent, setLeadFollowUp, addLeadTag, removeLeadTag,
     scheduleTour, cancelTour, rescheduleTour, completeTour, setDecision, updatePostTour,
     addNote, logCall, sendMessage, autoAssignLead, startSequence, closeDeal,
@@ -86,6 +86,14 @@ export function LeadControlPanel() {
   const leadActivities = useMemo(
     () => (lead ? activities.filter((a) => a.leadId === lead.id).slice(0, 30) : []),
     [activities, lead],
+  );
+  const openFollowUps = useMemo(
+    () => (lead ? followUps.filter((f) => f.leadId === lead.id && !f.done) : []),
+    [followUps, lead],
+  );
+  const overdueFollowUps = useMemo(
+    () => openFollowUps.filter((f) => +new Date(f.dueAt) < Date.now()),
+    [openFollowUps],
   );
 
   // Tour scheduling form state
