@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSessionTimer } from '@/lib/productivity/use-session-timer';
+import { JourneyTrack } from '@/myt/components/JourneyTrack';
 import { SessionTimerBadge } from '@/components/productivity/SessionTimerBadge';
 import { useAppState } from '@/myt/lib/app-context';
 import { teamMembers } from '@/myt/lib/mock-data';
