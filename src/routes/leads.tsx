@@ -17,6 +17,9 @@ import { useMemo, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import type { LeadStage } from "@/lib/types";
 import { useMountedNow } from "@/hooks/use-now";
+import {
+  LeadStackQueue, LeadFocusStack, LeadStageBoard, LeadMoveInBuckets, type LeadViewMode,
+} from "@/components/leads/LeadViews";
 
 export const Route = createFileRoute("/leads")({
   head: () => ({
@@ -41,6 +44,7 @@ function LeadsPage() {
   const [q, setQ] = useState("");
   const [stage, setStage] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"confidence" | "moveIn" | "updated">("confidence");
+  const [view, setView] = useState<LeadViewMode>("table");
 
   const filtered = useMemo(() => {
     const list = leads.filter((l) => {
@@ -166,6 +170,30 @@ function LeadsPage() {
           </div>
         </div>
 
+        <div className="flex flex-wrap gap-1.5 rounded-lg border border-border bg-muted/30 p-1.5">
+          {([
+            { key: "table", label: "Table" },
+            { key: "stack", label: "Stack queue" },
+            { key: "focus", label: "Focus stack" },
+            { key: "board", label: "Stage board" },
+            { key: "buckets", label: "Move-in buckets" },
+          ] as { key: LeadViewMode; label: string }[]).map((v) => (
+            <button
+              key={v.key}
+              onClick={() => setView(v.key)}
+              className={
+                "rounded-md px-3 py-1.5 text-xs font-semibold transition-colors " +
+                (view === v.key
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-muted")
+              }
+            >
+              {v.label}
+            </button>
+          ))}
+        </div>
+
+        {view === "table" && (
         <div className="rounded-xl border border-border bg-card overflow-hidden">
           <div className="grid grid-cols-12 px-4 py-2 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold border-b border-border bg-muted/40">
             <div className="col-span-3">Lead</div>
@@ -256,6 +284,12 @@ function LeadsPage() {
             )}
           </div>
         </div>
+        )}
+
+        {view === "stack" && <LeadStackQueue leads={filtered} onOpen={selectLead} />}
+        {view === "focus" && <LeadFocusStack leads={filtered} onOpen={selectLead} />}
+        {view === "board" && <LeadStageBoard leads={filtered} onOpen={selectLead} />}
+        {view === "buckets" && <LeadMoveInBuckets leads={filtered} onOpen={selectLead} />}
       </div>
     </AppShell>
   );
