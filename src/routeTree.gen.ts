@@ -39,6 +39,7 @@ import { Route as ControlTowerTeamRouteImport } from './routes/control-tower-tea
 import { Route as CoachRouteImport } from './routes/coach'
 import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as ActivityRouteImport } from './routes/activity'
+import { Route as AcademyRouteImport } from './routes/academy'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TowerIndexRouteImport } from './routes/tower.index'
 import { Route as SupplyHubIndexRouteImport } from './routes/supply-hub/index'
@@ -245,6 +246,11 @@ const CalendarRoute = CalendarRouteImport.update({
 const ActivityRoute = ActivityRouteImport.update({
   id: '/activity',
   path: '/activity',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AcademyRoute = AcademyRouteImport.update({
+  id: '/academy',
+  path: '/academy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -535,6 +541,7 @@ const MytTourIdReportRoute = MytTourIdReportRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/academy': typeof AcademyRoute
   '/activity': typeof ActivityRoute
   '/calendar': typeof CalendarRoute
   '/coach': typeof CoachRoute
@@ -624,6 +631,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/academy': typeof AcademyRoute
   '/activity': typeof ActivityRoute
   '/calendar': typeof CalendarRoute
   '/coach': typeof CoachRoute
@@ -713,6 +721,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/academy': typeof AcademyRoute
   '/activity': typeof ActivityRoute
   '/calendar': typeof CalendarRoute
   '/coach': typeof CoachRoute
@@ -804,6 +813,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/academy'
     | '/activity'
     | '/calendar'
     | '/coach'
@@ -893,6 +903,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/academy'
     | '/activity'
     | '/calendar'
     | '/coach'
@@ -981,6 +992,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/academy'
     | '/activity'
     | '/calendar'
     | '/coach'
@@ -1071,6 +1083,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AcademyRoute: typeof AcademyRoute
   ActivityRoute: typeof ActivityRoute
   CalendarRoute: typeof CalendarRoute
   CoachRoute: typeof CoachRoute
@@ -1351,6 +1364,13 @@ declare module '@tanstack/react-router' {
       path: '/activity'
       fullPath: '/activity'
       preLoaderRoute: typeof ActivityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/academy': {
+      id: '/academy'
+      path: '/academy'
+      fullPath: '/academy'
+      preLoaderRoute: typeof AcademyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -1828,6 +1848,7 @@ const MytTourIdRouteWithChildren = MytTourIdRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AcademyRoute: AcademyRoute,
   ActivityRoute: ActivityRoute,
   CalendarRoute: CalendarRoute,
   CoachRoute: CoachRoute,
