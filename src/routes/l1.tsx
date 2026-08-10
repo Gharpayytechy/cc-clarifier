@@ -31,12 +31,24 @@ function L1Page() {
           </p>
         </header>
 
-        <Tabs defaultValue="board">
-          <TabsList>
+        <Tabs defaultValue="daily">
+          <TabsList className="flex-wrap">
+            <TabsTrigger value="daily">Daily 100</TabsTrigger>
+            <TabsTrigger value="manual">Manual review (no AI)</TabsTrigger>
             <TabsTrigger value="board">Zone board</TabsTrigger>
-            <TabsTrigger value="chat">Review a chat</TabsTrigger>
-            <TabsTrigger value="call">Review a call</TabsTrigger>
+            <TabsTrigger value="chat">Auto review — chat</TabsTrigger>
+            <TabsTrigger value="call">Auto review — call</TabsTrigger>
           </TabsList>
+          <TabsContent value="daily" className="mt-4">
+            <ClientOnly fallback={<p className="py-10 text-center text-sm text-muted-foreground">Loading today's marks…</p>}>
+              <L1DailyBoard />
+            </ClientOnly>
+          </TabsContent>
+          <TabsContent value="manual" className="mt-4">
+            <ClientOnly fallback={<p className="py-10 text-center text-sm text-muted-foreground">Loading manual review…</p>}>
+              <L1ManualReview kind="chat" />
+            </ClientOnly>
+          </TabsContent>
           <TabsContent value="board" className="mt-4">
             <ClientOnly fallback={<p className="py-10 text-center text-sm text-muted-foreground">Loading reviews…</p>}>
               <L1ZoneBoard />
@@ -45,6 +57,7 @@ function L1Page() {
           <TabsContent value="chat" className="mt-4"><L1Composer kind="chat" /></TabsContent>
           <TabsContent value="call" className="mt-4"><L1Composer kind="call" /></TabsContent>
         </Tabs>
+
       </div>
     </AppShell>
   );
