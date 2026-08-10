@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { allMergedProperties360 } from "../registry";
 import {
-  draftBlockers, draftCompletenessPct, pidForDraft, readinessFor,
+  draftBlockers, draftCompletenessPct, draftStepProgress, pidForDraft, readinessFor,
 } from "./build";
 import { publishDraft, saveDraft, submitDraft } from "./store";
 import { STEPS, type OnboardingDraft, type StepId } from "./types";
@@ -30,6 +30,11 @@ export function OnboardingWizard({ draft }: { draft: OnboardingDraft }) {
   const step = steps[index];
   const completeness = draftCompletenessPct(d);
   const blockers = draftBlockers(d);
+  const progress = useMemo(() => draftStepProgress(d), [d]);
+  const stepProg = progress[step?.id ?? "identity"];
+  const nextGap = steps
+    .map((s) => ({ s, p: progress[s.id] }))
+    .find(({ s, p }) => p && p.pct < 100 && s.id !== "review");
 
   const patch: Patch = (partial) => {
     setD((prev) => {
@@ -87,11 +92,26 @@ export function OnboardingWizard({ draft }: { draft: OnboardingDraft }) {
             <Progress value={completeness} className="mt-1 h-2" />
           </div>
         </div>
+        {nextGap && (
+          <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-dashed border-border bg-muted/40 px-3 py-2 text-xs">
+            <span className="font-semibold">Fastest way to 100%:</span>
+            <span className="text-muted-foreground">
+              {nextGap.s.label} — {nextGap.p.missing.slice(0, 3).join(", ")}
+              {nextGap.p.missing.length > 3 ? ` +${nextGap.p.missing.length - 3} more` : ""}
+            </span>
+            <Button type="button" size="sm" variant="secondary" className="h-6 px-2 text-[11px]"
+              onClick={() => setStepId(nextGap.s.id)}>
+              Jump there
+            </Button>
+          </div>
+        )}
       </header>
 
       <div className="grid gap-4 lg:grid-cols-[260px_1fr]">
         <nav className="space-y-1 lg:sticky lg:top-4 lg:self-start">
-          {steps.map((s, i) => (
+          {steps.map((s, i) => {
+            const p = progress[s.id];
+            return (
             <button
               key={s.id}
               type="button"
@@ -103,13 +123,23 @@ export function OnboardingWizard({ draft }: { draft: OnboardingDraft }) {
             >
               <span className={cn(
                 "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] tabular-nums",
-                i < index ? "border-emerald-500 text-emerald-600" : "border-current",
+                p && p.pct === 100 ? "border-emerald-500 text-emerald-600" : "border-current",
               )}>
-                {i < index ? <Check className="h-3 w-3" /> : i + 1}
+                {p && p.pct === 100 ? <Check className="h-3 w-3" /> : i + 1}
               </span>
               <span className="truncate">{s.label}</span>
+              {p && s.id !== "review" && (
+                <span className={cn(
+                  "ml-auto shrink-0 text-[10px] tabular-nums",
+                  s.id === stepId ? "text-primary-foreground/80"
+                    : p.blocking ? "text-rose-500" : p.pct === 100 ? "text-emerald-600" : "text-muted-foreground",
+                )}>
+                  {p.blocking ? "required" : `${p.pct}%`}
+                </span>
+              )}
             </button>
-          ))}
+            );
+          })}
           <div className="rounded-lg border border-dashed border-border p-3 text-[11px] text-muted-foreground">
             {d.mode === "owner"
               ? "You are filling the owner form. Commercial and internal-only sections are handled by the Gharpayy team."
@@ -118,6 +148,28 @@ export function OnboardingWizard({ draft }: { draft: OnboardingDraft }) {
         </nav>
 
         <section className="rounded-xl border border-border bg-background p-4 sm:p-5">
+          {step && (
+            <div className="mb-4 flex flex-wrap items-start justify-between gap-3 border-b border-border pb-3">
+              <div>
+                <h2 className="text-base font-semibold">{step.label}</h2>
+                <p className="text-xs text-muted-foreground">{step.hint}</p>
+              </div>
+              {stepProg && step.id !== "review" && (
+                <div className="min-w-[160px]">
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                    <span>This section</span><span className="tabular-nums">{stepProg.pct}%</span>
+                  </div>
+                  <Progress value={stepProg.pct} className="mt-1 h-1.5" />
+                  {stepProg.missing.length > 0 && (
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      Still needed: {stepProg.missing.slice(0, 4).join(", ")}
+                      {stepProg.missing.length > 4 ? ` +${stepProg.missing.length - 4}` : ""}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
           {step.id === "identity" && <IdentityStep d={d} patch={patch} />}
           {step.id === "location" && <LocationStep d={d} patch={patch} />}
           {step.id === "building" && <BuildingStep d={d} patch={patch} />}

@@ -190,6 +190,96 @@ export function draftCompletenessPct(d: OnboardingDraft): number {
   return Math.round(rows.reduce((a, c) => a + c.pct, 0) / rows.length);
 }
 
+/* ------------------------------------------------------------------ */
+/* Per-step progress — powers the wizard sidebar                       */
+/* ------------------------------------------------------------------ */
+
+export interface StepProgress {
+  pct: number;
+  missing: string[];
+  /** Blocks publishing until resolved. */
+  blocking: boolean;
+}
+
+function score(checks: { ok: boolean; label: string; required?: boolean }[]): StepProgress {
+  const missing = checks.filter((c) => !c.ok).map((c) => c.label);
+  return {
+    pct: pct(checks.filter((c) => c.ok).length, checks.length),
+    missing,
+    blocking: checks.some((c) => !c.ok && c.required),
+  };
+}
+
+export function draftStepProgress(d: OnboardingDraft): Record<string, StepProgress> {
+  const rooms = draftRooms(d);
+  const id = d.identity;
+  const loc = d.location;
+
+  return {
+    identity: score([
+      { ok: filled(id.displayName), label: "Display name", required: true },
+      { ok: filled(id.actualName), label: "Actual / legal name" },
+      { ok: filled(id.group), label: "Group" },
+      { ok: filled(id.gender), label: "Gender policy" },
+      { ok: filled(id.tier), label: "Tier" },
+      { ok: filled(id.propertyType), label: "Property type" },
+    ]),
+    location: score([
+      { ok: filled(loc.zone), label: "Zone", required: true },
+      { ok: filled(loc.subArea), label: "Sub-area", required: true },
+      { ok: filled(loc.address), label: "Full address", required: true },
+      { ok: filled(loc.microLocation), label: "Micro-location" },
+      { ok: filled(loc.mapsLink), label: "Maps link" },
+      { ok: filled(loc.lat) && filled(loc.lng), label: "Lat / long pin" },
+      { ok: loc.landmarks.length >= 3, label: "At least 3 landmarks" },
+      { ok: loc.landmarks.some((l) => /office|it park/i.test(l.category)), label: "One office / IT park mapped" },
+      { ok: loc.landmarks.some((l) => /college|university/i.test(l.category)), label: "One college mapped" },
+    ]),
+    building: score([
+      { ok: d.floors.length > 0, label: "At least one floor", required: true },
+      { ok: d.floors.every((f) => filled(f.name)), label: "Every floor named" },
+      { ok: d.floors.some((f) => f.usp.length > 0), label: "Floor USPs" },
+      { ok: d.floors.some((f) => f.hasMap), label: "A floor map" },
+    ]),
+    rooms: score([
+      { ok: rooms.length > 0, label: "At least one room", required: true },
+      { ok: rooms.every((r) => r.beds.length > 0), label: "Every room has beds", required: true },
+      { ok: rooms.every((r) => r.currentRent > 0), label: "Every room priced" },
+      { ok: rooms.every((r) => filled(r.bestFor)), label: "Best-for line per room" },
+      { ok: rooms.some((r) => r.why.length > 0), label: "Room USPs" },
+      { ok: rooms.some((r) => r.whyNot.length > 0), label: "Honest room trade-offs" },
+    ]),
+    amenities: score([
+      { ok: d.amenities.filter((a) => filled(a.items)).length >= 3, label: "At least 3 amenity groups" },
+      { ok: filled(d.food.type), label: "Food type" },
+      { ok: filled(d.food.meals), label: "Meal timings" },
+    ]),
+    rules: score(d.rules.map((r) => ({ ok: filled(r.value), label: r.label }))),
+    commercials: score(d.commercials.map((c) => ({ ok: filled(c.value), label: c.label }))),
+    people: score([
+      { ok: d.people.some((p) => filled(p.name) && filled(p.phone)), label: "One reachable contact", required: true },
+      { ok: d.people.filter((p) => filled(p.phone)).length >= 2, label: "A backup contact" },
+      { ok: d.people.some((p) => /owner/i.test(p.role) && filled(p.phone)), label: "Owner escalation number" },
+    ]),
+    media: score([
+      { ok: d.media.reduce((a, m) => a + m.count, 0) >= Math.max(6, rooms.length * 3), label: "3 photos per room" },
+      { ok: d.media.some((m) => m.hasVideo), label: "At least one video" },
+      { ok: d.documents.filter((x) => x.provided).length >= 3, label: "3 documents attached" },
+    ]),
+    fit: score([
+      { ok: d.personas.filter((p) => filled(p.why)).length >= 3, label: "3 personas explained" },
+      { ok: d.why.length > 0, label: "Why this property" },
+      { ok: d.whyNot.length > 0, label: "Why not (honesty)" },
+      { ok: d.notFor.length > 0, label: "Who it is not for" },
+    ]),
+    faq: score([
+      { ok: d.faq.filter((f) => filled(f.a)).length >= 4, label: "4 FAQs answered" },
+      { ok: d.internalNotes.length > 0, label: "Internal note for the team" },
+    ]),
+    review: score([{ ok: draftBlockers(d).length === 0, label: "All publish blockers cleared", required: true }]),
+  };
+}
+
 export function readinessFor(completenessPct: number): Readiness {
   if (completenessPct >= 92) return "P4";
   if (completenessPct >= 82) return "P3";
