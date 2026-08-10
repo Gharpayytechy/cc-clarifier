@@ -25,6 +25,7 @@ import { Route as MonitoringRouteImport } from './routes/monitoring'
 import { Route as ManagerRouteImport } from './routes/manager'
 import { Route as LeadsRouteImport } from './routes/leads'
 import { Route as LeaderboardRouteImport } from './routes/leaderboard'
+import { Route as L1RouteImport } from './routes/l1'
 import { Route as InventoryRouteImport } from './routes/inventory'
 import { Route as InboxRouteImport } from './routes/inbox'
 import { Route as HelpRouteImport } from './routes/help'
@@ -173,6 +174,11 @@ const LeadsRoute = LeadsRouteImport.update({
 const LeaderboardRoute = LeaderboardRouteImport.update({
   id: '/leaderboard',
   path: '/leaderboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const L1Route = L1RouteImport.update({
+  id: '/l1',
+  path: '/l1',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InventoryRoute = InventoryRouteImport.update({
@@ -535,6 +541,7 @@ export interface FileRoutesByFullPath {
   '/help': typeof HelpRoute
   '/inbox': typeof InboxRoute
   '/inventory': typeof InventoryRoute
+  '/l1': typeof L1Route
   '/leaderboard': typeof LeaderboardRoute
   '/leads': typeof LeadsRouteWithChildren
   '/manager': typeof ManagerRoute
@@ -622,6 +629,7 @@ export interface FileRoutesByTo {
   '/help': typeof HelpRoute
   '/inbox': typeof InboxRoute
   '/inventory': typeof InventoryRoute
+  '/l1': typeof L1Route
   '/leaderboard': typeof LeaderboardRoute
   '/leads': typeof LeadsRouteWithChildren
   '/manager': typeof ManagerRoute
@@ -709,6 +717,7 @@ export interface FileRoutesById {
   '/help': typeof HelpRoute
   '/inbox': typeof InboxRoute
   '/inventory': typeof InventoryRoute
+  '/l1': typeof L1Route
   '/leaderboard': typeof LeaderboardRoute
   '/leads': typeof LeadsRouteWithChildren
   '/manager': typeof ManagerRoute
@@ -798,6 +807,7 @@ export interface FileRouteTypes {
     | '/help'
     | '/inbox'
     | '/inventory'
+    | '/l1'
     | '/leaderboard'
     | '/leads'
     | '/manager'
@@ -885,6 +895,7 @@ export interface FileRouteTypes {
     | '/help'
     | '/inbox'
     | '/inventory'
+    | '/l1'
     | '/leaderboard'
     | '/leads'
     | '/manager'
@@ -971,6 +982,7 @@ export interface FileRouteTypes {
     | '/help'
     | '/inbox'
     | '/inventory'
+    | '/l1'
     | '/leaderboard'
     | '/leads'
     | '/manager'
@@ -1059,6 +1071,7 @@ export interface RootRouteChildren {
   HelpRoute: typeof HelpRoute
   InboxRoute: typeof InboxRoute
   InventoryRoute: typeof InventoryRoute
+  L1Route: typeof L1Route
   LeaderboardRoute: typeof LeaderboardRoute
   LeadsRoute: typeof LeadsRouteWithChildren
   ManagerRoute: typeof ManagerRoute
@@ -1227,6 +1240,13 @@ declare module '@tanstack/react-router' {
       path: '/leaderboard'
       fullPath: '/leaderboard'
       preLoaderRoute: typeof LeaderboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/l1': {
+      id: '/l1'
+      path: '/l1'
+      fullPath: '/l1'
+      preLoaderRoute: typeof L1RouteImport
       parentRoute: typeof rootRouteImport
     }
     '/inventory': {
@@ -1800,6 +1820,7 @@ const rootRouteChildren: RootRouteChildren = {
   HelpRoute: HelpRoute,
   InboxRoute: InboxRoute,
   InventoryRoute: InventoryRoute,
+  L1Route: L1Route,
   LeaderboardRoute: LeaderboardRoute,
   LeadsRoute: LeadsRouteWithChildren,
   ManagerRoute: ManagerRoute,
@@ -1858,12 +1879,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
