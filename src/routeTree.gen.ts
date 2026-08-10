@@ -25,6 +25,7 @@ import { Route as MonitoringRouteImport } from './routes/monitoring'
 import { Route as ManagerRouteImport } from './routes/manager'
 import { Route as LeadsRouteImport } from './routes/leads'
 import { Route as LeaderboardRouteImport } from './routes/leaderboard'
+import { Route as LabelsRouteImport } from './routes/labels'
 import { Route as L1RouteImport } from './routes/l1'
 import { Route as InventoryRouteImport } from './routes/inventory'
 import { Route as InboxRouteImport } from './routes/inbox'
@@ -38,6 +39,7 @@ import { Route as ControlTowerTeamRouteImport } from './routes/control-tower-tea
 import { Route as CoachRouteImport } from './routes/coach'
 import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as ActivityRouteImport } from './routes/activity'
+import { Route as AcademyRouteImport } from './routes/academy'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TowerIndexRouteImport } from './routes/tower.index'
 import { Route as SupplyHubIndexRouteImport } from './routes/supply-hub/index'
@@ -176,6 +178,11 @@ const LeaderboardRoute = LeaderboardRouteImport.update({
   path: '/leaderboard',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LabelsRoute = LabelsRouteImport.update({
+  id: '/labels',
+  path: '/labels',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const L1Route = L1RouteImport.update({
   id: '/l1',
   path: '/l1',
@@ -239,6 +246,11 @@ const CalendarRoute = CalendarRouteImport.update({
 const ActivityRoute = ActivityRouteImport.update({
   id: '/activity',
   path: '/activity',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AcademyRoute = AcademyRouteImport.update({
+  id: '/academy',
+  path: '/academy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -529,6 +541,7 @@ const MytTourIdReportRoute = MytTourIdReportRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/academy': typeof AcademyRoute
   '/activity': typeof ActivityRoute
   '/calendar': typeof CalendarRoute
   '/coach': typeof CoachRoute
@@ -542,6 +555,7 @@ export interface FileRoutesByFullPath {
   '/inbox': typeof InboxRoute
   '/inventory': typeof InventoryRoute
   '/l1': typeof L1Route
+  '/labels': typeof LabelsRoute
   '/leaderboard': typeof LeaderboardRoute
   '/leads': typeof LeadsRouteWithChildren
   '/manager': typeof ManagerRoute
@@ -617,6 +631,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/academy': typeof AcademyRoute
   '/activity': typeof ActivityRoute
   '/calendar': typeof CalendarRoute
   '/coach': typeof CoachRoute
@@ -630,6 +645,7 @@ export interface FileRoutesByTo {
   '/inbox': typeof InboxRoute
   '/inventory': typeof InventoryRoute
   '/l1': typeof L1Route
+  '/labels': typeof LabelsRoute
   '/leaderboard': typeof LeaderboardRoute
   '/leads': typeof LeadsRouteWithChildren
   '/manager': typeof ManagerRoute
@@ -705,6 +721,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/academy': typeof AcademyRoute
   '/activity': typeof ActivityRoute
   '/calendar': typeof CalendarRoute
   '/coach': typeof CoachRoute
@@ -718,6 +735,7 @@ export interface FileRoutesById {
   '/inbox': typeof InboxRoute
   '/inventory': typeof InventoryRoute
   '/l1': typeof L1Route
+  '/labels': typeof LabelsRoute
   '/leaderboard': typeof LeaderboardRoute
   '/leads': typeof LeadsRouteWithChildren
   '/manager': typeof ManagerRoute
@@ -795,6 +813,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/academy'
     | '/activity'
     | '/calendar'
     | '/coach'
@@ -808,6 +827,7 @@ export interface FileRouteTypes {
     | '/inbox'
     | '/inventory'
     | '/l1'
+    | '/labels'
     | '/leaderboard'
     | '/leads'
     | '/manager'
@@ -883,6 +903,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/academy'
     | '/activity'
     | '/calendar'
     | '/coach'
@@ -896,6 +917,7 @@ export interface FileRouteTypes {
     | '/inbox'
     | '/inventory'
     | '/l1'
+    | '/labels'
     | '/leaderboard'
     | '/leads'
     | '/manager'
@@ -970,6 +992,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/academy'
     | '/activity'
     | '/calendar'
     | '/coach'
@@ -983,6 +1006,7 @@ export interface FileRouteTypes {
     | '/inbox'
     | '/inventory'
     | '/l1'
+    | '/labels'
     | '/leaderboard'
     | '/leads'
     | '/manager'
@@ -1059,6 +1083,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AcademyRoute: typeof AcademyRoute
   ActivityRoute: typeof ActivityRoute
   CalendarRoute: typeof CalendarRoute
   CoachRoute: typeof CoachRoute
@@ -1072,6 +1097,7 @@ export interface RootRouteChildren {
   InboxRoute: typeof InboxRoute
   InventoryRoute: typeof InventoryRoute
   L1Route: typeof L1Route
+  LabelsRoute: typeof LabelsRoute
   LeaderboardRoute: typeof LeaderboardRoute
   LeadsRoute: typeof LeadsRouteWithChildren
   ManagerRoute: typeof ManagerRoute
@@ -1242,6 +1268,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LeaderboardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/labels': {
+      id: '/labels'
+      path: '/labels'
+      fullPath: '/labels'
+      preLoaderRoute: typeof LabelsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/l1': {
       id: '/l1'
       path: '/l1'
@@ -1331,6 +1364,13 @@ declare module '@tanstack/react-router' {
       path: '/activity'
       fullPath: '/activity'
       preLoaderRoute: typeof ActivityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/academy': {
+      id: '/academy'
+      path: '/academy'
+      fullPath: '/academy'
+      preLoaderRoute: typeof AcademyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -1808,6 +1848,7 @@ const MytTourIdRouteWithChildren = MytTourIdRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AcademyRoute: AcademyRoute,
   ActivityRoute: ActivityRoute,
   CalendarRoute: CalendarRoute,
   CoachRoute: CoachRoute,
@@ -1821,6 +1862,7 @@ const rootRouteChildren: RootRouteChildren = {
   InboxRoute: InboxRoute,
   InventoryRoute: InventoryRoute,
   L1Route: L1Route,
+  LabelsRoute: LabelsRoute,
   LeaderboardRoute: LeaderboardRoute,
   LeadsRoute: LeadsRouteWithChildren,
   ManagerRoute: ManagerRoute,
@@ -1879,12 +1921,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

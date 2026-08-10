@@ -140,6 +140,8 @@ export interface L1Review {
   id: string;
   createdAt: string;
   kind: L1Kind;
+  /** "auto" = engine read a pasted transcript. "manual" = a human read WhatsApp directly. */
+  mode?: "auto" | "manual";
   zone: string;
   agent: string;
   reviewer: string;
