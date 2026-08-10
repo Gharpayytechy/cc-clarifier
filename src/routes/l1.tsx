@@ -3,6 +3,8 @@ import { AppShell } from "@/components/AppShell";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { L1Composer } from "@/components/l1/L1Composer";
 import { L1ZoneBoard } from "@/components/l1/L1ZoneBoard";
+import { L1ManualReview } from "@/components/l1/L1ManualReview";
+import { L1DailyBoard } from "@/components/l1/L1DailyBoard";
 import { ClientOnly } from "@/components/ClientOnly";
 
 export const Route = createFileRoute("/l1")({
