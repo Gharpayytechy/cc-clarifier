@@ -40,6 +40,7 @@ import { Route as ActivityRouteImport } from './routes/activity'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TowerIndexRouteImport } from './routes/tower.index'
 import { Route as SupplyHubIndexRouteImport } from './routes/supply-hub/index'
+import { Route as Property360IndexRouteImport } from './routes/property360/index'
 import { Route as OwnerIndexRouteImport } from './routes/owner/index'
 import { Route as MytIndexRouteImport } from './routes/myt/index'
 import { Route as TowerTeamRouteImport } from './routes/tower.team'
@@ -245,6 +246,11 @@ const TowerIndexRoute = TowerIndexRouteImport.update({
 const SupplyHubIndexRoute = SupplyHubIndexRouteImport.update({
   id: '/supply-hub/',
   path: '/supply-hub/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Property360IndexRoute = Property360IndexRouteImport.update({
+  id: '/property360/',
+  path: '/property360/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OwnerIndexRoute = OwnerIndexRouteImport.update({
@@ -575,6 +581,7 @@ export interface FileRoutesByFullPath {
   '/tower/team': typeof TowerTeamRoute
   '/myt/': typeof MytIndexRoute
   '/owner/': typeof OwnerIndexRoute
+  '/property360/': typeof Property360IndexRoute
   '/supply-hub/': typeof SupplyHubIndexRoute
   '/tower/': typeof TowerIndexRoute
   '/myt/feedback/$id': typeof MytFeedbackIdRoute
@@ -658,6 +665,7 @@ export interface FileRoutesByTo {
   '/tower/team': typeof TowerTeamRoute
   '/myt': typeof MytIndexRoute
   '/owner': typeof OwnerIndexRoute
+  '/property360': typeof Property360IndexRoute
   '/supply-hub': typeof SupplyHubIndexRoute
   '/tower': typeof TowerIndexRoute
   '/myt/feedback/$id': typeof MytFeedbackIdRoute
@@ -743,6 +751,7 @@ export interface FileRoutesById {
   '/tower/team': typeof TowerTeamRoute
   '/myt/': typeof MytIndexRoute
   '/owner/': typeof OwnerIndexRoute
+  '/property360/': typeof Property360IndexRoute
   '/supply-hub/': typeof SupplyHubIndexRoute
   '/tower/': typeof TowerIndexRoute
   '/myt/feedback/$id': typeof MytFeedbackIdRoute
@@ -829,6 +838,7 @@ export interface FileRouteTypes {
     | '/tower/team'
     | '/myt/'
     | '/owner/'
+    | '/property360/'
     | '/supply-hub/'
     | '/tower/'
     | '/myt/feedback/$id'
@@ -912,6 +922,7 @@ export interface FileRouteTypes {
     | '/tower/team'
     | '/myt'
     | '/owner'
+    | '/property360'
     | '/supply-hub'
     | '/tower'
     | '/myt/feedback/$id'
@@ -996,6 +1007,7 @@ export interface FileRouteTypes {
     | '/tower/team'
     | '/myt/'
     | '/owner/'
+    | '/property360/'
     | '/supply-hub/'
     | '/tower/'
     | '/myt/feedback/$id'
@@ -1070,6 +1082,7 @@ export interface RootRouteChildren {
   SupplyHubMatchRoute: typeof SupplyHubMatchRoute
   MytIndexRoute: typeof MytIndexRoute
   OwnerIndexRoute: typeof OwnerIndexRoute
+  Property360IndexRoute: typeof Property360IndexRoute
   SupplyHubIndexRoute: typeof SupplyHubIndexRoute
   MytFeedbackIdRoute: typeof MytFeedbackIdRoute
   MytTourIdRoute: typeof MytTourIdRouteWithChildren
@@ -1293,6 +1306,13 @@ declare module '@tanstack/react-router' {
       path: '/supply-hub'
       fullPath: '/supply-hub/'
       preLoaderRoute: typeof SupplyHubIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/property360/': {
+      id: '/property360/'
+      path: '/property360'
+      fullPath: '/property360/'
+      preLoaderRoute: typeof Property360IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/owner/': {
@@ -1787,6 +1807,7 @@ const rootRouteChildren: RootRouteChildren = {
   SupplyHubMatchRoute: SupplyHubMatchRoute,
   MytIndexRoute: MytIndexRoute,
   OwnerIndexRoute: OwnerIndexRoute,
+  Property360IndexRoute: Property360IndexRoute,
   SupplyHubIndexRoute: SupplyHubIndexRoute,
   MytFeedbackIdRoute: MytFeedbackIdRoute,
   MytTourIdRoute: MytTourIdRouteWithChildren,
