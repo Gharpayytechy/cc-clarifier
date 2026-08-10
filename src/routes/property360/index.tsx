@@ -6,12 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Building2, Search, ShieldAlert, MapPin, Camera, IndianRupee, Users } from "lucide-react";
-import { allProperties360, smartSearch, READINESS_LABEL, ROLE_LABEL, type P360Role, type Readiness } from "@/property360/model";
+import { Building2, Search, ShieldAlert, MapPin, Camera, IndianRupee, Users, Plus } from "lucide-react";
+import { smartSearch, READINESS_LABEL, ROLE_LABEL, type P360Role, type Readiness } from "@/property360/model";
+import { useAllProperties360 } from "@/property360/registry";
 import { cn } from "@/lib/utils";
 
 function ControlTower() {
-  const all = useMemo(() => allProperties360(), []);
+  const all = useAllProperties360();
   const [q, setQ] = useState("");
   const [zone, setZone] = useState("all");
   const [readiness, setReadiness] = useState("all");
@@ -46,7 +47,12 @@ function ControlTower() {
             One canonical page per property — identity, building, floor, room, bed, customer fit and live availability.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button asChild size="sm" className="gap-1.5">
+            <Link to="/property360/onboard">
+              <Plus className="h-4 w-4" /> Onboard property
+            </Link>
+          </Button>
           <span className="text-xs text-muted-foreground">Viewing as</span>
           <Select value={role} onValueChange={(v) => setRole(v as P360Role)}>
             <SelectTrigger className="h-9 w-56"><SelectValue /></SelectTrigger>
