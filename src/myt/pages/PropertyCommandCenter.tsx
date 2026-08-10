@@ -1,18 +1,21 @@
 import { useMemo, useState } from 'react';
+import { Link } from '@tanstack/react-router';
 import { useAppState } from '@/myt/lib/app-context';
 import { scoreProperty } from '@/myt/lib/scoring';
 import { PropertyCard } from '@/myt/components/PropertyCard';
 import { SignalChip } from '@/myt/components/SignalChip';
 import { UrgencyTimer } from '@/myt/components/UrgencyTimer';
 import { zones } from '@/myt/lib/mock-data';
-import { Search, Building2, Lock, Plus, Sparkles } from 'lucide-react';
+import { Search, Building2, Lock, Plus, Sparkles, ClipboardList } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Property, Room, RoomType } from '@/myt/lib/types';
+import { Property360Panel } from '@/property360/components/Property360Panel';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -80,73 +83,91 @@ export default function PropertyCommandCenter() {
             Property Command Center
           </h1>
           <p className="text-xs text-muted-foreground">
-            Live demand, conversion & velocity — populated from your real properties.
+            Live demand, conversion & velocity — plus the full Property 360 passport for every property.
           </p>
         </div>
-        <Dialog open={addOpen} onOpenChange={setAddOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" className="gap-1.5 h-9">
-              <Plus className="h-4 w-4" /> Add property
-            </Button>
-          </DialogTrigger>
-          <AddPropertyDialog onCreate={handleCreate} />
-        </Dialog>
+        <div className="flex items-center gap-2">
+          <Button asChild size="sm" variant="outline" className="gap-1.5 h-9">
+            <Link to="/property360/onboard"><ClipboardList className="h-4 w-4" /> Onboard property</Link>
+          </Button>
+          <Dialog open={addOpen} onOpenChange={setAddOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" className="gap-1.5 h-9">
+                <Plus className="h-4 w-4" /> Quick add
+              </Button>
+            </DialogTrigger>
+            <AddPropertyDialog onCreate={handleCreate} />
+          </Dialog>
+        </div>
       </div>
 
-      {!isEmpty && (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-          <SummaryTile label="🔥 Hot" value={totals.hot} />
-          <SummaryTile label="❄️ Cold" value={totals.cold} />
-          <SummaryTile label="Beds Held" value={totals.blockedBeds} />
-          <SummaryTile label="Revenue (7d)" value={`₹${(totals.revenue / 1000).toFixed(0)}k`} />
-          <SummaryTile label="Missed (7d)" value={`₹${(totals.missed / 1000).toFixed(0)}k`} accent="danger" />
-        </div>
-      )}
+      <Tabs defaultValue="p360">
+        <TabsList>
+          <TabsTrigger value="p360">Property 360</TabsTrigger>
+          <TabsTrigger value="demand">Demand signals</TabsTrigger>
+        </TabsList>
 
-      {!isEmpty && (
-        <div className="flex flex-wrap gap-2 items-center">
-          <div className="relative flex-1 min-w-[160px]">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-            <Input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search property or area…"
-              className="pl-8 h-9 bg-surface-2 border-border text-xs"
-            />
-          </div>
-          <div className="flex gap-1">
-            {(['all', 'hot', 'balanced', 'cold'] as const).map(f => (
-              <button
-                key={f}
-                onClick={() => setSignalFilter(f)}
-                className={cn(
-                  'px-2.5 h-9 rounded-md text-[11px] font-medium uppercase tracking-wide transition-colors',
-                  signalFilter === f ? 'bg-primary text-primary-foreground' : 'bg-surface-2 text-muted-foreground hover:bg-surface-3'
-                )}
-              >
-                {f}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+        <TabsContent value="p360" className="mt-3">
+          <Property360Panel />
+        </TabsContent>
 
-      {isEmpty ? (
-        <EmptyState onAdd={() => setAddOpen(true)} />
-      ) : (
-        <>
-          <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
-            {scoredProps.map(({ p, s }) => (
-              <PropertyCard key={p.id} property={p} scores={s} onClick={() => setSelected(p)} />
-            ))}
-          </div>
-          {scoredProps.length === 0 && (
-            <div className="glass-card p-8 text-center text-sm text-muted-foreground">
-              No properties match these filters.
+        <TabsContent value="demand" className="mt-3 space-y-4">
+          {!isEmpty && (
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+              <SummaryTile label="🔥 Hot" value={totals.hot} />
+              <SummaryTile label="❄️ Cold" value={totals.cold} />
+              <SummaryTile label="Beds Held" value={totals.blockedBeds} />
+              <SummaryTile label="Revenue (7d)" value={`₹${(totals.revenue / 1000).toFixed(0)}k`} />
+              <SummaryTile label="Missed (7d)" value={`₹${(totals.missed / 1000).toFixed(0)}k`} accent="danger" />
             </div>
           )}
-        </>
-      )}
+
+          {!isEmpty && (
+            <div className="flex flex-wrap gap-2 items-center">
+              <div className="relative flex-1 min-w-[160px]">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Search property or area…"
+                  className="pl-8 h-9 bg-surface-2 border-border text-xs"
+                />
+              </div>
+              <div className="flex gap-1">
+                {(['all', 'hot', 'balanced', 'cold'] as const).map(f => (
+                  <button
+                    key={f}
+                    onClick={() => setSignalFilter(f)}
+                    className={cn(
+                      'px-2.5 h-9 rounded-md text-[11px] font-medium uppercase tracking-wide transition-colors',
+                      signalFilter === f ? 'bg-primary text-primary-foreground' : 'bg-surface-2 text-muted-foreground hover:bg-surface-3'
+                    )}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {isEmpty ? (
+            <EmptyState onAdd={() => setAddOpen(true)} />
+          ) : (
+            <>
+              <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
+                {scoredProps.map(({ p, s }) => (
+                  <PropertyCard key={p.id} property={p} scores={s} onClick={() => setSelected(p)} />
+                ))}
+              </div>
+              {scoredProps.length === 0 && (
+                <div className="glass-card p-8 text-center text-sm text-muted-foreground">
+                  No properties match these filters.
+                </div>
+              )}
+            </>
+          )}
+        </TabsContent>
+      </Tabs>
 
       {selected && (
         <PropertyDrawer property={selected} onClose={() => setSelected(null)} />

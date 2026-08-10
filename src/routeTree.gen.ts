@@ -56,6 +56,7 @@ import { Route as TowerAccessRouteImport } from './routes/tower.access'
 import { Route as SupplyHubMatchRouteImport } from './routes/supply-hub/match'
 import { Route as SupplyHubAreasRouteImport } from './routes/supply-hub/areas'
 import { Route as SupplyHubIdRouteImport } from './routes/supply-hub/$id'
+import { Route as Property360OnboardRouteImport } from './routes/property360/onboard'
 import { Route as Property360PidRouteImport } from './routes/property360/$pid'
 import { Route as OwnerVisitsRouteImport } from './routes/owner/visits'
 import { Route as OwnerRoomsRouteImport } from './routes/owner/rooms'
@@ -329,6 +330,11 @@ const SupplyHubIdRoute = SupplyHubIdRouteImport.update({
   path: '/supply-hub/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const Property360OnboardRoute = Property360OnboardRouteImport.update({
+  id: '/property360/onboard',
+  path: '/property360/onboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const Property360PidRoute = Property360PidRouteImport.update({
   id: '/property360/$pid',
   path: '/property360/$pid',
@@ -573,6 +579,7 @@ export interface FileRoutesByFullPath {
   '/owner/rooms': typeof OwnerRoomsRoute
   '/owner/visits': typeof OwnerVisitsRoute
   '/property360/$pid': typeof Property360PidRoute
+  '/property360/onboard': typeof Property360OnboardRoute
   '/supply-hub/$id': typeof SupplyHubIdRoute
   '/supply-hub/areas': typeof SupplyHubAreasRoute
   '/supply-hub/match': typeof SupplyHubMatchRoute
@@ -658,6 +665,7 @@ export interface FileRoutesByTo {
   '/owner/rooms': typeof OwnerRoomsRoute
   '/owner/visits': typeof OwnerVisitsRoute
   '/property360/$pid': typeof Property360PidRoute
+  '/property360/onboard': typeof Property360OnboardRoute
   '/supply-hub/$id': typeof SupplyHubIdRoute
   '/supply-hub/areas': typeof SupplyHubAreasRoute
   '/supply-hub/match': typeof SupplyHubMatchRoute
@@ -745,6 +753,7 @@ export interface FileRoutesById {
   '/owner/rooms': typeof OwnerRoomsRoute
   '/owner/visits': typeof OwnerVisitsRoute
   '/property360/$pid': typeof Property360PidRoute
+  '/property360/onboard': typeof Property360OnboardRoute
   '/supply-hub/$id': typeof SupplyHubIdRoute
   '/supply-hub/areas': typeof SupplyHubAreasRoute
   '/supply-hub/match': typeof SupplyHubMatchRoute
@@ -833,6 +842,7 @@ export interface FileRouteTypes {
     | '/owner/rooms'
     | '/owner/visits'
     | '/property360/$pid'
+    | '/property360/onboard'
     | '/supply-hub/$id'
     | '/supply-hub/areas'
     | '/supply-hub/match'
@@ -918,6 +928,7 @@ export interface FileRouteTypes {
     | '/owner/rooms'
     | '/owner/visits'
     | '/property360/$pid'
+    | '/property360/onboard'
     | '/supply-hub/$id'
     | '/supply-hub/areas'
     | '/supply-hub/match'
@@ -1004,6 +1015,7 @@ export interface FileRouteTypes {
     | '/owner/rooms'
     | '/owner/visits'
     | '/property360/$pid'
+    | '/property360/onboard'
     | '/supply-hub/$id'
     | '/supply-hub/areas'
     | '/supply-hub/match'
@@ -1090,6 +1102,7 @@ export interface RootRouteChildren {
   OwnerRoomsRoute: typeof OwnerRoomsRoute
   OwnerVisitsRoute: typeof OwnerVisitsRoute
   Property360PidRoute: typeof Property360PidRoute
+  Property360OnboardRoute: typeof Property360OnboardRoute
   SupplyHubIdRoute: typeof SupplyHubIdRoute
   SupplyHubAreasRoute: typeof SupplyHubAreasRoute
   SupplyHubMatchRoute: typeof SupplyHubMatchRoute
@@ -1431,6 +1444,13 @@ declare module '@tanstack/react-router' {
       path: '/supply-hub/$id'
       fullPath: '/supply-hub/$id'
       preLoaderRoute: typeof SupplyHubIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/property360/onboard': {
+      id: '/property360/onboard'
+      path: '/property360/onboard'
+      fullPath: '/property360/onboard'
+      preLoaderRoute: typeof Property360OnboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/property360/$pid': {
@@ -1823,6 +1843,7 @@ const rootRouteChildren: RootRouteChildren = {
   OwnerRoomsRoute: OwnerRoomsRoute,
   OwnerVisitsRoute: OwnerVisitsRoute,
   Property360PidRoute: Property360PidRoute,
+  Property360OnboardRoute: Property360OnboardRoute,
   SupplyHubIdRoute: SupplyHubIdRoute,
   SupplyHubAreasRoute: SupplyHubAreasRoute,
   SupplyHubMatchRoute: SupplyHubMatchRoute,
@@ -1837,12 +1858,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

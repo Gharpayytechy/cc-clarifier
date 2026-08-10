@@ -251,7 +251,7 @@ const pickN = <T,>(r: () => number, arr: T[], n: number): T[] => {
   return out;
 };
 
-const ZONE_CODES: Record<string, string> = {
+export const ZONE_CODES: Record<string, string> = {
   Koramangala: "KOR", Bellandur: "BLR", Mahadevapura: "MHD", Marathahalli: "MRT",
   Whitefield: "WTF", "HSR Layout": "HSR", "Nagawara Manyata": "MTP", "BTM Layout": "BTM",
   "Electronic City": "ECY", BROOKFIELD: "BRK", "JP NAGAR": "JPN", "Sg Palya": "KOR",
@@ -259,11 +259,15 @@ const ZONE_CODES: Record<string, string> = {
   Jayanagar: "JYN", Indranagar: "IND", SJR: "BLR",
 };
 
-function subAreaCode(sub: string): string {
+export function subAreaCode(sub: string): string {
   const words = sub.replace(/[^a-zA-Z ]/g, " ").trim().split(/\s+/).filter(Boolean);
   if (!words.length) return "GEN";
   if (words.length === 1) return words[0].slice(0, 3).toUpperCase();
   return words.slice(0, 3).map((w) => w[0]).join("").toUpperCase().padEnd(3, "X");
+}
+
+export function zoneCodeFor(zone: string): string {
+  return ZONE_CODES[zone] ?? (zone || "GEN").slice(0, 3).toUpperCase();
 }
 
 /* ------------------------------------------------------------------ */

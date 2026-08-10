@@ -11,8 +11,9 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
-  getProperty360, allProperties360, READINESS_LABEL, ROLE_LABEL, canSee, type P360Role,
+  READINESS_LABEL, ROLE_LABEL, canSee, type P360Role,
 } from "@/property360/model";
+import { useAllProperties360 } from "@/property360/registry";
 import {
   AccessTag, CompletenessPanel, FloorMap, Gated, RoomSheet, ScoreBar, useRoomSheet,
 } from "@/property360/components/Bits";
@@ -37,11 +38,11 @@ function freshTone(ago: number, recheck: number) {
 
 function PropertyPage() {
   const { pid } = useParams({ from: "/property360/$pid" });
-  const p = useMemo(() => getProperty360(pid), [pid]);
+  const all = useAllProperties360();
+  const p = useMemo(() => all.find((x) => x.pid === pid || x.legacyId === pid), [all, pid]);
   const [role, setRole] = useState<P360Role>("team");
   const [floorNo, setFloorNo] = useState(0);
   const { room, setRoom } = useRoomSheet();
-  const all = useMemo(() => allProperties360(), []);
 
   if (!p) {
     return (
