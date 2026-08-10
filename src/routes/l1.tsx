@@ -39,7 +39,7 @@ function L1Page() {
           </TabsList>
           <TabsContent value="board" className="mt-4">
             <ClientOnly fallback={<p className="py-10 text-center text-sm text-muted-foreground">Loading reviews…</p>}>
-              {() => <L1ZoneBoard />}
+              <L1ZoneBoard />
             </ClientOnly>
           </TabsContent>
           <TabsContent value="chat" className="mt-4"><L1Composer kind="chat" /></TabsContent>
