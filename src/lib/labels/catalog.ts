@@ -5,6 +5,9 @@
 // execute it, what NOT to do, what can go wrong, and the if/else branches the
 // owner must follow. One word is never enough — a label is an instruction.
 
+import { SUB_LABELS } from "./sub-labels";
+export { LABEL_GROUPS, GROUP_BY_ID, type LabelGroupDef } from "./groups";
+
 export type LabelSeverity = "critical" | "action" | "coaching" | "positive";
 
 export interface LabelBranch {
@@ -16,10 +19,15 @@ export interface LabelBranch {
 
 export interface LeadLabelDef {
   id: string;
+  /** Header group this sub-label lives under. See labels/groups.ts. */
+  group: string;
   /** The exact sentence the Control Tower wants the owner to read. */
   label: string;
   short: string;
   severity: LabelSeverity;
+  /** One-tap note starters so the reviewer never leaves the note empty. */
+  quickNotes?: string[];
+
   /** Hours within which the labelled lead must be actioned. */
   slaHours: number;
   /** Why this label exists at all — the business reason, not the feature reason. */
@@ -36,9 +44,9 @@ export interface LeadLabelDef {
   doneWhen: string;
 }
 
-export const LEAD_LABELS: LeadLabelDef[] = [
+export const CORE_LABELS: LeadLabelDef[] = [
   {
-    id: "priority",
+    id: "priority", group: "speed",
     label: "Please see this lead on priority",
     short: "Priority",
     severity: "critical",
@@ -76,7 +84,7 @@ export const LEAD_LABELS: LeadLabelDef[] = [
     doneWhen: "A logged touch exists on the lead, dated after the label was applied, with an outcome and a next action.",
   },
   {
-    id: "no-question",
+    id: "no-question", group: "questions",
     label: "No question is sent to this lead",
     short: "No question sent",
     severity: "action",
@@ -114,7 +122,7 @@ export const LEAD_LABELS: LeadLabelDef[] = [
     doneWhen: "At least one qualifying question was sent AND the answer is recorded on the lead.",
   },
   {
-    id: "ask-question",
+    id: "ask-question", group: "questions",
     label: "Please send them some question",
     short: "Send a question",
     severity: "action",
@@ -152,7 +160,7 @@ export const LEAD_LABELS: LeadLabelDef[] = [
     doneWhen: "The named gap is filled on the lead record and a follow-up is scheduled.",
   },
   {
-    id: "follow-up-like-this",
+    id: "follow-up-like-this", group: "followup",
     label: "Please take follow-up like this",
     short: "Follow up like this",
     severity: "coaching",
@@ -190,7 +198,7 @@ export const LEAD_LABELS: LeadLabelDef[] = [
     doneWhen: "A follow-up matching the model pattern is logged, and the next dated action exists on the lead.",
   },
   {
-    id: "wrong-info",
+    id: "wrong-info", group: "risk",
     label: "Wrong or unverified information was shared",
     short: "Wrong info",
     severity: "critical",
@@ -223,7 +231,7 @@ export const LEAD_LABELS: LeadLabelDef[] = [
     doneWhen: "The correction is visible in the thread and the source record is verified or fixed.",
   },
   {
-    id: "great-work",
+    id: "great-work", group: "positive",
     label: "Great work — use this chat as a floor example",
     short: "Floor example",
     severity: "positive",
@@ -251,6 +259,16 @@ export const LEAD_LABELS: LeadLabelDef[] = [
     doneWhen: "The pattern is written down somewhere reusable, not just complimented.",
   },
 ];
+
+/** The six original instructions, pinned to the top of every picker. */
+export const CORE_LABEL_IDS = CORE_LABELS.map((l) => l.id);
+
+/** Core instructions plus the long tail of grouped sub-labels. */
+export const LEAD_LABELS: LeadLabelDef[] = [...CORE_LABELS, ...SUB_LABELS];
+
+export function labelsInGroup(groupId: string): LeadLabelDef[] {
+  return LEAD_LABELS.filter((l) => l.group === groupId);
+}
 
 export const LABEL_BY_ID: Record<string, LeadLabelDef> = Object.fromEntries(
   LEAD_LABELS.map((l) => [l.id, l]),

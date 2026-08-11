@@ -5,8 +5,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { AlertTriangle, Ban, CheckCircle2, HelpCircle, Tag, X } from "lucide-react";
-import { LEAD_LABELS, LABEL_BY_ID, SEVERITY_LABEL, SEVERITY_STYLE, type LeadLabelDef } from "@/lib/labels/catalog";
+import { AlertTriangle, Ban, CheckCircle2, HelpCircle, Search, Tag, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { LEAD_LABELS, LABEL_BY_ID, LABEL_GROUPS, CORE_LABEL_IDS, labelsInGroup, SEVERITY_LABEL, SEVERITY_STYLE, type LeadLabelDef } from "@/lib/labels/catalog";
 import {
   applyLabel, isOverdue, openLabelsForLead, removeLabel, resolveLabel, useLeadLabels,
 } from "@/lib/labels/store";
@@ -82,7 +83,17 @@ function AddLabelButton({ leadId, leadName, leadPhone, actorName, variant }: Pro
   const [openState, setOpenState] = useState(false);
   const [picked, setPicked] = useState<string>("");
   const [note, setNote] = useState("");
+  const [q, setQ] = useState("");
+  const [openGroups, setOpenGroups] = useState<string[]>([]);
   const def = picked ? LABEL_BY_ID[picked] : null;
+
+  const term = q.trim().toLowerCase();
+  const matches = (l: (typeof LEAD_LABELS)[number]) =>
+    !term ||
+    l.label.toLowerCase().includes(term) ||
+    l.short.toLowerCase().includes(term) ||
+    l.why.toLowerCase().includes(term) ||
+    (l.quickNotes ?? []).some((n) => n.toLowerCase().includes(term));
 
   const submit = () => {
     if (!picked) return;
@@ -90,8 +101,22 @@ function AddLabelButton({ leadId, leadName, leadPhone, actorName, variant }: Pro
     toast.success(`Labelled: ${LABEL_BY_ID[picked].short}`, {
       description: `${leadName} — owner must action within ${LABEL_BY_ID[picked].slaHours}h.`,
     });
-    setPicked(""); setNote(""); setOpenState(false);
+    setPicked(""); setNote(""); setQ(""); setOpenState(false);
   };
+
+  const Row = ({ l }: { l: (typeof LEAD_LABELS)[number] }) => (
+    <button
+      type="button"
+      onClick={() => { setPicked(l.id === picked ? "" : l.id); setNote(""); }}
+      className={cn(
+        "w-full rounded-lg border px-2.5 py-1.5 text-left text-[11px] transition",
+        picked === l.id ? SEVERITY_STYLE[l.severity] : "border-border hover:bg-muted",
+      )}
+    >
+      <span className="font-semibold">{l.label}</span>
+      <span className="ml-1 opacity-70">· {SEVERITY_LABEL[l.severity]} · {l.slaHours}h</span>
+    </button>
+  );
 
   return (
     <Popover open={openState} onOpenChange={setOpenState}>
@@ -100,31 +125,70 @@ function AddLabelButton({ leadId, leadName, leadPhone, actorName, variant }: Pro
           <Tag className="h-3 w-3" /> Label this lead
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-[400px] max-h-[75vh] overflow-y-auto p-3">
+      <PopoverContent align="start" className="w-[420px] max-h-[78vh] overflow-y-auto p-3">
         <p className="text-xs font-semibold">Tell the owner exactly what to do</p>
         <p className="mt-0.5 text-[11px] text-muted-foreground">
-          Pick the instruction. Every label carries its own why / how / don't / risk manual, so nobody
-          has to guess what one word meant.
+          {LEAD_LABELS.length} instructions in {LABEL_GROUPS.length} groups. Search the scenario you saw —
+          every label carries its own why / how / don't / risk / if-else manual.
         </p>
-        <div className="mt-2 space-y-1">
-          {LEAD_LABELS.map((l) => (
-            <button
-              key={l.id}
-              type="button"
-              onClick={() => setPicked(l.id === picked ? "" : l.id)}
-              className={cn(
-                "w-full rounded-lg border px-2.5 py-1.5 text-left text-[11px] transition",
-                picked === l.id ? SEVERITY_STYLE[l.severity] : "border-border hover:bg-muted",
-              )}
-            >
-              <span className="font-semibold">{l.label}</span>
-              <span className="ml-1 opacity-70">· {SEVERITY_LABEL[l.severity]} · {l.slaHours}h</span>
-            </button>
-          ))}
+
+        <div className="relative mt-2">
+          <Search className="pointer-events-none absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} className="h-8 pl-8 text-xs"
+            placeholder="owner not seeing follow-ups, no budget, tour no-show…" />
         </div>
 
+        {term ? (
+          <div className="mt-2 space-y-1">
+            {LEAD_LABELS.filter(matches).slice(0, 25).map((l) => <Row key={l.id} l={l} />)}
+            {LEAD_LABELS.filter(matches).length === 0 && (
+              <p className="py-4 text-center text-[11px] text-muted-foreground">
+                No label for that yet. Use the closest one and write the specifics in the note.
+              </p>
+            )}
+          </div>
+        ) : (
+          <>
+            <p className="mt-3 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Most used</p>
+            <div className="mt-1 space-y-1">
+              {CORE_LABEL_IDS.map((id) => <Row key={id} l={LABEL_BY_ID[id]} />)}
+            </div>
+            <p className="mt-3 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">All scenarios</p>
+            <Accordion type="multiple" value={openGroups} onValueChange={setOpenGroups} className="w-full">
+              {LABEL_GROUPS.map((g) => {
+                const inGroup = labelsInGroup(g.id);
+                if (inGroup.length === 0) return null;
+                return (
+                  <AccordionItem key={g.id} value={g.id} className="border-b-0">
+                    <AccordionTrigger className="py-1.5 text-[11px] font-semibold hover:no-underline">
+                      <span className="text-left">
+                        {g.title}
+                        <span className="ml-1 font-normal text-muted-foreground">({inGroup.length})</span>
+                        <span className="block text-[10px] font-normal text-muted-foreground">{g.blurb}</span>
+                      </span>
+                    </AccordionTrigger>
+                    <AccordionContent className="space-y-1 pb-2">
+                      {inGroup.map((l) => <Row key={l.id} l={l} />)}
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
+            </Accordion>
+          </>
+        )}
+
         {def && (
-          <div className="mt-3 space-y-2">
+          <div className="mt-3 space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-2">
+            {(def.quickNotes ?? []).length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {def.quickNotes!.map((n) => (
+                  <button key={n} type="button" onClick={() => setNote(n)}
+                    className="rounded-full border border-primary/40 bg-background px-2 py-0.5 text-[10px] hover:bg-muted">
+                    {n}
+                  </button>
+                ))}
+              </div>
+            )}
             <Textarea
               value={note}
               onChange={(e) => setNote(e.target.value)}
@@ -133,12 +197,12 @@ function AddLabelButton({ leadId, leadName, leadPhone, actorName, variant }: Pro
                   ? "Write the model follow-up you want copied — the actual sentences."
                   : "Name the specific gap you saw. One word helps nobody."
               }
-              className="min-h-[70px] text-xs"
+              className="min-h-[64px] bg-background text-xs"
             />
             <Button size="sm" className="w-full" onClick={submit}>
               Apply label · owner has {def.slaHours}h
             </Button>
-            <div className="rounded-lg border border-dashed p-2">
+            <div className="rounded-lg border border-dashed bg-background p-2">
               <LabelManual def={def} compactHeader />
             </div>
           </div>
@@ -147,6 +211,7 @@ function AddLabelButton({ leadId, leadName, leadPhone, actorName, variant }: Pro
     </Popover>
   );
 }
+
 
 /** The full operating manual for a label — why, how, don'ts, risks, if/else. */
 export function LabelManual({
