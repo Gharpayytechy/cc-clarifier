@@ -5,8 +5,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { AlertTriangle, Ban, CheckCircle2, HelpCircle, Tag, X } from "lucide-react";
-import { LEAD_LABELS, LABEL_BY_ID, SEVERITY_LABEL, SEVERITY_STYLE, type LeadLabelDef } from "@/lib/labels/catalog";
+import { AlertTriangle, Ban, CheckCircle2, HelpCircle, Search, Tag, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { LEAD_LABELS, LABEL_BY_ID, LABEL_GROUPS, CORE_LABEL_IDS, labelsInGroup, SEVERITY_LABEL, SEVERITY_STYLE, type LeadLabelDef } from "@/lib/labels/catalog";
 import {
   applyLabel, isOverdue, openLabelsForLead, removeLabel, resolveLabel, useLeadLabels,
 } from "@/lib/labels/store";
