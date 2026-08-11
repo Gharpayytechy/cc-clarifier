@@ -16,10 +16,15 @@ export interface LabelBranch {
 
 export interface LeadLabelDef {
   id: string;
+  /** Header group this sub-label lives under. See labels/groups.ts. */
+  group: string;
   /** The exact sentence the Control Tower wants the owner to read. */
   label: string;
   short: string;
   severity: LabelSeverity;
+  /** One-tap note starters so the reviewer never leaves the note empty. */
+  quickNotes?: string[];
+
   /** Hours within which the labelled lead must be actioned. */
   slaHours: number;
   /** Why this label exists at all — the business reason, not the feature reason. */
