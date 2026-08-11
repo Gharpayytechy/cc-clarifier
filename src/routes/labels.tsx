@@ -194,12 +194,6 @@ function Console() {
           the reviewer promises to be specific, and the owner promises to act inside the window. If a label
           is used without its note, the contract is broken and the label should be rejected.
         </Card>
-        {LABEL_GROUPS.map((g) => (
-          <div key={g.id} className="pt-1">
-            <p className="text-xs font-semibold">{g.title}</p>
-            <p className="text-[11px] text-muted-foreground">{g.blurb}</p>
-          </div>
-        )).slice(0, 0)}
         {LEAD_LABELS.map((def) => (
           <Card key={def.id} className="p-3">
             <div className="mb-1 flex flex-wrap items-center gap-2">
