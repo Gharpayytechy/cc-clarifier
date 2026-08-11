@@ -105,10 +105,16 @@ function Console() {
           <div className="mt-2 flex flex-wrap gap-1.5">
             <FilterChip active={filter === "all"} onClick={() => setFilter("all")}>All leads</FilterChip>
             <FilterChip active={filter === "unlabelled"} onClick={() => setFilter("unlabelled")}>No open label</FilterChip>
-            {LEAD_LABELS.map((l) => (
-              <FilterChip key={l.id} active={filter === l.id} onClick={() => setFilter(l.id)}>{l.short}</FilterChip>
+            <FilterChip active={filter === "overdue"} onClick={() => setFilter("overdue")}>Overdue instruction</FilterChip>
+            {LABEL_GROUPS.map((g) => (
+              <FilterChip key={g.id} active={filter === `g:${g.id}`} onClick={() => setFilter(`g:${g.id}`)}>{g.title}</FilterChip>
             ))}
           </div>
+          <p className="mt-1.5 text-[10px] text-muted-foreground">
+            {LEAD_LABELS.length} instructions across {LABEL_GROUPS.length} groups. Filter by group, then open a lead
+            and search the exact scenario inside the picker.
+          </p>
+
         </Card>
 
         <div className="space-y-2">
