@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { AlertTriangle, CheckCircle2, Search, Tag } from "lucide-react";
 import { useAppState } from "@/myt/lib/app-context";
 import { teamMembers } from "@/myt/lib/mock-data";
-import { LEAD_LABELS, LABEL_BY_ID, SEVERITY_LABEL, SEVERITY_STYLE } from "@/lib/labels/catalog";
+import { LEAD_LABELS, LABEL_BY_ID, LABEL_GROUPS, SEVERITY_LABEL, SEVERITY_STYLE } from "@/lib/labels/catalog";
 import { isOverdue, labelStats, resolveLabel, useLeadLabels } from "@/lib/labels/store";
 import { LabelManual, LeadLabelStrip } from "@/components/labels/LeadLabelStrip";
 
@@ -73,6 +73,11 @@ function Console() {
       .filter((l) => {
         if (filter === "all") return true;
         if (filter === "unlabelled") return !labels.some((x) => x.leadId === l.id && !x.resolvedAt);
+        if (filter === "overdue") return labels.some((x) => x.leadId === l.id && isOverdue(x));
+        if (filter.startsWith("g:")) {
+          const g = filter.slice(2);
+          return labels.some((x) => x.leadId === l.id && !x.resolvedAt && LABEL_BY_ID[x.labelId]?.group === g);
+        }
         return labels.some((x) => x.leadId === l.id && x.labelId === filter && !x.resolvedAt);
       })
       .slice(0, 60);
@@ -189,9 +194,16 @@ function Console() {
           the reviewer promises to be specific, and the owner promises to act inside the window. If a label
           is used without its note, the contract is broken and the label should be rejected.
         </Card>
+        {LABEL_GROUPS.map((g) => (
+          <div key={g.id} className="pt-1">
+            <p className="text-xs font-semibold">{g.title}</p>
+            <p className="text-[11px] text-muted-foreground">{g.blurb}</p>
+          </div>
+        )).slice(0, 0)}
         {LEAD_LABELS.map((def) => (
           <Card key={def.id} className="p-3">
             <div className="mb-1 flex flex-wrap items-center gap-2">
+              <Badge variant="secondary" className="text-[10px]">{LABEL_GROUPS.find((g) => g.id === def.group)?.title ?? def.group}</Badge>
               <Badge variant="outline" className={SEVERITY_STYLE[def.severity]}>{SEVERITY_LABEL[def.severity]}</Badge>
               <span className="text-[10px] text-muted-foreground">Action window {def.slaHours}h</span>
             </div>
