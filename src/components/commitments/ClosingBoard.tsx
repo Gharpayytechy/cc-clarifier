@@ -1,15 +1,21 @@
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { AlertTriangle, CheckCircle2, Clock, History, Target, TrendingUp, XCircle } from "lucide-react";
+import {
+  AlertTriangle, CheckCircle2, Clock, History, Target, TrendingUp, XCircle,
+  Copy, Search, Flame, ClipboardList, ArrowRightCircle,
+} from "lucide-react";
 import { HowButton } from "@/components/common/HowButton";
 import { WINDOW_BY_ID, TONE_STYLE } from "@/lib/commitments/windows";
 import {
   useCommitments, boardStats, reliabilityByPerson, problemBreakdown, isDueToday, isExpired, hoursLeft,
-  markKept, type CloseCommitment,
+  markKept, promiseClose, type CloseCommitment,
 } from "@/lib/commitments/store";
+import { atRisk, boardDigest, groupByUrgency, ownersOf, riskFlags } from "@/lib/commitments/insights";
 import { NotClosedDialog } from "./NotClosedDialog";
 
 type Bucket = "today" | "overdue" | "open" | "settled";
@@ -20,7 +26,7 @@ function fmt(iso: string) {
 
 function countdown(h: number) {
   if (h < 0) return `${Math.abs(Math.round(h))}h overdue`;
-  if (h < 1) return `${Math.round(h * 60)}m left`;
+  if (h < 1) return `${Math.max(1, Math.round(h * 60))}m left`;
   if (h < 48) return `${Math.round(h)}h left`;
   return `${Math.round(h / 24)}d left`;
 }
@@ -29,11 +35,15 @@ function countdown(h: number) {
 export function ClosingBoard() {
   const all = useCommitments();
   const [bucket, setBucket] = useState<Bucket>("today");
+  const [query, setQuery] = useState("");
+  const [owner, setOwner] = useState<string>("all");
   const now = Date.now();
 
   const stats = boardStats(all, now);
   const people = useMemo(() => reliabilityByPerson(all), [all]);
   const problems = useMemo(() => problemBreakdown(all), [all]);
+  const owners = useMemo(() => ownersOf(all), [all]);
+  const risky = useMemo(() => atRisk(all, now).slice(0, 6), [all, now]);
 
   const list = useMemo(() => {
     const open = all.filter((c) => c.status === "open");
@@ -42,11 +52,36 @@ export function ClosingBoard() {
       : bucket === "overdue" ? open.filter((c) => isExpired(c, now))
       : bucket === "open" ? open
       : all.filter((c) => c.status !== "open");
-    return [...rows].sort((a, b) => +new Date(a.dueAt) - +new Date(b.dueAt));
-  }, [all, bucket, now]);
+    const q = query.trim().toLowerCase();
+    return rows.filter(
+      (c) =>
+        (owner === "all" || c.promisedBy === owner) &&
+        (!q || c.leadName.toLowerCase().includes(q) || c.leadPhone.includes(q) || c.promisedBy.toLowerCase().includes(q)),
+    );
+  }, [all, bucket, now, query, owner]);
+
+  const grouped = useMemo(
+    () => (bucket === "settled" ? null : groupByUrgency(list, now)),
+    [list, bucket, now],
+  );
+  const settledRows = useMemo(
+    () => [...list].sort((a, b) => +new Date(b.closedAt ?? b.dueAt) - +new Date(a.closedAt ?? a.dueAt)),
+    [list],
+  );
+
+  const copyDigest = async () => {
+    const text = boardDigest(all, now);
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Today's closing list copied", { description: "Paste it into the team chat and run the huddle off it." });
+    } catch {
+      toast.error("Could not copy — select the rows manually.");
+    }
+  };
 
   return (
     <div className="space-y-4">
+      {/* KPI strip */}
       <div className="grid grid-cols-2 gap-2 md:grid-cols-6">
         <Stat label="Closing today" value={stats.today} icon={<Target className="h-3 w-3" />} tone="primary" />
         <Stat label="Overdue promises" value={stats.expired} icon={<AlertTriangle className="h-3 w-3" />} tone={stats.expired ? "danger" : "ok"} />
@@ -56,59 +91,138 @@ export function ClosingBoard() {
         <Stat label="Promise accuracy" value={stats.accuracy === null ? "—" : `${stats.accuracy}%`} icon={<TrendingUp className="h-3 w-3" />} tone="primary" />
       </div>
 
-      <div className="flex flex-wrap items-center gap-1.5">
-        {(
-          [
-            ["today", `Closing today (${stats.today})`],
-            ["overdue", `Overdue (${stats.expired})`],
-            ["open", `All live (${stats.open})`],
-            ["settled", `Settled (${stats.kept + stats.broken})`],
-          ] as [Bucket, string][]
-        ).map(([v, label]) => (
-          <Button key={v} size="sm" variant={bucket === v ? "default" : "outline"} className="h-7 text-[11px]" onClick={() => setBucket(v)}>
-            {label}
+      {/* At-risk triage */}
+      {risky.length > 0 && (
+        <Card className="border-destructive/40 bg-destructive/5 p-3">
+          <div className="mb-2 flex items-center gap-1.5">
+            <Flame className="h-3.5 w-3.5 text-destructive" />
+            <p className="text-xs font-semibold text-destructive">Needs a decision now — {risky.length}</p>
+            <HowButton
+              title="The at-risk list"
+              why="These promises will break on their own if nobody touches them today. Working this list is worth more than making new promises."
+              howToExecute={[
+                "Start at the top: the row with the most flags is the one closest to being lost.",
+                "Each row gets one of three outcomes today — closed, broken with a reason, or moved with a new plan.",
+                "If a row has no steps ticked, write the plan before you leave it.",
+              ]}
+              whatNotToDo={["Do not skip a row because the customer is 'probably gone' — log it broken so the reason is counted."]}
+              doneWhen="This card disappears."
+            />
+          </div>
+          <div className="space-y-1.5">
+            {risky.map(({ c, flags }) => (
+              <div key={c.id} className="flex flex-wrap items-center gap-1.5 text-[11px]">
+                <span className="font-semibold">{c.leadName}</span>
+                <span className="text-muted-foreground">{c.promisedBy} · due {fmt(c.dueAt)}</span>
+                {flags.map((f) => (
+                  <span key={f} className="rounded-full border border-destructive/40 bg-background px-1.5 py-0.5 text-[10px] font-medium text-destructive">
+                    {f}
+                  </span>
+                ))}
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {/* Filters */}
+      <div className="sticky top-0 z-10 -mx-1 space-y-2 bg-background/95 px-1 py-2 backdrop-blur">
+        <div className="flex flex-wrap items-center gap-1.5">
+          {(
+            [
+              ["today", `Closing today (${stats.today})`],
+              ["overdue", `Overdue (${stats.expired})`],
+              ["open", `All live (${stats.open})`],
+              ["settled", `Settled (${stats.kept + stats.broken})`],
+            ] as [Bucket, string][]
+          ).map(([v, label]) => (
+            <Button key={v} size="sm" variant={bucket === v ? "default" : "outline"} className="h-7 text-[11px]" onClick={() => setBucket(v)}>
+              {label}
+            </Button>
+          ))}
+          <Button size="sm" variant="outline" className="h-7 gap-1 text-[11px]" onClick={copyDigest}>
+            <Copy className="h-3 w-3" /> Copy today's list
           </Button>
-        ))}
-        <HowButton
-          withText
-          className="ml-1"
-          title="How to run the Closing Board"
-          why="This board is the only honest forecast of money landing. It is built from promises a named person made on a named lead, not from stage guesses."
-          howToExecute={[
-            "Open 'Closing today' at the start of the shift and read every row out loud with the owner.",
-            "For each row confirm the steps are still the right steps — if reality moved, move the deadline.",
-            "Clear 'Overdue' before anything else: each one is either kept, broken, or re-promised with a written reason.",
-            "At end of day mark every settled promise so accuracy stays truthful.",
-          ]}
-          whatNotToDo={[
-            "Do not silently delete a promise — move it, keep it, or break it so the history stays intact.",
-            "Do not let a promise move more than twice without a manager on the call.",
-            "Do not count a promise as revenue before payment lands.",
-          ]}
-          problemsThatCanOccur={[
-            "Closers promise short windows to look good, then move them — watch the move count.",
-            "Empty board usually means nobody is promising, not that there is no pipeline.",
-          ]}
-          branches={[
-            { condition: "A promise moved 3+ times", then: "Reassign or downgrade the lead — the closer has lost the customer." },
-            { condition: "Accuracy under 60% for a person", then: "Restrict them to 48h+ windows until it recovers." },
-            { condition: "Overdue with no note", then: "Treat as broken and log it in the daily review." },
-          ]}
-          doneWhen="Today's bucket is empty and every row was settled kept, broken, or re-promised with a reason."
-        />
+          <HowButton
+            withText
+            className="ml-1"
+            title="How to run the Closing Board"
+            why="This board is the only honest forecast of money landing. It is built from promises a named person made on a named lead, not from stage guesses."
+            howToExecute={[
+              "Copy today's list into the team chat and read every row out loud with the owner.",
+              "Clear 'Overdue' before anything else: each one is kept, broken, or re-promised.",
+              "Work the groups top-down — overdue, then the next 3 hours, then the rest of today.",
+              "At end of day mark every settled promise so accuracy stays truthful.",
+            ]}
+            whatNotToDo={[
+              "Do not silently delete a promise — move it, keep it, or break it so the history stays intact.",
+              "Do not let a promise move more than twice without a manager on the call.",
+              "Do not count a promise as revenue before payment lands.",
+            ]}
+            problemsThatCanOccur={[
+              "Closers promise short windows to look good, then move them — watch the move count.",
+              "Empty board usually means nobody is promising, not that there is no pipeline.",
+            ]}
+            branches={[
+              { condition: "A promise moved 3+ times", then: "Reassign or downgrade the lead — the closer has lost the customer." },
+              { condition: "Accuracy under 60% for a person", then: "Restrict them to 48h+ windows until it recovers." },
+              { condition: "Overdue with no note", then: "Treat as broken and log it in the daily review." },
+            ]}
+            doneWhen="Today's bucket is empty and every row was settled kept, broken, or re-promised."
+          />
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <div className="relative">
+            <Search className="absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search lead, phone or closer"
+              className="h-7 w-56 pl-7 text-[11px]"
+            />
+          </div>
+          <Chip active={owner === "all"} onClick={() => setOwner("all")}>Everyone</Chip>
+          {owners.map((o) => (
+            <Chip key={o} active={owner === o} onClick={() => setOwner(o)}>{o}</Chip>
+          ))}
+        </div>
       </div>
 
-      <div className="space-y-2">
-        {list.length === 0 && (
-          <Card className="p-8 text-center text-sm text-muted-foreground">
-            Nothing in this bucket. Promises are made from the “Definitely Close” button on any lead.
-          </Card>
-        )}
-        {list.map((c) => (
-          <Row key={c.id} c={c} now={now} />
-        ))}
-      </div>
+      {/* Rows */}
+      {list.length === 0 && (
+        <Card className="space-y-1 p-8 text-center">
+          <ClipboardList className="mx-auto h-5 w-5 text-muted-foreground" />
+          <p className="text-sm font-medium">Nothing in this bucket</p>
+          <p className="text-xs text-muted-foreground">
+            Promises are made from the “Definitely Close” button on any lead. An empty board means nobody has committed yet.
+          </p>
+        </Card>
+      )}
 
+      {bucket === "settled"
+        ? <div className="space-y-2">{settledRows.map((c) => <Row key={c.id} c={c} now={now} />)}</div>
+        : grouped?.map((g) => (
+            <section key={g.key} className="space-y-2">
+              <div className="flex items-baseline gap-2">
+                <h3
+                  className={cn(
+                    "text-xs font-bold uppercase tracking-wide",
+                    g.meta.tone === "danger" && "text-destructive",
+                    g.meta.tone === "hot" && "text-amber-600 dark:text-amber-400",
+                    g.meta.tone === "warm" && "text-primary",
+                    g.meta.tone === "cool" && "text-muted-foreground",
+                  )}
+                >
+                  {g.meta.title}
+                </h3>
+                <span className="text-[10px] tabular-nums text-muted-foreground">{g.rows.length}</span>
+                <span className="hidden text-[10px] text-muted-foreground sm:inline">— {g.meta.blurb}</span>
+              </div>
+              {g.rows.map((c) => <Row key={c.id} c={c} now={now} />)}
+            </section>
+          ))}
+
+      {/* Why promises broke */}
       {problems.length > 0 && (
         <Card className="p-3">
           <div className="mb-2 flex items-center gap-1.5">
@@ -125,16 +239,24 @@ export function ClosingBoard() {
               doneWhen="The top reason this week is different from the top reason last week."
             />
           </div>
-          <div className="flex flex-wrap gap-1.5">
-            {problems.map((p) => (
-              <Badge key={p.problem} variant="outline" className="text-[11px]">
-                {p.problem} · <span className="ml-1 font-semibold tabular-nums">{p.count}</span>
-              </Badge>
-            ))}
+          <div className="space-y-1">
+            {problems.map((p) => {
+              const max = problems[0].count || 1;
+              return (
+                <div key={p.problem} className="flex items-center gap-2 text-[11px]">
+                  <span className="w-48 shrink-0 truncate">{p.problem}</span>
+                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                    <div className="h-full rounded-full bg-destructive" style={{ width: `${(p.count / max) * 100}%` }} />
+                  </div>
+                  <span className="w-6 text-right font-semibold tabular-nums">{p.count}</span>
+                </div>
+              );
+            })}
           </div>
         </Card>
       )}
 
+      {/* Accuracy by person */}
       <Card className="p-3">
         <div className="mb-2 flex items-center gap-1.5">
           <p className="text-xs font-semibold">Promise accuracy by person</p>
@@ -164,7 +286,7 @@ export function ClosingBoard() {
                 />
               </div>
               <span className="w-10 text-right tabular-nums">{p.accuracy === null ? "—" : `${p.accuracy}%`}</span>
-              <span className="w-40 text-right text-muted-foreground">
+              <span className="hidden w-40 text-right text-muted-foreground sm:inline">
                 {p.promised} promised · {p.kept} kept · {p.broken} broken · {p.changes} moves
               </span>
             </div>
@@ -179,10 +301,21 @@ function Row({ c, now }: { c: CloseCommitment; now: number }) {
   const def = WINDOW_BY_ID[c.windowId];
   const left = hoursLeft(c, now);
   const overdue = isExpired(c, now);
+  const flags = riskFlags(c, now);
   const [showHistory, setShowHistory] = useState(false);
 
+  const pushTo = (windowId: "3h" | "24h" | "48h") => {
+    promiseClose({
+      leadId: c.leadId, leadName: c.leadName, leadPhone: c.leadPhone,
+      windowId, steps: c.steps, note: c.note, by: c.promisedBy,
+    });
+    toast.success(`${c.leadName} re-promised — ${WINDOW_BY_ID[windowId].short}`, {
+      description: "The old deadline stays in the history.",
+    });
+  };
+
   return (
-    <Card className={cn("p-3", overdue && "border-destructive/50 bg-destructive/5")}>
+    <Card className={cn("p-3", overdue && "border-destructive/50 bg-destructive/5", c.status === "kept" && "border-emerald-500/40")}>
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-1.5">
@@ -193,21 +326,33 @@ function Row({ c, now }: { c: CloseCommitment; now: number }) {
             <span className={cn("text-[10px] font-medium", overdue ? "text-destructive" : "text-muted-foreground")}>
               {c.status === "open" ? countdown(left) : c.status}
             </span>
-            {c.changeCount > 0 && (
-              <Badge variant="secondary" className="text-[10px]">moved {c.changeCount}×</Badge>
-            )}
+            {c.changeCount > 0 && <Badge variant="secondary" className="text-[10px]">moved {c.changeCount}×</Badge>}
+            {c.status === "kept" && <Badge className="bg-emerald-500/15 text-[10px] text-emerald-600">closed</Badge>}
           </div>
-          <p className="mt-0.5 text-[11px] text-muted-foreground">
-            due {fmt(c.dueAt)} · {c.promisedBy}
-          </p>
+          <p className="mt-0.5 text-[11px] text-muted-foreground">due {fmt(c.dueAt)} · {c.promisedBy}</p>
+
           {c.steps?.length > 0 && (
-            <p className="mt-0.5 text-[11px] text-muted-foreground">Steps: {c.steps.join(" · ")}</p>
+            <ul className="mt-1 flex flex-wrap gap-1">
+              {c.steps.map((s) => (
+                <li key={s} className="rounded-full border border-border bg-muted/50 px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                  {s}
+                </li>
+              ))}
+            </ul>
           )}
-          {c.problem && (
-            <p className="mt-0.5 text-[11px] font-medium text-destructive">Did not close — {c.problem}</p>
+          {flags.length > 0 && (
+            <div className="mt-1 flex flex-wrap gap-1">
+              {flags.map((f) => (
+                <span key={f} className="rounded-full border border-destructive/40 bg-destructive/10 px-1.5 py-0.5 text-[10px] font-medium text-destructive">
+                  {f}
+                </span>
+              ))}
+            </div>
           )}
+          {c.problem && <p className="mt-0.5 text-[11px] font-medium text-destructive">Did not close — {c.problem}</p>}
           {c.note && <p className="mt-0.5 text-[11px] text-foreground/80">Plan: {c.note}</p>}
         </div>
+
         <div className="flex flex-wrap items-center gap-1">
           {c.status === "open" && (
             <>
@@ -215,6 +360,12 @@ function Row({ c, now }: { c: CloseCommitment; now: number }) {
                 <CheckCircle2 className="h-3 w-3" /> It closed
               </Button>
               <NotClosedDialog commitmentId={c.id} leadName={c.leadName} actorName={c.promisedBy} />
+              <Button size="sm" variant="ghost" className="h-7 gap-1 text-[11px]" onClick={() => pushTo("3h")} title="Re-promise into the next 3 hours">
+                <ArrowRightCircle className="h-3 w-3" /> +3h
+              </Button>
+              <Button size="sm" variant="ghost" className="h-7 text-[11px]" onClick={() => pushTo("24h")} title="Re-promise into tomorrow">
+                +24h
+              </Button>
             </>
           )}
           <Button size="sm" variant="ghost" className="h-7 gap-1 text-[11px]" onClick={() => setShowHistory((v) => !v)}>
@@ -236,6 +387,22 @@ function Row({ c, now }: { c: CloseCommitment; now: number }) {
         </div>
       )}
     </Card>
+  );
+}
+
+function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        "rounded-full border px-2 py-0.5 text-[11px] transition",
+        active ? "border-primary bg-primary/10 font-medium text-primary" : "border-border text-muted-foreground hover:bg-muted",
+      )}
+    >
+      {children}
+    </button>
   );
 }
 
