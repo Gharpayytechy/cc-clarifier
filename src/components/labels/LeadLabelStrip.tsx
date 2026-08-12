@@ -75,6 +75,15 @@ export function LeadLabelStrip({ leadId, leadName, leadPhone, actorName, variant
         actorName={actorName}
         variant={variant}
       />
+
+      {/* The promise lives beside the instruction — a label without a close date is a wish. */}
+      <CloseCommitButton
+        leadId={leadId}
+        leadName={leadName}
+        leadPhone={leadPhone}
+        actorName={actorName}
+        size={variant === "full" ? "sm" : "xs"}
+      />
     </div>
   );
 }
