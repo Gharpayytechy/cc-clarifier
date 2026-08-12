@@ -154,3 +154,12 @@ function L1Page() {
     </AppShell>
   );
 }
+/** A one-line "read this before you score" strip above each review surface. */
+function TabHow(props: React.ComponentProps<typeof HowButton>) {
+  return (
+    <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/40 px-2.5 py-1.5">
+      <HowButton {...props} withText />
+      <p className="text-[11px] text-muted-foreground">{props.title} — open the manual before you start.</p>
+    </div>
+  );
+}
