@@ -56,6 +56,7 @@ export function QuickActionRow({
       </div>
 
       <div className="col-span-12 md:col-span-2 flex items-center justify-end gap-1">
+        <CloseCommitButton leadId={lead.id} leadName={lead.name} leadPhone={lead.phone} actorName={tcm?.name ?? "You"} />
         <Button
           size="icon" variant="ghost" className="h-7 w-7"
           onClick={(e) => { e.stopPropagation(); logCall(lead.id); toast.success(`Call logged · ${lead.name}`); }}
