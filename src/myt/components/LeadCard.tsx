@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import { intentBg } from '@/myt/lib/confidence';
 import { currentStage, discoveryProgress, missingAll, waStatusMeta, CALL_STAGES, closingReadiness, readinessTone } from '@/myt/lib/call-plan';
 import { LeadControlPanel } from '@/myt/components/LeadControlPanel';
+import { CloseCommitButton } from '@/components/commitments/CloseCommitButton';
 import {
   actionDueLabel, callOutcomes, isIncomplete, moveInLabel, nextActions, OWNERSHIP_DAYS, ownershipDay,
   tagLabel, tagTone,
