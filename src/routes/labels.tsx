@@ -14,6 +14,7 @@ import { teamMembers } from "@/myt/lib/mock-data";
 import { LEAD_LABELS, LABEL_BY_ID, LABEL_GROUPS, SEVERITY_LABEL, SEVERITY_STYLE } from "@/lib/labels/catalog";
 import { isOverdue, labelStats, resolveLabel, useLeadLabels } from "@/lib/labels/store";
 import { LabelManual, LeadLabelStrip } from "@/components/labels/LeadLabelStrip";
+import { HowButton } from "@/components/common/HowButton";
 
 export const Route = createFileRoute("/labels")({
   head: () => ({
