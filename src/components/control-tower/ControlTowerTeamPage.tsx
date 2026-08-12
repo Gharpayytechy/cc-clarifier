@@ -47,6 +47,7 @@ import { cn } from "@/lib/utils";
 import {
   AlertTriangle, CheckCircle2, ShieldCheck, Users, Boxes, Trophy,
   MessageSquare, ClipboardList, Activity, Plus, X, Timer, Flame,
+import { CloseCommitButton } from "@/components/commitments/CloseCommitButton";
   ArrowLeftRight, Inbox, Star, Bug, ScrollText, Sparkles, Search, PhoneCall,
 } from "lucide-react";
 
