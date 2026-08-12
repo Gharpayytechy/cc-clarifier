@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { AlertTriangle, Ban, CheckCircle2, HelpCircle, Search, Tag, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { CloseCommitButton } from "@/components/commitments/CloseCommitButton";
 import { LEAD_LABELS, LABEL_BY_ID, LABEL_GROUPS, CORE_LABEL_IDS, labelsInGroup, SEVERITY_LABEL, SEVERITY_STYLE, type LeadLabelDef } from "@/lib/labels/catalog";
 import {
   applyLabel, isOverdue, openLabelsForLead, removeLabel, resolveLabel, useLeadLabels,
