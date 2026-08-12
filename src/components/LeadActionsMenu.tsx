@@ -8,6 +8,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { MessageCircle, Phone, CalendarPlus, BellRing, MoreVertical, ExternalLink, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Lead } from '@/lib/types';
+import { CloseCommitButton } from '@/components/commitments/CloseCommitButton';
 
 interface Props {
   lead: Lead;
@@ -23,7 +24,9 @@ export function LeadActionsMenu({ lead, size = 'sm' }: Props) {
   const canSendTourMsg = !!tour && !!property;
 
   return (
-    <DropdownMenu>
+    <div className="flex items-center gap-1">
+      <CloseCommitButton leadId={lead.id} leadName={lead.name} leadPhone={lead.phone} actorName={tcm?.name ?? 'You'} />
+      <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
@@ -86,6 +89,7 @@ export function LeadActionsMenu({ lead, size = 'sm' }: Props) {
           <ExternalLink className="h-3.5 w-3.5 mr-2" /> Send 2h reminder
         </DropdownMenuItem>
       </DropdownMenuContent>
-    </DropdownMenu>
+      </DropdownMenu>
+    </div>
   );
 }

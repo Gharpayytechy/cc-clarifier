@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { AlertTriangle, Ban, CheckCircle2, HelpCircle, Search, Tag, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { CloseCommitButton } from "@/components/commitments/CloseCommitButton";
 import { LEAD_LABELS, LABEL_BY_ID, LABEL_GROUPS, CORE_LABEL_IDS, labelsInGroup, SEVERITY_LABEL, SEVERITY_STYLE, type LeadLabelDef } from "@/lib/labels/catalog";
 import {
   applyLabel, isOverdue, openLabelsForLead, removeLabel, resolveLabel, useLeadLabels,
@@ -74,6 +75,15 @@ export function LeadLabelStrip({ leadId, leadName, leadPhone, actorName, variant
         leadPhone={leadPhone}
         actorName={actorName}
         variant={variant}
+      />
+
+      {/* The promise lives beside the instruction — a label without a close date is a wish. */}
+      <CloseCommitButton
+        leadId={leadId}
+        leadName={leadName}
+        leadPhone={leadPhone}
+        actorName={actorName}
+        size={variant === "full" ? "sm" : "xs"}
       />
     </div>
   );

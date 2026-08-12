@@ -49,6 +49,7 @@ import {
   MessageSquare, ClipboardList, Activity, Plus, X, Timer, Flame,
   ArrowLeftRight, Inbox, Star, Bug, ScrollText, Sparkles, Search, PhoneCall,
 } from "lucide-react";
+import { CloseCommitButton } from "@/components/commitments/CloseCommitButton";
 
 const HORIZONS: { key: InventoryHorizon; label: string; hint: string }[] = [
   { key: "today",      label: "Today",      hint: "Fill first — beds ready NOW" },
@@ -427,10 +428,11 @@ function WorklistTab() {
                 <td className="p-2 text-muted-foreground">{w.ageDays}d</td>
                 <td className="p-2 text-muted-foreground">{w.reason}</td>
                 <td className="p-2"><Badge variant={w.status === "done" ? "default" : w.status === "skipped" ? "destructive" : "secondary"} className="text-[10px] capitalize">{w.status}</Badge></td>
-                <td className="p-2 flex gap-1">
+                <td className="p-2 flex flex-wrap gap-1">
                   <Button size="sm" variant="outline" onClick={() => markWorklist(w.id, "in-progress")}>Start</Button>
                   <Button size="sm" variant="outline" onClick={() => markWorklist(w.id, "done", "Completed via CT")}>Done</Button>
                   <Button size="sm" variant="ghost" onClick={() => markWorklist(w.id, "skipped")}>Skip</Button>
+                  <CloseCommitButton leadId={w.leadId} leadName={w.leadName} actorName="Control Tower" />
                 </td>
               </tr>
             ))}

@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import type { Lead } from "@/lib/types";
 import { liveConfidence, intentFor } from "@/lib/engine";
 import { useMountedNow } from "@/hooks/use-now";
+import { CloseCommitButton } from "@/components/commitments/CloseCommitButton";
 
 /**
  * One row, one decision. Inline call/WA/done without opening a drawer.
@@ -56,6 +57,7 @@ export function QuickActionRow({
       </div>
 
       <div className="col-span-12 md:col-span-2 flex items-center justify-end gap-1">
+        <CloseCommitButton leadId={lead.id} leadName={lead.name} leadPhone={lead.phone} actorName={tcm?.name ?? "You"} />
         <Button
           size="icon" variant="ghost" className="h-7 w-7"
           onClick={(e) => { e.stopPropagation(); logCall(lead.id); toast.success(`Call logged · ${lead.name}`); }}
