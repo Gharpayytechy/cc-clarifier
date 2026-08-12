@@ -91,7 +91,15 @@ export function LeadCard({ e, actorId, variant, onClaim, onTouch, onFinish, onRe
             <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{moveInLabel(l)}</span>
           </div>
         </div>
-        <UrgencyTimer expiresAt={e.expiresAt} />
+        <div className="flex flex-col items-end gap-1">
+          <UrgencyTimer expiresAt={e.expiresAt} />
+          <CloseCommitButton
+            leadId={l.id}
+            leadName={l.name}
+            leadPhone={l.phone}
+            actorName={teamMembers.find(m => m.id === actorId)?.name ?? 'You'}
+          />
+        </div>
       </div>
 
       {(l.tags?.length ?? 0) > 0 && (
