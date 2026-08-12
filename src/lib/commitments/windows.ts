@@ -322,3 +322,32 @@ export const CLOSE_BLOCKERS = [
   "Move-in date not fixed",
   "Inventory to confirm",
 ];
+
+/**
+ * "It did not close — what problem came up?"
+ * One tap, honest, and short enough that people actually answer it.
+ */
+export const CLOSE_PROBLEMS = [
+  "Customer went silent",
+  "Customer chose another property",
+  "Budget / price too high",
+  "Funds not arranged yet",
+  "Family said no",
+  "Room no longer available",
+  "Move-in date pushed",
+  "Visit did not happen",
+  "Paperwork / documents stuck",
+  "I could not get to it in time",
+] as const;
+
+/** Generic next steps offered on every promise, on top of the window's own manual. */
+export const CLOSE_STEPS = [
+  "Call the customer now",
+  "Send the payment link",
+  "Share the room photos / video",
+  "Confirm the room hold with supply",
+  "Get the decision maker on the call",
+  "Schedule the visit",
+  "Send the agreement / documents",
+  "Follow up the morning of the deadline",
+] as const;
