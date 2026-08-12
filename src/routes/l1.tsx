@@ -26,7 +26,35 @@ function L1Page() {
     <AppShell>
       <div className="space-y-4">
         <header>
-          <h1 className="text-2xl font-bold tracking-tight">L1 Review</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight">L1 Review</h1>
+            <HowButton
+              withText
+              title="How to run L1 Review"
+              why="L1 is where a conversation stops being an opinion and becomes a score. Without it nobody can say why 30 bookings a day did not happen."
+              howToExecute={[
+                "Review 100 interactions a day: pick the newest first, oldest never.",
+                "Score against the step list only — speed, understanding, follow-up, the extra 10%.",
+                "Every low score must end in a label on the lead and a close promise or a written reason there is none.",
+                "Close the loop the same day: the person who was reviewed must see the mark before the next shift.",
+              ]}
+              whatNotToDo={[
+                "Do not review only bad calls — the wow moments are what the team copies.",
+                "Do not score without quoting the line that earned the mark.",
+                "Do not let AI-only scores stand on a disputed conversation; re-do it manually.",
+              ]}
+              problemsThatCanOccur={[
+                "Reviews pile up and the feedback arrives too late to change behaviour.",
+                "Everyone scores an identical 7 — the scale stops discriminating.",
+              ]}
+              branches={[
+                { condition: "The same failure appears in 3+ reviews for one person", then: "Stop reviewing them and coach the single behaviour instead." },
+                { condition: "A zone scores well but does not book", then: "The gap is inventory or pricing, not conversation quality." },
+                { condition: "AI and manual scores disagree by 3+", then: "Trust the manual score and note why the AI misread it." },
+              ]}
+              doneWhen="Today's 100 are marked, every low score has a label on the lead, and each reviewed person has seen their mark."
+            />
+          </div>
           <p className="text-sm text-muted-foreground">
             Every chat and every call, audited against the step list — zone by zone. Was it followed,
             was it fast, did we understand, did we add the extra 10%, and when does the money land?
