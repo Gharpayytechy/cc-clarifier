@@ -88,6 +88,7 @@ export function LeadActionsMenu({ lead, size = 'sm' }: Props) {
           <ExternalLink className="h-3.5 w-3.5 mr-2" /> Send 2h reminder
         </DropdownMenuItem>
       </DropdownMenuContent>
-    </DropdownMenu>
+      </DropdownMenu>
+    </div>
   );
 }
