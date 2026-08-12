@@ -23,7 +23,9 @@ export function LeadActionsMenu({ lead, size = 'sm' }: Props) {
   const canSendTourMsg = !!tour && !!property;
 
   return (
-    <DropdownMenu>
+    <div className="flex items-center gap-1">
+      <CloseCommitButton leadId={lead.id} leadName={lead.name} leadPhone={lead.phone} actorName={tcm?.name ?? 'You'} />
+      <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
