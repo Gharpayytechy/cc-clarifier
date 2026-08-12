@@ -8,6 +8,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { MessageCircle, Phone, CalendarPlus, BellRing, MoreVertical, ExternalLink, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Lead } from '@/lib/types';
+import { CloseCommitButton } from '@/components/commitments/CloseCommitButton';
 
 interface Props {
   lead: Lead;
