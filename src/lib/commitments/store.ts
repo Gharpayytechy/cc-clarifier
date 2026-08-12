@@ -17,6 +17,10 @@ export interface CommitmentEvent {
   prevDueAt?: string;
   reason?: string;
   note?: string;
+  /** Steps the closer committed to executing. */
+  steps?: string[];
+  /** The problem that stopped the close (only on `broken`). */
+  problem?: string;
 }
 
 export interface CloseCommitment {
@@ -26,14 +30,18 @@ export interface CloseCommitment {
   leadPhone: string;
   windowId: CloseWindowId;
   dueAt: string;
-  /** The one thing standing between this lead and money. */
+  /** Optional legacy field — no longer asked for at promise time. */
   blocker: string;
-  /** Closer's own confidence, 50-100. */
+  /** Optional legacy field — no longer asked for at promise time. */
   confidence: number;
+  /** The steps the closer ticked as their plan. */
+  steps: string[];
   note: string;
   promisedBy: string;
   promisedAt: string;
   status: CommitmentStatus;
+  /** Why it did not close — required when the promise breaks. */
+  problem?: string;
   closedAt?: string;
   bookingRef?: string;
   /** How many times the deadline moved. High = unreliable promise. */
@@ -79,12 +87,26 @@ export function useCommitments(): CloseCommitment[] {
   return useSyncExternalStore(subscribe, read, () => EMPTY);
 }
 
-export function dueFromWindow(windowId: CloseWindowId, customDate?: string): string {
+/**
+ * @param timeOfDay "HH:MM" — the exact hour the closer says the money moves.
+ * It overrides the clock time of the computed deadline, keeping its date.
+ */
+export function dueFromWindow(windowId: CloseWindowId, customDate?: string, timeOfDay?: string): string {
   const def = WINDOW_BY_ID[windowId];
-  if (!def || def.hours === null) {
-    return customDate ? new Date(customDate).toISOString() : new Date(Date.now() + 86_400_000).toISOString();
+  const base =
+    !def || def.hours === null
+      ? customDate
+        ? new Date(customDate)
+        : new Date(Date.now() + 86_400_000)
+      : new Date(Date.now() + def.hours * 3_600_000);
+
+  if (timeOfDay && /^\d{1,2}:\d{2}$/.test(timeOfDay)) {
+    const [h, m] = timeOfDay.split(":").map(Number);
+    base.setHours(h, m, 0, 0);
+    // A same-day time that already passed means they mean tomorrow.
+    if (base.getTime() < Date.now()) base.setDate(base.getDate() + 1);
   }
-  return new Date(Date.now() + def.hours * 3_600_000).toISOString();
+  return base.toISOString();
 }
 
 export function openCommitmentFor(all: CloseCommitment[], leadId: string) {
@@ -101,14 +123,16 @@ export function promiseClose(input: {
   leadPhone: string;
   windowId: CloseWindowId;
   customDate?: string;
-  blocker: string;
-  confidence: number;
+  timeOfDay?: string;
+  blocker?: string;
+  confidence?: number;
+  steps?: string[];
   note?: string;
   by: string;
 }): CloseCommitment {
   const all = read();
   const existing = openCommitmentFor(all, input.leadId);
-  const dueAt = dueFromWindow(input.windowId, input.customDate);
+  const dueAt = dueFromWindow(input.windowId, input.customDate, input.timeOfDay);
   const now = new Date().toISOString();
 
   if (existing) {
@@ -117,13 +141,15 @@ export function promiseClose(input: {
       at: now, by: input.by, kind: "changed",
       windowId: input.windowId, dueAt, prevDueAt: existing.dueAt,
       reason: input.note?.trim() || "Deadline updated",
+      steps: input.steps,
     };
     const updated: CloseCommitment = {
       ...existing,
       windowId: input.windowId,
       dueAt,
-      blocker: input.blocker,
-      confidence: input.confidence,
+      blocker: input.blocker ?? existing.blocker,
+      confidence: input.confidence ?? existing.confidence,
+      steps: input.steps ?? existing.steps,
       note: input.note?.trim() ?? existing.note,
       changeCount: existing.changeCount + 1,
       history: [ev, ...existing.history],
@@ -139,20 +165,21 @@ export function promiseClose(input: {
     leadPhone: input.leadPhone,
     windowId: input.windowId,
     dueAt,
-    blocker: input.blocker,
-    confidence: input.confidence,
+    blocker: input.blocker ?? "",
+    confidence: input.confidence ?? 80,
+    steps: input.steps ?? [],
     note: input.note?.trim() ?? "",
     promisedBy: input.by,
     promisedAt: now,
     status: "open",
     changeCount: 0,
-    history: [{ at: now, by: input.by, kind: "promised", windowId: input.windowId, dueAt, note: input.note?.trim() }],
+    history: [{ at: now, by: input.by, kind: "promised", windowId: input.windowId, dueAt, note: input.note?.trim(), steps: input.steps }],
   };
   write([rec, ...all]);
   return rec;
 }
 
-function settle(id: string, status: CommitmentStatus, by: string, reason: string, bookingRef?: string) {
+function settle(id: string, status: CommitmentStatus, by: string, reason: string, bookingRef?: string, problem?: string) {
   const now = new Date().toISOString();
   write(
     read().map((c) =>
@@ -160,10 +187,11 @@ function settle(id: string, status: CommitmentStatus, by: string, reason: string
         ? {
             ...c,
             status,
+            problem: problem ?? c.problem,
             closedAt: now,
             bookingRef: bookingRef ?? c.bookingRef,
             history: [
-              { at: now, by, kind: status === "kept" ? "kept" : status === "broken" ? "broken" : "cancelled", reason },
+              { at: now, by, kind: status === "kept" ? "kept" : status === "broken" ? "broken" : "cancelled", reason, problem },
               ...c.history,
             ],
           }
@@ -174,7 +202,18 @@ function settle(id: string, status: CommitmentStatus, by: string, reason: string
 
 export const markKept = (id: string, by: string, bookingRef = "", reason = "Booked") =>
   settle(id, "kept", by, reason, bookingRef);
-export const markBroken = (id: string, by: string, reason: string) => settle(id, "broken", by, reason);
+export const markBroken = (id: string, by: string, problem: string, note = "") =>
+  settle(id, "broken", by, note.trim() ? `${problem} — ${note.trim()}` : problem, undefined, problem);
+
+/** Which problems are actually killing promises — read in the daily review. */
+export function problemBreakdown(all: CloseCommitment[]) {
+  const map = new Map<string, number>();
+  for (const c of all) {
+    if (c.status !== "broken" || !c.problem) continue;
+    map.set(c.problem, (map.get(c.problem) ?? 0) + 1);
+  }
+  return [...map.entries()].map(([problem, count]) => ({ problem, count })).sort((a, b) => b.count - a.count);
+}
 export const cancelCommitment = (id: string, by: string, reason: string) => settle(id, "cancelled", by, reason);
 
 export function addCommitmentNote(id: string, by: string, note: string) {

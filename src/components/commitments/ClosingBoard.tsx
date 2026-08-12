@@ -7,9 +7,10 @@ import { AlertTriangle, CheckCircle2, Clock, History, Target, TrendingUp, XCircl
 import { HowButton } from "@/components/common/HowButton";
 import { WINDOW_BY_ID, TONE_STYLE } from "@/lib/commitments/windows";
 import {
-  useCommitments, boardStats, reliabilityByPerson, isDueToday, isExpired, hoursLeft,
-  markKept, markBroken, type CloseCommitment,
+  useCommitments, boardStats, reliabilityByPerson, problemBreakdown, isDueToday, isExpired, hoursLeft,
+  markKept, type CloseCommitment,
 } from "@/lib/commitments/store";
+import { NotClosedDialog } from "./NotClosedDialog";
 
 type Bucket = "today" | "overdue" | "open" | "settled";
 
@@ -32,6 +33,7 @@ export function ClosingBoard() {
 
   const stats = boardStats(all, now);
   const people = useMemo(() => reliabilityByPerson(all), [all]);
+  const problems = useMemo(() => problemBreakdown(all), [all]);
 
   const list = useMemo(() => {
     const open = all.filter((c) => c.status === "open");
@@ -74,7 +76,7 @@ export function ClosingBoard() {
           why="This board is the only honest forecast of money landing. It is built from promises a named person made on a named lead, not from stage guesses."
           howToExecute={[
             "Open 'Closing today' at the start of the shift and read every row out loud with the owner.",
-            "For each row confirm the blocker is still the real blocker — if it changed, move the promise with a reason.",
+            "For each row confirm the steps are still the right steps — if reality moved, move the deadline.",
             "Clear 'Overdue' before anything else: each one is either kept, broken, or re-promised with a written reason.",
             "At end of day mark every settled promise so accuracy stays truthful.",
           ]}
@@ -106,6 +108,32 @@ export function ClosingBoard() {
           <Row key={c.id} c={c} now={now} />
         ))}
       </div>
+
+      {problems.length > 0 && (
+        <Card className="p-3">
+          <div className="mb-2 flex items-center gap-1.5">
+            <p className="text-xs font-semibold">Why promises broke</p>
+            <HowButton
+              title="The broken-promise reasons"
+              why="This is the single most useful list on the floor: it tells you whether you are losing money to price, to inventory, to silence, or to your own follow-up. Fix the top reason and the accuracy number moves on its own."
+              howToExecute={[
+                "Read the top reason every morning and name one change that removes it this week.",
+                "If 'I could not get to it in time' is top, the problem is capacity, not customers.",
+                "If 'chose another property' is top, the problem is the pitch or the inventory.",
+              ]}
+              whatNotToDo={["Do not let people log the same vague reason forever without a fix."]}
+              doneWhen="The top reason this week is different from the top reason last week."
+            />
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {problems.map((p) => (
+              <Badge key={p.problem} variant="outline" className="text-[11px]">
+                {p.problem} · <span className="ml-1 font-semibold tabular-nums">{p.count}</span>
+              </Badge>
+            ))}
+          </div>
+        </Card>
+      )}
 
       <Card className="p-3">
         <div className="mb-2 flex items-center gap-1.5">
@@ -170,8 +198,14 @@ function Row({ c, now }: { c: CloseCommitment; now: number }) {
             )}
           </div>
           <p className="mt-0.5 text-[11px] text-muted-foreground">
-            due {fmt(c.dueAt)} · {c.promisedBy} · blocker: {c.blocker} · {c.confidence}% sure
+            due {fmt(c.dueAt)} · {c.promisedBy}
           </p>
+          {c.steps?.length > 0 && (
+            <p className="mt-0.5 text-[11px] text-muted-foreground">Steps: {c.steps.join(" · ")}</p>
+          )}
+          {c.problem && (
+            <p className="mt-0.5 text-[11px] font-medium text-destructive">Did not close — {c.problem}</p>
+          )}
           {c.note && <p className="mt-0.5 text-[11px] text-foreground/80">Plan: {c.note}</p>}
         </div>
         <div className="flex flex-wrap items-center gap-1">
@@ -180,14 +214,7 @@ function Row({ c, now }: { c: CloseCommitment; now: number }) {
               <Button size="sm" variant="outline" className="h-7 gap-1 text-[11px] text-emerald-600" onClick={() => markKept(c.id, c.promisedBy)}>
                 <CheckCircle2 className="h-3 w-3" /> It closed
               </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 gap-1 text-[11px] text-destructive"
-                onClick={() => markBroken(c.id, c.promisedBy, "Marked broken from the Closing Board")}
-              >
-                <XCircle className="h-3 w-3" /> Did not close
-              </Button>
+              <NotClosedDialog commitmentId={c.id} leadName={c.leadName} actorName={c.promisedBy} />
             </>
           )}
           <Button size="sm" variant="ghost" className="h-7 gap-1 text-[11px]" onClick={() => setShowHistory((v) => !v)}>
