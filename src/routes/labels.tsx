@@ -34,7 +34,36 @@ function LabelsPage() {
     <AppShell>
       <div className="space-y-4">
         <header>
-          <h1 className="text-2xl font-bold tracking-tight">Lead Label Console</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight">Lead Label Console</h1>
+            <HowButton
+              withText
+              title="How to run the Label Console"
+              why="A label is an order, not a tag. It tells the lead's owner exactly what to fix, by when, and the reviewer can verify it was done."
+              howToExecute={[
+                "Search the lead by name, phone or area — never label from memory.",
+                "Pick the label that matches what you actually saw in the chat or call recording.",
+                "Write the customer's own words in the note so the owner does not have to guess.",
+                "Come back to 'Open instructions' and clear anything overdue before end of shift.",
+                "Attach a close promise on the same lead so the instruction has a deadline behind it.",
+              ]}
+              whatNotToDo={[
+                "Do not stack five labels on one lead — the owner will action none of them.",
+                "Do not label without a note; a bare label gets ignored.",
+                "Do not resolve your own label without evidence in the thread.",
+              ]}
+              problemsThatCanOccur={[
+                "Labels pile up past SLA and the console becomes wallpaper.",
+                "Two reviewers label the same lead differently and the owner freezes.",
+              ]}
+              branches={[
+                { condition: "The same label repeats across a person's leads", then: "It is a training gap — raise it in the daily review, not on each lead." },
+                { condition: "Label is overdue by more than one SLA cycle", then: "Escalate to the zone lead and reassign the lead." },
+                { condition: "Owner disputes the label", then: "Re-listen to the call, then either keep it with evidence or remove it with a reason." },
+              ]}
+              doneWhen="Zero overdue instructions and every high-intent lead carries at most one open label."
+            />
+          </div>
           <p className="text-sm text-muted-foreground">
             Search any lead in the marketplace or in anyone's queue, and attach an instruction that carries its
             own manual — why it exists, how to execute it, what not to do, what can go wrong, and the if/else
