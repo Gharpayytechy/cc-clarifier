@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import type { Lead } from "@/lib/types";
 import { liveConfidence, intentFor } from "@/lib/engine";
 import { useMountedNow } from "@/hooks/use-now";
+import { CloseCommitButton } from "@/components/commitments/CloseCommitButton";
 
 /**
  * One row, one decision. Inline call/WA/done without opening a drawer.
