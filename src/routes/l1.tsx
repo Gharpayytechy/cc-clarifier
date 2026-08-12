@@ -6,6 +6,7 @@ import { L1ZoneBoard } from "@/components/l1/L1ZoneBoard";
 import { L1ManualReview } from "@/components/l1/L1ManualReview";
 import { L1DailyBoard } from "@/components/l1/L1DailyBoard";
 import { ClientOnly } from "@/components/ClientOnly";
+import { HowButton } from "@/components/common/HowButton";
 
 export const Route = createFileRoute("/l1")({
   head: () => ({
