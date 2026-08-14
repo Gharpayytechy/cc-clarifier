@@ -47,6 +47,7 @@ import { Route as SupplyHubIndexRouteImport } from './routes/supply-hub/index'
 import { Route as Property360IndexRouteImport } from './routes/property360/index'
 import { Route as OwnerIndexRouteImport } from './routes/owner/index'
 import { Route as MytIndexRouteImport } from './routes/myt/index'
+import { Route as TowerWorkflowGuaranteeRouteImport } from './routes/tower.workflow-guarantee'
 import { Route as TowerTeamRouteImport } from './routes/tower.team'
 import { Route as TowerQualityRouteImport } from './routes/tower.quality'
 import { Route as TowerMyLeadsRouteImport } from './routes/tower.my-leads'
@@ -289,6 +290,11 @@ const MytIndexRoute = MytIndexRouteImport.update({
   id: '/myt/',
   path: '/myt/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const TowerWorkflowGuaranteeRoute = TowerWorkflowGuaranteeRouteImport.update({
+  id: '/workflow-guarantee',
+  path: '/workflow-guarantee',
+  getParentRoute: () => TowerRoute,
 } as any)
 const TowerTeamRoute = TowerTeamRouteImport.update({
   id: '/team',
@@ -628,6 +634,7 @@ export interface FileRoutesByFullPath {
   '/tower/my-leads': typeof TowerMyLeadsRoute
   '/tower/quality': typeof TowerQualityRoute
   '/tower/team': typeof TowerTeamRoute
+  '/tower/workflow-guarantee': typeof TowerWorkflowGuaranteeRoute
   '/myt/': typeof MytIndexRoute
   '/owner/': typeof OwnerIndexRoute
   '/property360/': typeof Property360IndexRoute
@@ -719,6 +726,7 @@ export interface FileRoutesByTo {
   '/tower/my-leads': typeof TowerMyLeadsRoute
   '/tower/quality': typeof TowerQualityRoute
   '/tower/team': typeof TowerTeamRoute
+  '/tower/workflow-guarantee': typeof TowerWorkflowGuaranteeRoute
   '/myt': typeof MytIndexRoute
   '/owner': typeof OwnerIndexRoute
   '/property360': typeof Property360IndexRoute
@@ -812,6 +820,7 @@ export interface FileRoutesById {
   '/tower/my-leads': typeof TowerMyLeadsRoute
   '/tower/quality': typeof TowerQualityRoute
   '/tower/team': typeof TowerTeamRoute
+  '/tower/workflow-guarantee': typeof TowerWorkflowGuaranteeRoute
   '/myt/': typeof MytIndexRoute
   '/owner/': typeof OwnerIndexRoute
   '/property360/': typeof Property360IndexRoute
@@ -906,6 +915,7 @@ export interface FileRouteTypes {
     | '/tower/my-leads'
     | '/tower/quality'
     | '/tower/team'
+    | '/tower/workflow-guarantee'
     | '/myt/'
     | '/owner/'
     | '/property360/'
@@ -997,6 +1007,7 @@ export interface FileRouteTypes {
     | '/tower/my-leads'
     | '/tower/quality'
     | '/tower/team'
+    | '/tower/workflow-guarantee'
     | '/myt'
     | '/owner'
     | '/property360'
@@ -1089,6 +1100,7 @@ export interface FileRouteTypes {
     | '/tower/my-leads'
     | '/tower/quality'
     | '/tower/team'
+    | '/tower/workflow-guarantee'
     | '/myt/'
     | '/owner/'
     | '/property360/'
@@ -1446,6 +1458,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/myt/'
       preLoaderRoute: typeof MytIndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/tower/workflow-guarantee': {
+      id: '/tower/workflow-guarantee'
+      path: '/workflow-guarantee'
+      fullPath: '/tower/workflow-guarantee'
+      preLoaderRoute: typeof TowerWorkflowGuaranteeRouteImport
+      parentRoute: typeof TowerRoute
     }
     '/tower/team': {
       id: '/tower/team'
@@ -1836,6 +1855,7 @@ interface TowerRouteChildren {
   TowerMyLeadsRoute: typeof TowerMyLeadsRoute
   TowerQualityRoute: typeof TowerQualityRoute
   TowerTeamRoute: typeof TowerTeamRoute
+  TowerWorkflowGuaranteeRoute: typeof TowerWorkflowGuaranteeRoute
   TowerIndexRoute: typeof TowerIndexRoute
   TowerLeadsIdRoute: typeof TowerLeadsIdRoute
   TowerReviewIdRoute: typeof TowerReviewIdRoute
@@ -1854,6 +1874,7 @@ const TowerRouteChildren: TowerRouteChildren = {
   TowerMyLeadsRoute: TowerMyLeadsRoute,
   TowerQualityRoute: TowerQualityRoute,
   TowerTeamRoute: TowerTeamRoute,
+  TowerWorkflowGuaranteeRoute: TowerWorkflowGuaranteeRoute,
   TowerIndexRoute: TowerIndexRoute,
   TowerLeadsIdRoute: TowerLeadsIdRoute,
   TowerReviewIdRoute: TowerReviewIdRoute,
