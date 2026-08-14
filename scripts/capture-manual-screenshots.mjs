@@ -6,10 +6,10 @@ const BASE_URL = process.env.CRM_URL || 'https://clean-lead-dream.lovable.app';
 const OUT = process.env.SCREENSHOT_DIR || 'manual-screenshots';
 
 const roles = [
-  { value: 'flow-ops', label: 'Flow Ops' },
-  { value: 'tcm', label: 'TCM' },
-  { value: 'hr', label: 'HR / Leadership' },
-  { value: 'owner', label: 'Property Owner' },
+  { value: 'flow-ops', label: 'Flow Ops', index: 0 },
+  { value: 'tcm', label: 'TCM', index: 1 },
+  { value: 'hr', label: 'HR / Leadership', index: 2 },
+  { value: 'owner', label: 'Property Owner', index: 3 },
 ];
 
 const extraRoutes = [
@@ -23,16 +23,14 @@ async function ensureDir(dir) { await fs.mkdir(dir, { recursive: true }); }
 
 async function settle(page) {
   await page.waitForLoadState('domcontentloaded').catch(() => {});
-  await page.waitForTimeout(1400);
+  await page.waitForTimeout(1200);
 }
 
 async function dismissBlockingOverlays(page) {
-  // Dismiss the first-run walkthrough via the same localStorage contract the app uses.
   await page.evaluate(() => {
     try { localStorage.setItem('gharpayy.onboarding.completed.v1', '1'); } catch {}
   }).catch(() => {});
 
-  // Close any transient Radix dialog / onboarding surface that may already have mounted.
   for (let i = 0; i < 4; i++) {
     const candidates = [
       page.getByRole('button', { name: /skip walkthrough/i }),
@@ -48,7 +46,7 @@ async function dismissBlockingOverlays(page) {
         if (await first.isVisible().catch(() => false)) {
           await first.click({ force: true }).catch(() => {});
           clicked = true;
-          await page.waitForTimeout(200);
+          await page.waitForTimeout(150);
           break;
         }
       }
@@ -57,31 +55,29 @@ async function dismissBlockingOverlays(page) {
     if (!clicked) break;
   }
 
-  // Last-resort cleanup for non-business first-load modals only; this prevents
-  // an overlay from blocking navigation during documentation capture.
   await page.evaluate(() => {
     document.querySelectorAll('[data-state="open"][aria-hidden="true"]').forEach((el) => {
-      const htmlEl = el;
-      if (htmlEl instanceof HTMLElement) htmlEl.style.pointerEvents = 'none';
+      if (el instanceof HTMLElement) el.style.pointerEvents = 'none';
     });
   }).catch(() => {});
 }
 
-async function selectRole(page, roleLabel) {
+async function selectRole(page, role) {
   await dismissBlockingOverlays(page);
+  // A full page navigation resets the app store to Flow Ops. For Flow Ops no UI
+  // action is needed. For the other roles use deterministic keyboard navigation
+  // through the Radix Select in the source-defined order.
+  if (role.index === 0) return;
+
   const trigger = page.locator('text=View as').locator('..').locator('button').first();
-  if (await trigger.count()) {
-    await trigger.click({ force: true, timeout: 10000 });
-    await page.waitForTimeout(200);
-    const option = page.getByRole('option', { name: roleLabel });
-    if (await option.count()) await option.click({ force: true });
-    else {
-      const fallback = page.getByText(roleLabel, { exact: true }).last();
-      if (await fallback.count()) await fallback.click({ force: true });
-    }
-    await page.waitForTimeout(600);
-    await dismissBlockingOverlays(page);
-  }
+  if (!(await trigger.count())) throw new Error('Role selector not found');
+
+  await trigger.click({ force: true, timeout: 10000 });
+  await page.waitForTimeout(150);
+  for (let i = 0; i < role.index; i++) await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(500);
+  await dismissBlockingOverlays(page);
 }
 
 async function capture(page, roleValue, route, suffix = '') {
@@ -108,7 +104,7 @@ for (const role of roles) {
   await page.goto(BASE_URL, { waitUntil: 'domcontentloaded', timeout: 60000 });
   await settle(page);
   await dismissBlockingOverlays(page);
-  await selectRole(page, role.label);
+  await selectRole(page, role);
 
   await capture(page, role.value, '/');
 
@@ -120,7 +116,7 @@ for (const role of roles) {
       await page.goto(new URL(route, BASE_URL).toString(), { waitUntil: 'domcontentloaded', timeout: 60000 });
       await settle(page);
       await dismissBlockingOverlays(page);
-      await selectRole(page, role.label);
+      await selectRole(page, role);
       await settle(page);
       await capture(page, role.value, route);
     } catch (err) {
@@ -134,7 +130,7 @@ for (const role of roles) {
       await page.goto(new URL(route, BASE_URL).toString(), { waitUntil: 'domcontentloaded', timeout: 60000 });
       await settle(page);
       await dismissBlockingOverlays(page);
-      await selectRole(page, role.label);
+      await selectRole(page, role);
       await settle(page);
       await capture(page, role.value, route, '-extra');
     } catch (err) {
