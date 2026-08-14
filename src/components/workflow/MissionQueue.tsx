@@ -6,7 +6,7 @@ import { HealthPill, SeverityChip, MotionLine, ProgressRow, EmptyQueue } from ".
 import { OutcomeDialog } from "./OutcomeDialog";
 import { useWorkflowActions } from "./use-actions";
 import { useWorkflowBoard } from "@/lib/workflow/use-board";
-import { buildWaves, recoveryQueue, fmtDur, type LeadMotion } from "@/lib/workflow/engine";
+import { buildWaves, recoveryQueue, fmtDur, workedHours, type LeadMotion } from "@/lib/workflow/engine";
 import { useWorkflow } from "@/lib/workflow/store";
 
 /**
@@ -35,6 +35,7 @@ export function MissionQueue() {
     [board, currentUser.id, myFlow?.requiredActions, myFlow?.completedActions],
   );
 
+  const hoursLeftMs = workedHours(Date.now()).remaining;
   const wave = waves[Math.min(waveIdx, Math.max(0, waves.length - 1))];
   const current = wave?.items[0] ?? queue[0] ?? null;
 
