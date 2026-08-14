@@ -53,7 +53,7 @@ export function MissionQueue() {
           <Card className="p-4 space-y-3">
             <div className="flex items-baseline justify-between">
               <span className="text-xs uppercase tracking-wide text-muted-foreground">Today's mission</span>
-              <span className="text-xs text-muted-foreground">{fmtDur(myFlow.remainingMs)} left</span>
+              <span className="text-xs text-muted-foreground">{fmtDur(hoursLeftMs)} left</span>
             </div>
             <ProgressRow label="Actions completed" value={myFlow.completedActions} target={myFlow.requiredActions} />
             <ProgressRow label="Unique leads touched" value={myFlow.uniqueLeads} target={myFlow.requiredActions} />
@@ -83,10 +83,10 @@ export function MissionQueue() {
           <h2 className="text-sm font-semibold">Waves</h2>
           <div className="flex flex-wrap gap-2">
             {waves.map((w, i) => (
-              <button key={w.label} type="button" onClick={() => setWaveIdx(i)}
+              <button key={w.index} type="button" onClick={() => setWaveIdx(i)}
                 className={cn("rounded-lg border px-3 py-2 text-left text-xs transition-colors",
                   i === waveIdx ? "border-primary bg-primary/5" : "hover:bg-muted/50")}>
-                <div className="font-medium">{w.label}</div>
+                <div className="font-medium">{w.title}</div>
                 <div className="text-muted-foreground">{w.items.length} leads</div>
               </button>
             ))}
@@ -127,7 +127,7 @@ export function MissionQueue() {
       {/* Rest of the wave */}
       {wave && wave.items.length > 1 && (
         <section className="space-y-2">
-          <h2 className="text-sm font-semibold">Rest of {wave.label.toLowerCase()}</h2>
+          <h2 className="text-sm font-semibold">Rest of {wave.title.toLowerCase()}</h2>
           <div className="space-y-1.5">
             {wave.items.slice(1).map((m) => (
               <div key={m.lead.ulid} className="rounded-lg border p-2.5 flex flex-wrap items-center justify-between gap-2">
