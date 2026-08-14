@@ -1,0 +1,38 @@
+name: Manual Button Capture
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/manual-button-capture.yml'
+      - 'scripts/capture-manual-button-flows.mjs'
+  workflow_dispatch:
+
+# Temporary documentation-only workflow. Safe to remove after artifact upload.
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Playwright
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Capture CRM button flows
+        env:
+          CRM_URL: https://clean-lead-dream.lovable.app
+          SCREENSHOT_DIR: manual-button-flows
+        run: node scripts/capture-manual-button-flows.mjs
+      - name: Upload button-flow screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gharpayy-crm-button-flow-screenshots
+          path: manual-button-flows
+          if-no-files-found: warn
+          retention-days: 7
