@@ -411,7 +411,7 @@ export interface RecoveryProposal {
 
 export function recoveryProposals(board: LeadMotion[], now: number): RecoveryProposal[] {
   const stage = (m: LeadMotion) => deriveStage(m.lead);
-  const proposals: RecoveryProposal[] = [
+  const proposals: Omit<RecoveryProposal, "count">[] = [
     {
       title: "Move high-intent connected customers into tour recovery",
       detail: "Connected, interested, still no tour scheduled.",
