@@ -50,6 +50,7 @@ import { Route as MytIndexRouteImport } from './routes/myt/index'
 import { Route as TowerTeamRouteImport } from './routes/tower.team'
 import { Route as TowerQualityRouteImport } from './routes/tower.quality'
 import { Route as TowerMyLeadsRouteImport } from './routes/tower.my-leads'
+import { Route as TowerInterventionsRouteImport } from './routes/tower.interventions'
 import { Route as TowerGuideRouteImport } from './routes/tower.guide'
 import { Route as TowerFeedbackRouteImport } from './routes/tower.feedback'
 import { Route as TowerEodRouteImport } from './routes/tower.eod'
@@ -302,6 +303,11 @@ const TowerQualityRoute = TowerQualityRouteImport.update({
 const TowerMyLeadsRoute = TowerMyLeadsRouteImport.update({
   id: '/my-leads',
   path: '/my-leads',
+  getParentRoute: () => TowerRoute,
+} as any)
+const TowerInterventionsRoute = TowerInterventionsRouteImport.update({
+  id: '/interventions',
+  path: '/interventions',
   getParentRoute: () => TowerRoute,
 } as any)
 const TowerGuideRoute = TowerGuideRouteImport.update({
@@ -618,6 +624,7 @@ export interface FileRoutesByFullPath {
   '/tower/eod': typeof TowerEodRoute
   '/tower/feedback': typeof TowerFeedbackRoute
   '/tower/guide': typeof TowerGuideRoute
+  '/tower/interventions': typeof TowerInterventionsRoute
   '/tower/my-leads': typeof TowerMyLeadsRoute
   '/tower/quality': typeof TowerQualityRoute
   '/tower/team': typeof TowerTeamRoute
@@ -708,6 +715,7 @@ export interface FileRoutesByTo {
   '/tower/eod': typeof TowerEodRoute
   '/tower/feedback': typeof TowerFeedbackRoute
   '/tower/guide': typeof TowerGuideRoute
+  '/tower/interventions': typeof TowerInterventionsRoute
   '/tower/my-leads': typeof TowerMyLeadsRoute
   '/tower/quality': typeof TowerQualityRoute
   '/tower/team': typeof TowerTeamRoute
@@ -800,6 +808,7 @@ export interface FileRoutesById {
   '/tower/eod': typeof TowerEodRoute
   '/tower/feedback': typeof TowerFeedbackRoute
   '/tower/guide': typeof TowerGuideRoute
+  '/tower/interventions': typeof TowerInterventionsRoute
   '/tower/my-leads': typeof TowerMyLeadsRoute
   '/tower/quality': typeof TowerQualityRoute
   '/tower/team': typeof TowerTeamRoute
@@ -893,6 +902,7 @@ export interface FileRouteTypes {
     | '/tower/eod'
     | '/tower/feedback'
     | '/tower/guide'
+    | '/tower/interventions'
     | '/tower/my-leads'
     | '/tower/quality'
     | '/tower/team'
@@ -983,6 +993,7 @@ export interface FileRouteTypes {
     | '/tower/eod'
     | '/tower/feedback'
     | '/tower/guide'
+    | '/tower/interventions'
     | '/tower/my-leads'
     | '/tower/quality'
     | '/tower/team'
@@ -1074,6 +1085,7 @@ export interface FileRouteTypes {
     | '/tower/eod'
     | '/tower/feedback'
     | '/tower/guide'
+    | '/tower/interventions'
     | '/tower/my-leads'
     | '/tower/quality'
     | '/tower/team'
@@ -1456,6 +1468,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TowerMyLeadsRouteImport
       parentRoute: typeof TowerRoute
     }
+    '/tower/interventions': {
+      id: '/tower/interventions'
+      path: '/interventions'
+      fullPath: '/tower/interventions'
+      preLoaderRoute: typeof TowerInterventionsRouteImport
+      parentRoute: typeof TowerRoute
+    }
     '/tower/guide': {
       id: '/tower/guide'
       path: '/guide'
@@ -1813,6 +1832,7 @@ interface TowerRouteChildren {
   TowerEodRoute: typeof TowerEodRoute
   TowerFeedbackRoute: typeof TowerFeedbackRoute
   TowerGuideRoute: typeof TowerGuideRoute
+  TowerInterventionsRoute: typeof TowerInterventionsRoute
   TowerMyLeadsRoute: typeof TowerMyLeadsRoute
   TowerQualityRoute: typeof TowerQualityRoute
   TowerTeamRoute: typeof TowerTeamRoute
@@ -1830,6 +1850,7 @@ const TowerRouteChildren: TowerRouteChildren = {
   TowerEodRoute: TowerEodRoute,
   TowerFeedbackRoute: TowerFeedbackRoute,
   TowerGuideRoute: TowerGuideRoute,
+  TowerInterventionsRoute: TowerInterventionsRoute,
   TowerMyLeadsRoute: TowerMyLeadsRoute,
   TowerQualityRoute: TowerQualityRoute,
   TowerTeamRoute: TowerTeamRoute,
