@@ -50,6 +50,7 @@ export function guaranteeChain(
   people: PersonFlow[],
 ): ChainResult {
   const total = Math.max(board.length, 0);
+  const idle = total === 0;
 
   const identified = board.filter((m) => m.action || m.reason).length;
   const owned = board.filter((m) => m.ownerId).length;
@@ -98,8 +99,8 @@ export function guaranteeChain(
     {
       id: "outcome", step: 5, title: "Structured outcome captured",
       promise: "Work closes with a scenario code, not a free-text note.",
-      pct: pct(structured, Math.max(requiredWork, structured)), failing: Math.max(requiredWork - structured, 0),
-      detail: `${structured} of ${requiredWork} required actions completed`,
+      pct: idle ? 100 : pct(structured, Math.max(requiredWork, structured)), failing: idle ? 0 : Math.max(requiredWork - structured, 0),
+      detail: idle ? "No active work in the loop" : `${structured} of ${requiredWork} required actions completed`,
       autoResponse: "Outcome dialog blocks close-out until the scenario is chosen.",
     },
     {
@@ -129,16 +130,16 @@ export function guaranteeChain(
     {
       id: "forecast", step: 9, title: "Capacity and conversion forecast",
       promise: "Tomorrow's shortfall is visible today.",
-      pct: pct(forecastOk, Math.max(people.length, 1)), failing: people.length - forecastOk,
-      detail: `${capacityShort} queue shortages · ${people.length - forecastOk} projected to miss`,
+      pct: idle ? 100 : pct(forecastOk, Math.max(people.length, 1)), failing: idle ? 0 : people.length - forecastOk,
+      detail: idle ? "No load to forecast" : `${capacityShort} queue shortages · ${people.length - forecastOk} projected to miss`,
       autoResponse: "Reverse funnel converts targets into required actions per person.",
       to: "/tower/analytics",
     },
     {
       id: "recovery", step: 10, title: "Recovery starts before the miss",
       promise: "The plan is repaired while the target is still reachable.",
-      pct: pct(Math.max(people.length - recoveryNeeded, 0), Math.max(people.length, 1)), failing: recoveryNeeded,
-      detail: recoveryNeeded === 0 ? "No recovery required" : `${recoveryNeeded} people need a recovery plan now`,
+      pct: idle ? 100 : pct(Math.max(people.length - recoveryNeeded, 0), Math.max(people.length, 1)), failing: idle ? 0 : recoveryNeeded,
+      detail: idle || recoveryNeeded === 0 ? "No recovery required" : `${recoveryNeeded} people need a recovery plan now`,
       autoResponse: "Recovery queue reloads work and redistributes before EOD.",
       to: "/tower/interventions",
     },
