@@ -76,7 +76,7 @@ export function InterventionQueue() {
                     <SeverityChip severity={v.severity} />
                     <span className="font-medium">{m.lead.name}</span>
                     <HealthPill health={m.health} />
-                    <span className="text-[11px] font-mono text-muted-foreground">score {m.priority}</span>
+                    <span className="text-[11px] font-mono text-muted-foreground">score {m.priorityScore}</span>
                   </div>
                   <div className="text-sm">{v.label} <span className="text-muted-foreground">— {v.detail}</span></div>
                   <MotionLine m={m} />
