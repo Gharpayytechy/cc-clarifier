@@ -1,7 +1,9 @@
 import { Link } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { KpiTile, ProgressRow } from "./bits";
+import { GuaranteeChain } from "./GuaranteeChain";
 import { useWorkflowBoard } from "@/lib/workflow/use-board";
+import { guaranteeChain } from "@/lib/workflow/guarantee-chain";
 import { fmtDur, type WorkflowFunction } from "@/lib/workflow/engine";
 import { cn } from "@/lib/utils";
 import { AlertTriangle, ArrowUpRight, Gauge, Users } from "lucide-react";
@@ -18,6 +20,8 @@ const FN_LABEL: Record<WorkflowFunction, string> = {
 /** Level 1–3 of the Control Tower hierarchy (§30). */
 export function WorkflowGuaranteeDashboard() {
   const { board, kpis, people, shortages, eodRisks, mounted } = useWorkflowBoard();
+
+  const chain = useMemo(() => guaranteeChain(board, kpis, people), [board, kpis, people]);
 
   const byFn = useMemo(() => {
     const map = new Map<WorkflowFunction, { total: number; broken: number }>();
@@ -37,9 +41,14 @@ export function WorkflowGuaranteeDashboard() {
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">Workflow Guarantee</h1>
         <p className="text-sm text-muted-foreground">
-          One question: is every lead moving? Owner · stage · last action · next action · due time — if any is missing, it surfaces here.
+          Movement identified → owner assigned → deadline set → execution ranked → structured outcome → next movement
+          created → downstream role receives it → Tower watches exceptions → capacity and conversion forecast →
+          recovery before the target fails.
         </p>
       </header>
+
+      <GuaranteeChain chain={chain} mounted={mounted} />
+
 
       {/* Level 1 — is the business moving? */}
       <section className="rounded-xl border p-4 flex flex-wrap items-center gap-6">
