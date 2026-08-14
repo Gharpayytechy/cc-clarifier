@@ -57,6 +57,7 @@ import { Route as TowerGuideRouteImport } from './routes/tower.guide'
 import { Route as TowerFeedbackRouteImport } from './routes/tower.feedback'
 import { Route as TowerEodRouteImport } from './routes/tower.eod'
 import { Route as TowerDashboardRouteImport } from './routes/tower.dashboard'
+import { Route as TowerCaptureRouteImport } from './routes/tower.capture'
 import { Route as TowerAnalyticsRouteImport } from './routes/tower.analytics'
 import { Route as TowerAdminRouteImport } from './routes/tower.admin'
 import { Route as TowerAccessRouteImport } from './routes/tower.access'
@@ -340,6 +341,11 @@ const TowerEodRoute = TowerEodRouteImport.update({
 const TowerDashboardRoute = TowerDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => TowerRoute,
+} as any)
+const TowerCaptureRoute = TowerCaptureRouteImport.update({
+  id: '/capture',
+  path: '/capture',
   getParentRoute: () => TowerRoute,
 } as any)
 const TowerAnalyticsRoute = TowerAnalyticsRouteImport.update({
@@ -633,6 +639,7 @@ export interface FileRoutesByFullPath {
   '/tower/access': typeof TowerAccessRoute
   '/tower/admin': typeof TowerAdminRoute
   '/tower/analytics': typeof TowerAnalyticsRoute
+  '/tower/capture': typeof TowerCaptureRoute
   '/tower/dashboard': typeof TowerDashboardRoute
   '/tower/eod': typeof TowerEodRoute
   '/tower/feedback': typeof TowerFeedbackRoute
@@ -726,6 +733,7 @@ export interface FileRoutesByTo {
   '/tower/access': typeof TowerAccessRoute
   '/tower/admin': typeof TowerAdminRoute
   '/tower/analytics': typeof TowerAnalyticsRoute
+  '/tower/capture': typeof TowerCaptureRoute
   '/tower/dashboard': typeof TowerDashboardRoute
   '/tower/eod': typeof TowerEodRoute
   '/tower/feedback': typeof TowerFeedbackRoute
@@ -821,6 +829,7 @@ export interface FileRoutesById {
   '/tower/access': typeof TowerAccessRoute
   '/tower/admin': typeof TowerAdminRoute
   '/tower/analytics': typeof TowerAnalyticsRoute
+  '/tower/capture': typeof TowerCaptureRoute
   '/tower/dashboard': typeof TowerDashboardRoute
   '/tower/eod': typeof TowerEodRoute
   '/tower/feedback': typeof TowerFeedbackRoute
@@ -917,6 +926,7 @@ export interface FileRouteTypes {
     | '/tower/access'
     | '/tower/admin'
     | '/tower/analytics'
+    | '/tower/capture'
     | '/tower/dashboard'
     | '/tower/eod'
     | '/tower/feedback'
@@ -1010,6 +1020,7 @@ export interface FileRouteTypes {
     | '/tower/access'
     | '/tower/admin'
     | '/tower/analytics'
+    | '/tower/capture'
     | '/tower/dashboard'
     | '/tower/eod'
     | '/tower/feedback'
@@ -1104,6 +1115,7 @@ export interface FileRouteTypes {
     | '/tower/access'
     | '/tower/admin'
     | '/tower/analytics'
+    | '/tower/capture'
     | '/tower/dashboard'
     | '/tower/eod'
     | '/tower/feedback'
@@ -1542,6 +1554,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TowerDashboardRouteImport
       parentRoute: typeof TowerRoute
     }
+    '/tower/capture': {
+      id: '/tower/capture'
+      path: '/capture'
+      fullPath: '/tower/capture'
+      preLoaderRoute: typeof TowerCaptureRouteImport
+      parentRoute: typeof TowerRoute
+    }
     '/tower/analytics': {
       id: '/tower/analytics'
       path: '/analytics'
@@ -1867,6 +1886,7 @@ interface TowerRouteChildren {
   TowerAccessRoute: typeof TowerAccessRoute
   TowerAdminRoute: typeof TowerAdminRoute
   TowerAnalyticsRoute: typeof TowerAnalyticsRoute
+  TowerCaptureRoute: typeof TowerCaptureRoute
   TowerDashboardRoute: typeof TowerDashboardRoute
   TowerEodRoute: typeof TowerEodRoute
   TowerFeedbackRoute: typeof TowerFeedbackRoute
@@ -1886,6 +1906,7 @@ const TowerRouteChildren: TowerRouteChildren = {
   TowerAccessRoute: TowerAccessRoute,
   TowerAdminRoute: TowerAdminRoute,
   TowerAnalyticsRoute: TowerAnalyticsRoute,
+  TowerCaptureRoute: TowerCaptureRoute,
   TowerDashboardRoute: TowerDashboardRoute,
   TowerEodRoute: TowerEodRoute,
   TowerFeedbackRoute: TowerFeedbackRoute,
