@@ -116,7 +116,7 @@ export function guaranteeChain(
       pct: pct(received, total), failing: kpis.brokenHandoffs,
       detail: `${kpis.brokenHandoffs} handoffs never landed`,
       autoResponse: "Unaccepted handoffs bounce back and escalate.",
-      to: "/tower/handoffs",
+      to: "/handoffs",
     },
     {
       id: "exceptions", step: 8, title: "Control Tower watches exceptions",
