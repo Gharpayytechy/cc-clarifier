@@ -9,6 +9,7 @@ on:
       - 'scripts/capture-manual-screenshots.mjs'
   workflow_dispatch:
 
+# Temporary documentation-only workflow. Safe to remove after screenshot artifact upload.
 jobs:
   capture:
     runs-on: ubuntu-latest
