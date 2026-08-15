@@ -531,3 +531,25 @@ export function checkpointVerdict(f: PersonFlow): { status: CheckpointStatus; li
 }
 
 export { deriveStage, derivePhase };
+
+// ───────────────────────── role inference (§15/§30) ─────────────────────────
+
+/**
+ * A person's role is not a label in a settings screen — it is whatever work
+ * they actually hold. Their queue decides which guarantee applies to them.
+ */
+export function inferRole(board: LeadMotion[], userId: string, fallback: WorkRoleId = "flow-ops"): WorkRoleId {
+  const mine = board.filter((m) => m.ownerId === userId);
+  if (!mine.length) return fallback;
+  const tally = new Map<WorkRoleId, number>();
+  mine.forEach((m) => {
+    const r = roleOfFunction(m.fn);
+    tally.set(r, (tally.get(r) ?? 0) + 1);
+  });
+  let best: WorkRoleId = fallback;
+  let bestN = -1;
+  tally.forEach((n, r) => {
+    if (n > bestN) { best = r; bestN = n; }
+  });
+  return best;
+}
