@@ -8,9 +8,9 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { AttemptLike, ViolationCode } from "./engine";
+import type { AttemptLike, ViolationCode, WorkRoleId } from "./engine";
 
-export type WorkRole = "flow-ops" | "tour" | "closing";
+export type WorkRole = WorkRoleId;
 
 export interface DailyTargets {
   actions: number;
