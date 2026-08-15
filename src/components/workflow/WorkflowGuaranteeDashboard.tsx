@@ -2,9 +2,11 @@ import { Link } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { KpiTile, ProgressRow } from "./bits";
 import { GuaranteeChain } from "./GuaranteeChain";
+import { RoleGuaranteeGrid } from "./RoleGuaranteeGrid";
 import { useWorkflowBoard } from "@/lib/workflow/use-board";
 import { guaranteeChain } from "@/lib/workflow/guarantee-chain";
 import { fmtDur, type WorkflowFunction } from "@/lib/workflow/engine";
+import { ROLE_META } from "@/lib/workflow/roles";
 import { cn } from "@/lib/utils";
 import { AlertTriangle, ArrowUpRight, Gauge, Users } from "lucide-react";
 
@@ -19,7 +21,7 @@ const FN_LABEL: Record<WorkflowFunction, string> = {
 
 /** Level 1–3 of the Control Tower hierarchy (§30). */
 export function WorkflowGuaranteeDashboard() {
-  const { board, kpis, people, shortages, eodRisks, mounted } = useWorkflowBoard();
+  const { board, kpis, people, shortages, eodRisks, mounted, roles, allRolesGuarantee } = useWorkflowBoard();
 
   const chain = useMemo(() => guaranteeChain(board, kpis, people), [board, kpis, people]);
 
