@@ -6,17 +6,18 @@ import { HealthPill, SeverityChip, MotionLine, EmptyQueue, CountBadge } from "./
 import { OutcomeDialog } from "./OutcomeDialog";
 import { useWorkflowActions } from "./use-actions";
 import { useWorkflowBoard } from "@/lib/workflow/use-board";
-import type { LeadMotion, Severity } from "@/lib/workflow/engine";
+import { roleOfFunction, type LeadMotion, type Severity, type WorkRoleId } from "@/lib/workflow/engine";
 
 type Filter = "all" | Severity;
+interface InterventionTarget { motion: LeadMotion; role: WorkRoleId }
 
-/** §5 — one place to fix broken movement, with direct actions per row. */
+/** One place to fix broken movement, with the action form owned by the role responsible for the violation. */
 export function InterventionQueue() {
   const { board, mounted } = useWorkflowBoard();
   const a = useWorkflowActions();
   const [filter, setFilter] = useState<Filter>("all");
   const [q, setQ] = useState("");
-  const [target, setTarget] = useState<LeadMotion | null>(null);
+  const [target, setTarget] = useState<InterventionTarget | null>(null);
 
   const rows = useMemo(() => {
     let list = board.filter((m) => m.violations.length > 0);
@@ -43,7 +44,7 @@ export function InterventionQueue() {
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">Intervention queue</h1>
         <p className="text-sm text-muted-foreground">
-          Every broken guarantee, ranked. Fix it here — no need to open five screens.
+          Every broken guarantee, ranked. Work it in the role that actually owns the failure — not necessarily the lead's current stage.
         </p>
       </header>
 
@@ -68,6 +69,7 @@ export function InterventionQueue() {
       <div className="space-y-2">
         {rows.map((m) => {
           const v = m.violations[0];
+          const ownerRole = roleOfFunction(v.fn);
           return (
             <div key={m.lead.ulid} className="rounded-xl border p-3 space-y-2">
               <div className="flex flex-wrap items-start justify-between gap-2">
@@ -90,7 +92,7 @@ export function InterventionQueue() {
                   {!m.ownerId && (
                     <Button size="sm" onClick={() => a.assignToMe(m.lead.ulid)}>Assign to me</Button>
                   )}
-                  <Button size="sm" onClick={() => setTarget(m)}>Work it now</Button>
+                  <Button size="sm" onClick={() => setTarget({ motion: m, role: ownerRole })}>Work it now</Button>
                   <Button size="sm" variant="outline" onClick={() => a.scheduleFollowUp(m.lead.ulid, 2)}>+2h</Button>
                   <Button size="sm" variant="outline" onClick={() => a.markBlocked(m.lead.ulid, "Supply dependency flagged from Control Tower")}>Blocked</Button>
                   <Button size="sm" variant="ghost" onClick={() => a.escalate(m.lead.ulid, v.code)}>Escalate</Button>
@@ -102,7 +104,12 @@ export function InterventionQueue() {
         })}
       </div>
 
-      <OutcomeDialog motion={target} open={!!target} onOpenChange={(v) => !v && setTarget(null)} />
+      <OutcomeDialog
+        motion={target?.motion ?? null}
+        role={target?.role}
+        open={!!target}
+        onOpenChange={(v) => !v && setTarget(null)}
+      />
     </div>
   );
 }
