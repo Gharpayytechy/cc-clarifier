@@ -59,6 +59,20 @@ export type WorkflowFunction = "lead" | "flow-ops" | "tour" | "closing" | "suppl
 
 export type Health = "healthy" | "due-soon" | "action-required" | "blocked";
 
+/** Every role that carries a piece of the workflow guarantee. */
+export type WorkRoleId = "flow-ops" | "tour" | "closing" | "supply" | "check-in";
+
+export const WORK_ROLES: WorkRoleId[] = ["flow-ops", "tour", "closing", "supply", "check-in"];
+
+/** Which role owns a given workflow function (§15). */
+export function roleOfFunction(fn: WorkflowFunction): WorkRoleId {
+  if (fn === "tour") return "tour";
+  if (fn === "closing") return "closing";
+  if (fn === "supply") return "supply";
+  if (fn === "check-in") return "check-in";
+  return "flow-ops";
+}
+
 export interface MotionContext {
   now: number;
   /** ulid → quotation amount */
