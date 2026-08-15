@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useIdentityStore } from "@/lib/lead-identity/store";
+import type { UnifiedLead } from "@/lib/lead-identity/types";
 import { useMountedNow } from "@/hooks/use-now";
 import { useWorkflow, targetsFor } from "./store";
 import {
@@ -14,7 +15,7 @@ import { allRoleGuarantees, allRolesScore, type RoleGuarantee } from "./roles";
  * is not operationally complete until check-in ownership/date is safe. Keep
  * those unsafe bookings visible as check-in work instead of letting them vanish.
  */
-function unsafeBookingMotions(leads: ReturnType<typeof useIdentityStore.getState>["leads"], now: number): LeadMotion[] {
+function unsafeBookingMotions(leads: UnifiedLead[], now: number): LeadMotion[] {
   return leads
     .filter((lead) => (deriveStage(lead) === "CLOSED" || lead.state === "converted") && !lead.anchors?.checkInDate)
     .map((lead) => {
@@ -24,22 +25,22 @@ function unsafeBookingMotions(leads: ReturnType<typeof useIdentityStore.getState
         lead,
         action: null,
         dueAt: null,
-        health: "action-required" as const,
+        health: "action-required",
         violations: [{
-          code: "BOOKING_NO_HANDOVER" as const,
+          code: "BOOKING_NO_HANDOVER",
           label: "Booking without check-in handover",
           detail: "Paid booking exists but downstream check-in date/ownership is not safe yet",
-          severity: "P1" as const,
-          fn: "check-in" as const,
-          actions: ["assign", "open"] as const,
+          severity: "P1",
+          fn: "check-in",
+          actions: ["assign", "open"],
         }],
-        worst: "P1" as const,
+        worst: "P1",
         priorityScore: 95,
         ageMs: Number.isFinite(created) ? now - created : 0,
         idleMs: Number.isFinite(updated) ? now - updated : 0,
         ownerId: null,
         ownerName: "Check-in owner required",
-        fn: "check-in" as const,
+        fn: "check-in",
         reason: "Booking is not complete until the downstream check-in workflow is owned and dated",
       } satisfies LeadMotion;
     });
