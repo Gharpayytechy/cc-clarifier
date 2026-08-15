@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
+import { RoleGuaranteePanel } from "@/components/workflow/RoleGuaranteePanel";
 import { useApp } from "@/lib/store";
 import { useEffect, useMemo, useState } from "react";
 import { searchPGs } from "@/supply-hub/lib/search";
@@ -11,8 +12,8 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/supply-hub/")({
   head: () => ({
     meta: [
-      { title: "Inventory Supply Hub — Gharpayy" },
-      { name: "description", content: "200+ verified PGs with persona, scarcity, commute and value intelligence." },
+      { title: "Supply Guarantee — Inventory Supply Hub | Gharpayy" },
+      { name: "description", content: "Demand-linked inventory, customer blocker resolution and 200+ verified PGs with persona, scarcity, commute and value intelligence." },
     ],
   }),
   component: SupplyHubHome,
@@ -36,7 +37,7 @@ function SupplyHubHome() {
   const areas = useMemo(() => ["All", ...Array.from(new Set(PGS.map((p) => p.area))).filter(Boolean).sort()], []);
 
   const results = useMemo(() => {
-    let hits = q.trim() ? searchPGs(q, 60) : PGS.slice(0, 60).map((pg) => ({ pg, score: 1, matched: [] as string[] }));
+    const hits = q.trim() ? searchPGs(q, 60) : PGS.slice(0, 60).map((pg) => ({ pg, score: 1, matched: [] as string[] }));
     return hits.filter((h) => {
       if (tier !== "All" && h.pg.tier !== tier) return false;
       if (gender !== "All" && h.pg.gender !== gender) return false;
@@ -60,9 +61,9 @@ function SupplyHubHome() {
       <div className="space-y-6">
         <header className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <div className="text-[10px] uppercase tracking-wider text-accent font-semibold mb-1">Internal · HR / Flow Ops / TCM</div>
-            <h1 className="font-display text-2xl font-semibold tracking-tight">Inventory Supply Hub</h1>
-            <p className="text-sm text-muted-foreground mt-1">Verified PG network — search by name, area, landmark, or company. Every tile is computed live: persona, scarcity, freshness, value.</p>
+            <div className="text-[10px] uppercase tracking-wider text-accent font-semibold mb-1">PCM / Supply · Demand-linked inventory</div>
+            <h1 className="font-display text-2xl font-semibold tracking-tight">Supply Guarantee</h1>
+            <p className="text-sm text-muted-foreground mt-1">Inventory is not a separate catalogue. First unblock live customer demand, then improve matchable supply and freshness.</p>
           </div>
           <div className="flex gap-2">
             <Link to="/supply-hub/match" className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-2 text-sm font-medium text-accent-foreground hover:opacity-90"><Sparkles className="h-4 w-4" /> Lead Matcher</Link>
@@ -70,12 +71,14 @@ function SupplyHubHome() {
           </div>
         </header>
 
+        <RoleGuaranteePanel role="supply" />
+
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
             { label: "Properties", value: stats.total, sub: "Verified inventory" },
             { label: "Premium tier", value: stats.premium, sub: "₹22k+/mo cohort" },
             { label: "Hot scarcity", value: stats.hot, sub: "1–2 beds left", accent: true },
-            { label: "Updated <30d", value: stats.fresh, sub: "Fresh re-engagement angle" },
+            { label: "Updated <30d", value: stats.fresh, sub: "Fresh inventory evidence" },
           ].map((s) => (
             <div key={s.label} className={cn("rounded-lg border bg-card p-4", s.accent && "border-accent/40")}>
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{s.label}</div>
@@ -85,7 +88,6 @@ function SupplyHubHome() {
           ))}
         </div>
 
-        {/* Filter bar */}
         <div className="rounded-lg border bg-card p-3 flex flex-wrap items-center gap-3">
           <div className="relative flex-1 min-w-[280px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -102,7 +104,6 @@ function SupplyHubHome() {
           <div className="text-xs text-muted-foreground ml-auto">{results.length} matches</div>
         </div>
 
-        {/* Tile grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {results.slice(0, 60).map(({ pg, matched }) => {
             const sc = scarcity(pg);
