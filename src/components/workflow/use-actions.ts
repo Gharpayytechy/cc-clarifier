@@ -5,8 +5,9 @@ import { useWorkflow, type WorkRole } from "@/lib/workflow/store";
 import type { ViolationCode } from "@/lib/workflow/engine";
 
 /**
- * Direct actions available from Control Tower and every mission queue.
- * Each one closes the loop: record the outcome AND guarantee the next step.
+ * Direct actions available from Control Tower and role mission queues.
+ * Every mutation must either create the next movement or deliberately expose a
+ * downstream handoff/dependency that still needs acceptance.
  */
 export function useWorkflowActions() {
   const store = useIdentityStore();
@@ -32,7 +33,6 @@ export function useWorkflowActions() {
     toast.success(`Reassigned to ${toName}`);
   }, [store, wf, me.id]);
 
-  /** Mandatory next action (§18) — a callback window is always dated. */
   const scheduleFollowUp = useCallback((ulid: string, hours: number) => {
     const until = new Date(Date.now() + hours * 3_600_000).toISOString();
     wf.setWaiting(ulid, until);
@@ -40,32 +40,60 @@ export function useWorkflowActions() {
     toast.success(`Follow-up due in ${hours}h`);
   }, [wf, store]);
 
-  /** Automatic handoff to the tour queue (§16). */
   const scheduleTour = useCallback((ulid: string, whenIso: string, property?: string) => {
     store.bookTour(ulid, whenIso, property);
     wf.setWaiting(ulid, null);
     wf.handoff({ ulid, fromRole: "flow-ops", fromUser: me.id, toRole: "tour", toUser: null, trigger: "Tour scheduled" });
-    toast.success("Tour scheduled — handed to Tour queue");
+    toast.success("Tour scheduled — TCM handoff created");
   }, [store, wf, me.id]);
 
-  /** Tour completed → interest captured → closing queue (§17). */
+  const confirmTour = useCallback((ulid: string) => {
+    wf.logAttempt(ulid, me.id, true);
+    store.recordContact(ulid, "call");
+    store.logActivity(ulid, "note-added", "Tour confirmation completed by TCM");
+    toast.success("Tour confirmation recorded");
+  }, [wf, store, me.id]);
+
   const completeTour = useCallback((ulid: string, interest: "HOT" | "WARM" | "COLD") => {
     store.markToured(ulid, interest);
+    wf.setWaiting(ulid, null);
     wf.handoff({ ulid, fromRole: "tour", fromUser: me.id, toRole: "closing", toUser: null, trigger: `Tour completed · interest ${interest}` });
-    toast.success("Tour completed — handed to Closing queue");
+    toast.success("Tour completed — Closing handoff created");
   }, [store, wf, me.id]);
 
   const createQuote = useCallback((ulid: string, amount: number) => {
     wf.createQuote(ulid, amount);
     wf.setWaiting(ulid, new Date(Date.now() + 4 * 3_600_000).toISOString());
     store.logActivity(ulid, "note-added", `Quotation created ₹${amount.toLocaleString("en-IN")}`);
-    toast.success("Quotation created — closing follow-up in 4h");
+    toast.success("Quotation created — closing follow-up due in 4h");
   }, [wf, store]);
+
+  const markBooked = useCallback((ulid: string, checkInIso?: string) => {
+    store.markClosed(ulid, "Workflow Guarantee · paid booking");
+    if (checkInIso) store.setCheckInDate(ulid, checkInIso);
+    wf.setWaiting(ulid, null);
+    wf.handoff({ ulid, fromRole: "closing", fromUser: me.id, toRole: "check-in", toUser: null, trigger: "Paid booking confirmed" });
+    toast.success("Booking confirmed — check-in handoff created");
+  }, [store, wf, me.id]);
+
+  const setCheckIn = useCallback((ulid: string, checkInIso: string) => {
+    store.setCheckInDate(ulid, checkInIso);
+    wf.setWaiting(ulid, null);
+    store.logActivity(ulid, "note-added", "Check-in preparation dated through Workflow Guarantee");
+    toast.success("Check-in date recorded");
+  }, [store, wf]);
 
   const markBlocked = useCallback((ulid: string, reason: string | null) => {
     wf.setBlocked(ulid, reason);
-    toast.success(reason ? "Marked as supply dependency" : "Block cleared");
-  }, [wf]);
+    if (reason) {
+      wf.handoff({ ulid, fromRole: "system", fromUser: me.id, toRole: "supply", toUser: null, trigger: `Supply dependency · ${reason}` });
+      store.logActivity(ulid, "note-added", `Supply dependency created: ${reason}`);
+      toast.success("Supply dependency created — customer owner retained");
+    } else {
+      store.logActivity(ulid, "note-added", "Supply dependency resolved — returned to original workflow");
+      toast.success("Supply block cleared — customer returned to source workflow");
+    }
+  }, [wf, store, me.id]);
 
   const escalate = useCallback((ulid: string, code: ViolationCode) => {
     wf.resolveViolation(ulid, code, me.id, "Escalated to manager");
@@ -82,5 +110,21 @@ export function useWorkflowActions() {
     wf.setTargets(role, { actions });
   }, [wf]);
 
-  return { me, call, assignToMe, reassign, scheduleFollowUp, scheduleTour, completeTour, createQuote, markBlocked, escalate, resolve, setTargets };
+  return {
+    me,
+    call,
+    assignToMe,
+    reassign,
+    scheduleFollowUp,
+    scheduleTour,
+    confirmTour,
+    completeTour,
+    createQuote,
+    markBooked,
+    setCheckIn,
+    markBlocked,
+    escalate,
+    resolve,
+    setTargets,
+  };
 }

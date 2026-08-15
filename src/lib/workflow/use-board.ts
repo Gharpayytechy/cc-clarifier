@@ -1,12 +1,50 @@
 import { useMemo } from "react";
 import { useIdentityStore } from "@/lib/lead-identity/store";
+import type { UnifiedLead } from "@/lib/lead-identity/types";
 import { useMountedNow } from "@/hooks/use-now";
 import { useWorkflow, targetsFor } from "./store";
 import {
-  computeBoard, computeKpis, personFlow, checkpointVerdict, inferRole,
+  computeBoard, computeKpis, personFlow, checkpointVerdict, inferRole, deriveStage,
   type LeadMotion, type MotionContext, type PersonFlow,
 } from "./engine";
 import { allRoleGuarantees, allRolesScore, type RoleGuarantee } from "./roles";
+
+/**
+ * Transitional bridge until the workflow state machine is server-backed:
+ * the legacy engine excludes CLOSED leads from its active board, but a booking
+ * is not operationally complete until check-in ownership/date is safe. Keep
+ * those unsafe bookings visible as check-in work instead of letting them vanish.
+ */
+function unsafeBookingMotions(leads: UnifiedLead[], now: number): LeadMotion[] {
+  return leads
+    .filter((lead) => (deriveStage(lead) === "CLOSED" || lead.state === "converted") && !lead.anchors?.checkInDate)
+    .map((lead) => {
+      const created = +new Date(lead.createdAt);
+      const updated = +new Date(lead.updatedAt);
+      return {
+        lead,
+        action: null,
+        dueAt: null,
+        health: "action-required",
+        violations: [{
+          code: "BOOKING_NO_HANDOVER",
+          label: "Booking without check-in handover",
+          detail: "Paid booking exists but downstream check-in date/ownership is not safe yet",
+          severity: "P1",
+          fn: "check-in",
+          actions: ["assign", "open"],
+        }],
+        worst: "P1",
+        priorityScore: 95,
+        ageMs: Number.isFinite(created) ? now - created : 0,
+        idleMs: Number.isFinite(updated) ? now - updated : 0,
+        ownerId: null,
+        ownerName: "Check-in owner required",
+        fn: "check-in",
+        reason: "Booking is not complete until the downstream check-in workflow is owned and dated",
+      } satisfies LeadMotion;
+    });
+}
 
 /**
  * One hook that every Workflow Guarantee screen consumes: the live motion
@@ -22,6 +60,7 @@ export function useWorkflowBoard() {
   const resolved = useWorkflow((s) => s.resolved);
   const attempts = useWorkflow((s) => s.attempts);
   const targets = useWorkflow((s) => s.targets);
+  const handoffs = useWorkflow((s) => s.handoffs);
   const [now, mounted] = useMountedNow(60_000);
 
   const ctx: MotionContext = useMemo(
@@ -29,10 +68,12 @@ export function useWorkflowBoard() {
     [now, quotes, blocked, waiting, resolved],
   );
 
-  const board = useMemo<LeadMotion[]>(
-    () => (mounted ? computeBoard(leads, ctx) : []),
-    [leads, ctx, mounted],
-  );
+  const board = useMemo<LeadMotion[]>(() => {
+    if (!mounted) return [];
+    const active = computeBoard(leads, ctx);
+    const unsafeBookings = unsafeBookingMotions(leads, now);
+    return [...active, ...unsafeBookings].sort((a, b) => b.priorityScore - a.priorityScore);
+  }, [leads, ctx, mounted, now]);
 
   const people = useMemo<PersonFlow[]>(() => {
     if (!mounted) return [];
@@ -65,11 +106,13 @@ export function useWorkflowBoard() {
   }, [board, attempts, now, targets, mounted, currentUser, myRole]);
 
   const roles = useMemo<RoleGuarantee[]>(
-    () => (mounted ? allRoleGuarantees(board, people, now) : []),
-    [board, people, now, mounted],
+    () => mounted
+      ? allRoleGuarantees(board, people, now, { leads, handoffs, targets, quotes, blocked })
+      : [],
+    [board, people, now, mounted, leads, handoffs, targets, quotes, blocked],
   );
 
-  /** The guarantee only counts as kept when the weakest role is kept. */
+  /** The company is only as strong as its weakest active role guarantee. */
   const allRolesGuarantee = useMemo(() => allRolesScore(roles), [roles]);
 
   return {

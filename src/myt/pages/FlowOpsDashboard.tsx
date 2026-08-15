@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { LeadControlPanel } from '@/myt/components/LeadControlPanel';
 import { GlueFeed } from '@/components/GlueFeed';
 import { CoachInline } from '@/components/CoachInline';
+import { RoleGuaranteePanel } from '@/components/workflow/RoleGuaranteePanel';
 
 const CYCLE_TARGETS = { chatsClosed: 30, mytLeads: 10, toursScheduled: 4, sameDayConfirmed: 2 };
 
@@ -18,7 +19,6 @@ export default function FlowOpsDashboard() {
   const myTours = currentMemberId
     ? tours.filter(t => t.scheduledBy === currentMemberId)
     : tours.filter(t => t.scheduledBy === 'm1');
-  const completed = myTours.filter(t => t.status === 'completed').length;
   const showUps = myTours.filter(t => t.showUp === true).length;
   const drafts = myTours.filter(t => t.outcome === 'draft').length;
   const pending = myTours.filter(t => t.status === 'scheduled').length;
@@ -50,12 +50,14 @@ export default function FlowOpsDashboard() {
       <div className="flex items-start justify-between flex-wrap gap-2">
         <div>
           <h1 className="text-xl md:text-2xl font-heading font-bold text-foreground">Flow Ops Dashboard</h1>
-          <p className="text-xs text-muted-foreground">Your scheduling performance · click any tour to open the command panel</p>
+          <p className="text-xs text-muted-foreground">Mission: create enough qualified, matchable tour demand to feed TCM — calls are an input, not the final result.</p>
         </div>
         <Button size="sm" onClick={() => navigate('/myt/schedule')} className="gap-1.5">
           <CalendarPlus className="h-4 w-4" /> Schedule Tour
         </Button>
       </div>
+
+      <RoleGuaranteePanel role="flow-ops" />
 
       <div className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-3">
         <MetricCard label="My Tours" value={myTours.length} color="blue" icon={<CalendarCheck className="h-4 w-4" />} />
@@ -64,14 +66,12 @@ export default function FlowOpsDashboard() {
         <MetricCard label="Drafts" value={drafts} color="amber" icon={<FileText className="h-4 w-4" />} />
       </div>
 
-      {/* Cycle Tracker */}
       <div className="glass-card p-3 md:p-5">
         <div className="flex items-center gap-2 mb-3">
           <Target className="h-4 w-4 text-primary" />
           <h3 className="font-heading font-semibold text-xs md:text-sm text-foreground">90-Min Cycle Tracker</h3>
         </div>
 
-        {/* Cycle tabs */}
         <div className="flex gap-1 mb-4">
           {cycles.map((_, i) => (
             <button
@@ -87,7 +87,6 @@ export default function FlowOpsDashboard() {
           ))}
         </div>
 
-        {/* Current cycle counters */}
         <div className="grid grid-cols-2 gap-2">
           {([
             { key: 'chatsClosed' as const, label: 'Chats Closed', target: CYCLE_TARGETS.chatsClosed },
@@ -119,10 +118,9 @@ export default function FlowOpsDashboard() {
           })}
         </div>
 
-        {/* Daily totals */}
         <div className="mt-3 pt-3 border-t border-border">
-          <p className="text-[10px] text-muted-foreground mb-1">Daily Totals (All 4 Cycles)</p>
-          <div className="flex gap-3 text-xs">
+          <p className="text-[10px] text-muted-foreground mb-1">Legacy cycle totals — Workflow Guarantee above is the source of truth for role health</p>
+          <div className="flex flex-wrap gap-3 text-xs">
             <span className="text-foreground"><strong>{dailyTotals.chatsClosed}</strong>/120 chats</span>
             <span className="text-foreground"><strong>{dailyTotals.mytLeads}</strong>/40 MYT</span>
             <span className="text-foreground"><strong>{dailyTotals.toursScheduled}</strong>/16 tours</span>
@@ -135,7 +133,7 @@ export default function FlowOpsDashboard() {
         <h3 className="font-heading font-semibold text-xs md:text-sm mb-3 text-foreground">Tours I Scheduled</h3>
         <div className="space-y-2">
           {myTours.length === 0 && (
-            <p className="text-xs text-muted-foreground text-center py-4">No tours yet — hit "Schedule Tour" above to add one.</p>
+            <p className="text-xs text-muted-foreground text-center py-4">No tours yet — use the role recovery direction above before adding random low-value activity.</p>
           )}
           {myTours.map(t => (
             <div key={t.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-3 py-2.5 rounded-lg bg-surface-2/50">
