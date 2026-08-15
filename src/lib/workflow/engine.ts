@@ -387,7 +387,7 @@ export interface AttemptLike { ulid: string; ts: string; connected: boolean; by:
 export interface PersonFlow {
   userId: string;
   name: string;
-  role: "flow-ops" | "tour" | "closing";
+  role: WorkRoleId;
   requiredActions: number;
   availableActions: number;
   completedActions: number;
