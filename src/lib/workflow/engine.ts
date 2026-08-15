@@ -422,7 +422,7 @@ export function workedHours(now: number): { elapsed: number; remaining: number }
 export function personFlow(args: {
   userId: string;
   name: string;
-  role: "flow-ops" | "tour" | "closing";
+  role: WorkRoleId;
   board: LeadMotion[];
   attempts: AttemptLike[];
   now: number;
