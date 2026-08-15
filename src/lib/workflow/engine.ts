@@ -59,6 +59,20 @@ export type WorkflowFunction = "lead" | "flow-ops" | "tour" | "closing" | "suppl
 
 export type Health = "healthy" | "due-soon" | "action-required" | "blocked";
 
+/** Every role that carries a piece of the workflow guarantee. */
+export type WorkRoleId = "flow-ops" | "tour" | "closing" | "supply" | "check-in";
+
+export const WORK_ROLES: WorkRoleId[] = ["flow-ops", "tour", "closing", "supply", "check-in"];
+
+/** Which role owns a given workflow function (§15). */
+export function roleOfFunction(fn: WorkflowFunction): WorkRoleId {
+  if (fn === "tour") return "tour";
+  if (fn === "closing") return "closing";
+  if (fn === "supply") return "supply";
+  if (fn === "check-in") return "check-in";
+  return "flow-ops";
+}
+
 export interface MotionContext {
   now: number;
   /** ulid → quotation amount */
@@ -387,7 +401,7 @@ export interface AttemptLike { ulid: string; ts: string; connected: boolean; by:
 export interface PersonFlow {
   userId: string;
   name: string;
-  role: "flow-ops" | "tour" | "closing";
+  role: WorkRoleId;
   requiredActions: number;
   availableActions: number;
   completedActions: number;
@@ -422,7 +436,7 @@ export function workedHours(now: number): { elapsed: number; remaining: number }
 export function personFlow(args: {
   userId: string;
   name: string;
-  role: "flow-ops" | "tour" | "closing";
+  role: WorkRoleId;
   board: LeadMotion[];
   attempts: AttemptLike[];
   now: number;
@@ -517,3 +531,25 @@ export function checkpointVerdict(f: PersonFlow): { status: CheckpointStatus; li
 }
 
 export { deriveStage, derivePhase };
+
+// ───────────────────────── role inference (§15/§30) ─────────────────────────
+
+/**
+ * A person's role is not a label in a settings screen — it is whatever work
+ * they actually hold. Their queue decides which guarantee applies to them.
+ */
+export function inferRole(board: LeadMotion[], userId: string, fallback: WorkRoleId = "flow-ops"): WorkRoleId {
+  const mine = board.filter((m) => m.ownerId === userId);
+  if (!mine.length) return fallback;
+  const tally = new Map<WorkRoleId, number>();
+  mine.forEach((m) => {
+    const r = roleOfFunction(m.fn);
+    tally.set(r, (tally.get(r) ?? 0) + 1);
+  });
+  let best: WorkRoleId = fallback;
+  let bestN = -1;
+  tally.forEach((n, r) => {
+    if (n > bestN) { best = r; bestN = n; }
+  });
+  return best;
+}
