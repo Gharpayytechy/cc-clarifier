@@ -22,6 +22,7 @@ export function useWorkflowBoard() {
   const resolved = useWorkflow((s) => s.resolved);
   const attempts = useWorkflow((s) => s.attempts);
   const targets = useWorkflow((s) => s.targets);
+  const handoffs = useWorkflow((s) => s.handoffs);
   const [now, mounted] = useMountedNow(60_000);
 
   const ctx: MotionContext = useMemo(
@@ -65,11 +66,13 @@ export function useWorkflowBoard() {
   }, [board, attempts, now, targets, mounted, currentUser, myRole]);
 
   const roles = useMemo<RoleGuarantee[]>(
-    () => (mounted ? allRoleGuarantees(board, people, now) : []),
-    [board, people, now, mounted],
+    () => mounted
+      ? allRoleGuarantees(board, people, now, { leads, handoffs, targets, quotes, blocked })
+      : [],
+    [board, people, now, mounted, leads, handoffs, targets, quotes, blocked],
   );
 
-  /** The guarantee only counts as kept when the weakest role is kept. */
+  /** The company is only as strong as its weakest active role guarantee. */
   const allRolesGuarantee = useMemo(() => allRolesScore(roles), [roles]);
 
   return {
