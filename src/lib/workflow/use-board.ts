@@ -3,10 +3,47 @@ import { useIdentityStore } from "@/lib/lead-identity/store";
 import { useMountedNow } from "@/hooks/use-now";
 import { useWorkflow, targetsFor } from "./store";
 import {
-  computeBoard, computeKpis, personFlow, checkpointVerdict, inferRole,
+  computeBoard, computeKpis, personFlow, checkpointVerdict, inferRole, deriveStage,
   type LeadMotion, type MotionContext, type PersonFlow,
 } from "./engine";
 import { allRoleGuarantees, allRolesScore, type RoleGuarantee } from "./roles";
+
+/**
+ * Transitional bridge until the workflow state machine is server-backed:
+ * the legacy engine excludes CLOSED leads from its active board, but a booking
+ * is not operationally complete until check-in ownership/date is safe. Keep
+ * those unsafe bookings visible as check-in work instead of letting them vanish.
+ */
+function unsafeBookingMotions(leads: ReturnType<typeof useIdentityStore.getState>["leads"], now: number): LeadMotion[] {
+  return leads
+    .filter((lead) => (deriveStage(lead) === "CLOSED" || lead.state === "converted") && !lead.anchors?.checkInDate)
+    .map((lead) => {
+      const created = +new Date(lead.createdAt);
+      const updated = +new Date(lead.updatedAt);
+      return {
+        lead,
+        action: null,
+        dueAt: null,
+        health: "action-required" as const,
+        violations: [{
+          code: "BOOKING_NO_HANDOVER" as const,
+          label: "Booking without check-in handover",
+          detail: "Paid booking exists but downstream check-in date/ownership is not safe yet",
+          severity: "P1" as const,
+          fn: "check-in" as const,
+          actions: ["assign", "open"] as const,
+        }],
+        worst: "P1" as const,
+        priorityScore: 95,
+        ageMs: Number.isFinite(created) ? now - created : 0,
+        idleMs: Number.isFinite(updated) ? now - updated : 0,
+        ownerId: null,
+        ownerName: "Check-in owner required",
+        fn: "check-in" as const,
+        reason: "Booking is not complete until the downstream check-in workflow is owned and dated",
+      } satisfies LeadMotion;
+    });
+}
 
 /**
  * One hook that every Workflow Guarantee screen consumes: the live motion
@@ -30,10 +67,12 @@ export function useWorkflowBoard() {
     [now, quotes, blocked, waiting, resolved],
   );
 
-  const board = useMemo<LeadMotion[]>(
-    () => (mounted ? computeBoard(leads, ctx) : []),
-    [leads, ctx, mounted],
-  );
+  const board = useMemo<LeadMotion[]>(() => {
+    if (!mounted) return [];
+    const active = computeBoard(leads, ctx);
+    const unsafeBookings = unsafeBookingMotions(leads, now);
+    return [...active, ...unsafeBookings].sort((a, b) => b.priorityScore - a.priorityScore);
+  }, [leads, ctx, mounted, now]);
 
   const people = useMemo<PersonFlow[]>(() => {
     if (!mounted) return [];
