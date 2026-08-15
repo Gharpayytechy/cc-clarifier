@@ -3,14 +3,15 @@ import { AppShell } from "@/components/AppShell";
 import { ClientOnly } from "@/components/ClientOnly";
 import { ClosingBoard } from "@/components/commitments/ClosingBoard";
 import { HowButton } from "@/components/common/HowButton";
+import { RoleGuaranteePanel } from "@/components/workflow/RoleGuaranteePanel";
 
 export const Route = createFileRoute("/closing")({
   head: () => ({
     meta: [
-      { title: "Closing Board — Promised Closes & Accuracy | Gharpayy" },
-      { name: "description", content: "Every 'Definitely Close' promise in one board: what closes today, which promises went overdue, how often dates moved, and each closer's promise accuracy." },
-      { property: "og:title", content: "Closing Board — Promised Closes & Accuracy" },
-      { property: "og:description", content: "The honest forecast: named people, named leads, named deadlines, and the full history of every date change." },
+      { title: "Closing Mission — Workflow Guarantee | Gharpayy" },
+      { name: "description", content: "Paid-booking mission, closing opportunity supply, payment-intent protection and promise accuracy in one operating screen." },
+      { property: "og:title", content: "Closing Mission — Workflow Guarantee" },
+      { property: "og:description", content: "Start from paid bookings, work backward to required post-tour opportunities, then protect every dated close action." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -24,28 +25,30 @@ function ClosingPage() {
       <div className="space-y-4">
         <header>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight">Closing Board</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Closing Mission</h1>
             <HowButton
               withText
               title="What this board is for"
-              why="A pipeline nobody will date is not a forecast. This board only contains leads where a named person said when the money lands."
+              why="Closing exists to create paid bookings. Promises and calls are execution instruments, not the final result."
               howToExecute={[
-                "Every hard-intent lead must carry a close promise before the shift ends.",
-                "Run 'Closing today' in the morning huddle and 'Overdue' in the evening review.",
-                "Settle every promise the same day it is due — kept, broken, or moved with a reason.",
+                "Start from the paid-booking gap and required closing opportunity supply.",
+                "Work payment intent, high-intent post-tour customers, room-hold expiry and decision blockers before generic follow-ups.",
+                "Every quote must have a dated next action and every promise must be settled or moved with a reason.",
               ]}
-              whatNotToDo={["Never move a date without writing why.", "Never report this board's numbers as revenue before payment."]}
-              problemsThatCanOccur={["Optimistic short windows inflate today's number.", "Unsettled promises quietly rot into overdue noise."]}
-              branches={[{ condition: "Board is empty", then: "The problem is promising discipline, not lead supply — go make promises on live leads." }]}
-              doneWhen="Zero overdue promises and every one of today's rows settled."
+              whatNotToDo={["Never use raw call volume as the primary definition of Closing success.", "Never let a payment-ready customer sit behind routine nurture work.", "Never move a close date without writing why."]}
+              problemsThatCanOccur={["Closing can be blamed when post-tour opportunity supply is insufficient.", "Optimistic promises can inflate the apparent forecast without payment movement."]}
+              branches={[{ condition: "Closing opportunities are below the required input", then: "Raise the upstream shortage: unresolved post-tour outcomes → quote-ready tours → tour-ready customers → supply blockers." }]}
+              doneWhen="Paid-booking outcome is achieved or the remaining gap is explicitly classified as upstream, conversion, dependency or execution failure."
             />
           </div>
           <p className="text-sm text-muted-foreground">
-            Today's promised closes, the promises that went past their deadline, and how reliable each person's
-            word actually is. Every date change is kept forever with its reason.
+            Paid-booking outcome first. Promise accuracy remains underneath as the commitment-control layer.
           </p>
         </header>
-        <ClientOnly fallback={<p className="py-10 text-center text-sm text-muted-foreground">Loading promises…</p>}>
+
+        <RoleGuaranteePanel role="closing" />
+
+        <ClientOnly fallback={<p className="py-10 text-center text-sm text-muted-foreground">Loading closing mission…</p>}>
           <ClosingBoard />
         </ClientOnly>
       </div>
