@@ -67,7 +67,14 @@ const DEFAULT_TARGETS: Record<WorkRole, DailyTargets> = {
   "flow-ops": { actions: 120, connections: 70, tours: 10, bookings: 0, waveSize: 30 },
   tour: { actions: 40, connections: 30, tours: 10, bookings: 0, waveSize: 10 },
   closing: { actions: 120, connections: 60, tours: 0, bookings: 4, waveSize: 30 },
+  supply: { actions: 40, connections: 20, tours: 0, bookings: 0, waveSize: 20 },
+  "check-in": { actions: 30, connections: 20, tours: 0, bookings: 6, waveSize: 15 },
 };
+
+/** Persisted state from older versions may not know newer roles. */
+export function targetsFor(all: Partial<Record<WorkRole, DailyTargets>>, role: WorkRole): DailyTargets {
+  return all[role] ?? DEFAULT_TARGETS[role];
+}
 
 const iso = () => new Date().toISOString();
 const rid = (p: string) => `${p}-${Math.random().toString(36).slice(2, 10)}`;
