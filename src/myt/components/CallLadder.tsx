@@ -8,6 +8,12 @@ import {
   readinessVerdict, play, askFields, filled, attemptsAtStage, waStatusMeta,
   type DiscoveryField,
 } from '@/myt/lib/call-plan';
+import {
+  BLOCKERS, STAGE_GATES, journeyBlockers, journeyDone, stageGateStatus, stageGates,
+  type BlockerId, type CallCode, type JourneyId,
+} from '@/myt/lib/journey';
+import { applyOverride, useJourneyOverrides } from '@/myt/lib/journey-store';
+
 
 
 /**
@@ -58,13 +64,14 @@ export function CallLadder({ lead, compact = false, selectedStage, onSelectStage
         <Gauge className="h-3 w-3 mt-0.5 shrink-0" /> {readinessVerdict(r)}
       </div>
 
-      {/* the 5 rungs — done / current / locked */}
+      {/* the 5 rungs — done / current / locked, each showing its S-gate score */}
       <div className="flex items-center gap-1">
         {STAGE_ORDER.map((s) => {
           const done = s < stage;
           const now = s === activeStage;
+          const g = stageGateStatus(lead, s as CallCode);
           return (
-            <button type="button" key={s} title={`${CALL_PLAYS[s].code} · ${CALL_PLAYS[s].name} — ${CALL_PLAYS[s].mission}`}
+            <button type="button" key={s} title={`${CALL_PLAYS[s].code} · ${CALL_PLAYS[s].name} — clears ${STAGE_GATES[s as CallCode].join(', ') || 'recovery only'}`}
               onClick={() => onSelectStage?.(s)} disabled={!onSelectStage}
               className={cn('flex-1 rounded-lg border px-1.5 py-1 text-center transition-colors',
                 onSelectStage && 'cursor-pointer hover:border-primary hover:bg-primary/10 disabled:cursor-default',
@@ -73,6 +80,9 @@ export function CallLadder({ lead, compact = false, selectedStage, onSelectStage
                   : 'border-border text-muted-foreground/50')}>
               <div className="text-[10px] font-bold leading-none">C{s}</div>
               <div className="text-[9px] leading-tight truncate">{CALL_PLAYS[s].name}</div>
+              <div className="text-[9px] leading-none mt-0.5 tabular-nums opacity-80">
+                {g.total ? `${g.cleared}/${g.total}` : 'NR·NU·NO'}
+              </div>
             </button>
           );
         })}
@@ -83,6 +93,9 @@ export function CallLadder({ lead, compact = false, selectedStage, onSelectStage
           <div className="text-[11px]">
             <span className="text-muted-foreground">This call wins when: </span>{p.win}
           </div>
+
+          <StageGates lead={lead} stage={activeStage as CallCode} />
+
 
           {onSaveField ? (
             <div className="space-y-1.5">
@@ -196,3 +209,76 @@ function AskField({ field, value, onSave }: {
   );
 }
 
+
+/**
+ * The S-gates this call is accountable for (C1 → S1..S3, C2 → LOC..S6,
+ * C3 → S7, C4 → S8, C5 → clear NR/NU/NO). Click a gate to mark it cleared.
+ */
+function StageGates({ lead, stage }: { lead: Lead; stage: CallCode }) {
+  const derived = journeyDone(lead);
+  const derivedBlockers = journeyBlockers(lead);
+  const stepOv = useJourneyOverrides((s) => s.steps[lead.id]);
+  const blockOv = useJourneyOverrides((s) => s.blockers[lead.id]);
+  const toggleStep = useJourneyOverrides((s) => s.toggleStep);
+  const toggleBlocker = useJourneyOverrides((s) => s.toggleBlocker);
+  const gates = stageGates(stage);
+
+  const isDone = (id: JourneyId) => applyOverride(derived[id], stepOv?.[id]);
+  const cleared = gates.filter((g) => isDone(g.id)).length;
+
+  return (
+    <div className="space-y-1.5 rounded-lg border border-border bg-card p-2">
+      <div className="flex items-center gap-2 text-[10px] uppercase tracking-wide text-muted-foreground font-medium">
+        Gates on C{stage}
+        {gates.length > 0 && (
+          <span className={cn('tabular-nums font-semibold',
+            cleared === gates.length ? 'text-role-tcm' : 'text-foreground')}>
+            {cleared}/{gates.length} cleared
+          </span>
+        )}
+      </div>
+
+      {gates.length > 0 ? (
+        <div className="flex flex-wrap gap-1">
+          {gates.map((g) => {
+            const on = isDone(g.id);
+            return (
+              <button type="button" key={g.id}
+                onClick={() => toggleStep(lead.id, g.id, derived[g.id])}
+                title={`${g.code} — ${g.why}`}
+                aria-pressed={on}
+                className={cn('rounded-md border px-1.5 py-[3px] text-[10px] font-semibold uppercase leading-none tracking-tight transition-colors',
+                  g.sub && 'text-[9px]',
+                  on
+                    ? 'border-role-tcm/40 bg-role-tcm/15 text-role-tcm'
+                    : 'border-border bg-surface-2 text-muted-foreground hover:border-primary/50 hover:text-foreground')}>
+                {g.code}
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <p className="text-[10px] text-muted-foreground">
+          Revival call — no new gate. Job is to clear a blocker and push the lead back to its open gate.
+        </p>
+      )}
+
+      <div className="flex flex-wrap items-center gap-1">
+        {(Object.keys(BLOCKERS) as BlockerId[]).map((b) => {
+          const on = applyOverride(derivedBlockers.includes(b), blockOv?.[b]);
+          return (
+            <button type="button" key={b}
+              onClick={() => toggleBlocker(lead.id, b, derivedBlockers.includes(b))}
+              title={`${b} · ${BLOCKERS[b].label} — ${BLOCKERS[b].why}`}
+              aria-pressed={on}
+              className={cn('rounded border px-1 py-[3px] text-[9px] font-bold uppercase leading-none transition-colors',
+                on ? 'border-danger/50 bg-danger/15 text-danger'
+                  : 'border-border bg-surface-2 text-muted-foreground hover:text-foreground')}>
+              {b}{on ? ` · ${BLOCKERS[b].label}` : ''}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
