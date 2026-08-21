@@ -1,17 +1,13 @@
-import { useState } from 'react';
 import { useNavigate } from '@/shims/react-router-dom';
 import { useAppState } from '@/myt/lib/app-context';
 import { MetricCard } from '@/myt/components/MetricCard';
-import { CalendarCheck, Phone, TrendingUp, FileText, Target, CalendarPlus, Sparkles } from 'lucide-react';
-import { CycleData } from '@/myt/lib/types';
-import { cn } from '@/lib/utils';
+import { CalendarCheck, Phone, TrendingUp, FileText, CalendarPlus, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { LeadControlPanel } from '@/myt/components/LeadControlPanel';
 import { GlueFeed } from '@/components/GlueFeed';
 import { CoachInline } from '@/components/CoachInline';
 import { RoleGuaranteePanel } from '@/components/workflow/RoleGuaranteePanel';
-
-const CYCLE_TARGETS = { chatsClosed: 30, mytLeads: 10, toursScheduled: 4, sameDayConfirmed: 2 };
+import { CycleTracker } from '@/myt/components/CycleTracker';
 
 export default function FlowOpsDashboard() {
   const { tours, currentMemberId } = useAppState();
@@ -23,26 +19,6 @@ export default function FlowOpsDashboard() {
   const drafts = myTours.filter(t => t.outcome === 'draft').length;
   const pending = myTours.filter(t => t.status === 'scheduled').length;
 
-  const [cycles, setCycles] = useState<CycleData[]>([
-    { cycleNumber: 1, chatsClosed: 0, mytLeads: 0, toursScheduled: 0, sameDayConfirmed: 0 },
-    { cycleNumber: 2, chatsClosed: 0, mytLeads: 0, toursScheduled: 0, sameDayConfirmed: 0 },
-    { cycleNumber: 3, chatsClosed: 0, mytLeads: 0, toursScheduled: 0, sameDayConfirmed: 0 },
-    { cycleNumber: 4, chatsClosed: 0, mytLeads: 0, toursScheduled: 0, sameDayConfirmed: 0 },
-  ]);
-  const [activeCycle, setActiveCycle] = useState(0);
-
-  const updateCycle = (field: keyof CycleData, delta: number) => {
-    setCycles(prev => prev.map((c, i) =>
-      i === activeCycle ? { ...c, [field]: Math.max(0, (c[field] as number) + delta) } : c
-    ));
-  };
-
-  const dailyTotals = cycles.reduce((acc, c) => ({
-    chatsClosed: acc.chatsClosed + c.chatsClosed,
-    mytLeads: acc.mytLeads + c.mytLeads,
-    toursScheduled: acc.toursScheduled + c.toursScheduled,
-    sameDayConfirmed: acc.sameDayConfirmed + c.sameDayConfirmed,
-  }), { chatsClosed: 0, mytLeads: 0, toursScheduled: 0, sameDayConfirmed: 0 });
 
   return (
     <div className="space-y-4 md:space-y-6 animate-slide-up">
