@@ -22,10 +22,21 @@ type CallLog = {
   cycle: number;
   name: string;
   phone: string;
+  city: string;
+  area: string;
+  budget: string;
+  movingDate: string;
+  shortlist: string;
+  property: string;
+  sharing: string;
   outcome: OutcomeKey;
   notes: string;
   at: number;
 };
+
+const CITIES = ['Bangalore', 'Hyderabad', 'Pune', 'Delhi NCR', 'Mumbai'];
+const SHARING = ['Single', 'Double', 'Triple', 'Four+'];
+
 
 const CYCLE_TARGETS: Record<MetricKey, number> = {
   chatsClosed: 30,
@@ -72,6 +83,13 @@ export function CycleTracker() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [city, setCity] = useState('Bangalore');
+  const [area, setArea] = useState('');
+  const [budget, setBudget] = useState('');
+  const [movingDate, setMovingDate] = useState('');
+  const [shortlist, setShortlist] = useState('');
+  const [property, setProperty] = useState('');
+  const [sharing, setSharing] = useState('Double');
   const [outcome, setOutcome] = useState<OutcomeKey>('connected');
   const [notes, setNotes] = useState('');
 
@@ -86,6 +104,13 @@ export function CycleTracker() {
       cycle: CYCLES[activeCycle].n,
       name: name.trim() || 'Unknown lead',
       phone: phone.trim(),
+      city,
+      area: area.trim(),
+      budget: budget.trim(),
+      movingDate,
+      shortlist: shortlist.trim(),
+      property: property.trim(),
+      sharing,
       outcome,
       notes: notes.trim(),
       at: Date.now(),
@@ -101,8 +126,10 @@ export function CycleTracker() {
     );
     toast.success(`Call logged to ${CYCLES[activeCycle].label} — ${def.label}`);
     setName(''); setPhone(''); setNotes(''); setOutcome('connected');
+    setArea(''); setBudget(''); setMovingDate(''); setShortlist(''); setProperty('');
     setOpen(false);
   };
+
 
   const removeLog = (id: string) => setLogs(prev => prev.filter(l => l.id !== id));
 
@@ -146,11 +173,74 @@ export function CycleTracker() {
                 Log the outcome while you're on the call — cycle counters update automatically.
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-3">
+            <div className="space-y-3 max-h-[65vh] overflow-y-auto pr-1">
               <div className="grid grid-cols-2 gap-2">
                 <Input placeholder="Lead name" value={name} onChange={e => setName(e.target.value)} />
                 <Input placeholder="Phone" inputMode="tel" value={phone} onChange={e => setPhone(e.target.value)} />
               </div>
+              <div>
+                <p className="text-[11px] text-muted-foreground mb-1.5">City</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {CITIES.map(c => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setCity(c)}
+                      className={cn(
+                        'rounded-md border px-2.5 py-1 text-[11px] transition-colors',
+                        city === c
+                          ? 'border-primary bg-primary/10 text-foreground'
+                          : 'border-border bg-surface-2/40 text-muted-foreground hover:text-foreground',
+                      )}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <p className="text-[11px] text-muted-foreground mb-1">Preferred area</p>
+                  <Input placeholder="e.g. Hebbal" value={area} onChange={e => setArea(e.target.value)} />
+                </div>
+                <div>
+                  <p className="text-[11px] text-muted-foreground mb-1">Budget (₹/month)</p>
+                  <Input placeholder="e.g. 12000" inputMode="numeric" value={budget} onChange={e => setBudget(e.target.value)} />
+                </div>
+                <div>
+                  <p className="text-[11px] text-muted-foreground mb-1">Moving date</p>
+                  <Input type="date" value={movingDate} onChange={e => setMovingDate(e.target.value)} />
+                </div>
+                <div>
+                  <p className="text-[11px] text-muted-foreground mb-1">Shortlist (count)</p>
+                  <Input placeholder="e.g. 3" inputMode="numeric" value={shortlist} onChange={e => setShortlist(e.target.value)} />
+                </div>
+              </div>
+              <div>
+                <p className="text-[11px] text-muted-foreground mb-1">Which property</p>
+                <Input placeholder="Property name shown / discussed" value={property} onChange={e => setProperty(e.target.value)} />
+              </div>
+              <div>
+                <p className="text-[11px] text-muted-foreground mb-1.5">Sharing</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {SHARING.map(s => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setSharing(s)}
+                      className={cn(
+                        'rounded-md border px-2.5 py-1 text-[11px] transition-colors',
+                        sharing === s
+                          ? 'border-primary bg-primary/10 text-foreground'
+                          : 'border-border bg-surface-2/40 text-muted-foreground hover:text-foreground',
+                      )}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div>
                 <p className="text-[11px] text-muted-foreground mb-1.5">Call outcome</p>
                 <div className="grid grid-cols-1 gap-1.5">
