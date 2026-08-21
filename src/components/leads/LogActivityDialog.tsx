@@ -18,9 +18,11 @@ import type { Lead, LeadStage } from "@/lib/types";
 import type { CallNumber } from "@/lib/journey-gates";
 import { gatesForCall } from "@/lib/journey-gates";
 import { CallScriptCapture, useScriptProgress } from "./CallScriptCapture";
+import { useCallMovement } from "./CallMovement";
 import {
   ACTIVITY_CATEGORIES, type ActivityType, type NextStepOption, toneClasses,
 } from "@/lib/lead-activity-catalog";
+
 
 const STAGES: LeadStage[] = [
   "new", "contacted", "tour-scheduled", "tour-done", "negotiation", "booked", "dropped",
