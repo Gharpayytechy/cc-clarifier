@@ -258,6 +258,15 @@ export function LeadControlPanel() {
             addNote(lead.id, text);
             toast.success("Note added");
           }}
+          onCapture={(label, value, call) => {
+            addNote(lead.id, `[C${call}] ${label}: ${value}`);
+          }}
+          onLogActivity={(call) => {
+            logCall(lead.id);
+            setLogOpen(true);
+            toast.success(`C${call} call attempt logged — pick the outcome`);
+          }}
+
         />
         </div>
 
