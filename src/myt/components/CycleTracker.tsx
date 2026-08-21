@@ -83,6 +83,13 @@ export function CycleTracker() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [city, setCity] = useState('Bangalore');
+  const [area, setArea] = useState('');
+  const [budget, setBudget] = useState('');
+  const [movingDate, setMovingDate] = useState('');
+  const [shortlist, setShortlist] = useState('');
+  const [property, setProperty] = useState('');
+  const [sharing, setSharing] = useState('Double');
   const [outcome, setOutcome] = useState<OutcomeKey>('connected');
   const [notes, setNotes] = useState('');
 
@@ -97,6 +104,13 @@ export function CycleTracker() {
       cycle: CYCLES[activeCycle].n,
       name: name.trim() || 'Unknown lead',
       phone: phone.trim(),
+      city,
+      area: area.trim(),
+      budget: budget.trim(),
+      movingDate,
+      shortlist: shortlist.trim(),
+      property: property.trim(),
+      sharing,
       outcome,
       notes: notes.trim(),
       at: Date.now(),
@@ -112,8 +126,10 @@ export function CycleTracker() {
     );
     toast.success(`Call logged to ${CYCLES[activeCycle].label} — ${def.label}`);
     setName(''); setPhone(''); setNotes(''); setOutcome('connected');
+    setArea(''); setBudget(''); setMovingDate(''); setShortlist(''); setProperty('');
     setOpen(false);
   };
+
 
   const removeLog = (id: string) => setLogs(prev => prev.filter(l => l.id !== id));
 
