@@ -22,10 +22,21 @@ type CallLog = {
   cycle: number;
   name: string;
   phone: string;
+  city: string;
+  area: string;
+  budget: string;
+  movingDate: string;
+  shortlist: string;
+  property: string;
+  sharing: string;
   outcome: OutcomeKey;
   notes: string;
   at: number;
 };
+
+const CITIES = ['Bangalore', 'Hyderabad', 'Pune', 'Delhi NCR', 'Mumbai'];
+const SHARING = ['Single', 'Double', 'Triple', 'Four+'];
+
 
 const CYCLE_TARGETS: Record<MetricKey, number> = {
   chatsClosed: 30,
