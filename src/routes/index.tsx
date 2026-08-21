@@ -27,13 +27,14 @@ function DashboardPage() {
   const filterTcm = role === "tcm" ? currentTcmId : undefined;
   const metrics = useMemo(() => computePropertyMetrics(properties, leads, tours), [properties, leads, tours]);
   const queue = useMemo(
-    () => buildDoNextQueue(leads, tours, followUps, now, filterTcm),
-    [leads, tours, followUps, now, filterTcm],
+    () => (mounted ? buildDoNextQueue(leads, tours, followUps, now, filterTcm) : []),
+    [leads, tours, followUps, now, filterTcm, mounted],
   );
   const revivals = useMemo(
-    () => scanRevivals(leads, properties, tours, now),
-    [leads, properties, tours, now],
+    () => (mounted ? scanRevivals(leads, properties, tours, now) : []),
+    [leads, properties, tours, now, mounted],
   );
+
 
   // Live, decayed view of every lead
   const liveLeads = useMemo(
