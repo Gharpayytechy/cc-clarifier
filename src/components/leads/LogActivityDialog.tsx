@@ -29,12 +29,14 @@ function toLocalInput(d: Date) {
 }
 
 export function LogActivityDialog({
-  lead, open, onOpenChange, onLogged,
+  lead, open, onOpenChange, onLogged, call,
 }: {
   lead: Lead;
   open: boolean;
   onOpenChange: (o: boolean) => void;
   onLogged?: () => void;
+  /** Which call in the C1–C5 ladder this activity closes out. */
+  call?: number;
 }) {
   const { logCall, sendMessage, addNote, setLeadStage, setLeadFollowUp } = useApp();
 
@@ -87,7 +89,8 @@ export function LogActivityDialog({
       toast.error("Pick what happened first");
       return;
     }
-    const summary = `${type.emoji} ${type.label}${note.trim() ? ` — ${note.trim()}` : ""}`;
+    const tag = call ? `[C${call}] ` : "";
+    const summary = `${tag}${type.emoji} ${type.label}${note.trim() ? ` — ${note.trim()}` : ""}`;
 
     if (type.channel === "call") logCall(lead.id);
     if (type.channel === "message") sendMessage(lead.id, summary);
@@ -117,9 +120,12 @@ export function LogActivityDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-[560px]">
         <DialogHeader>
-          <DialogTitle className="text-base">Log activity · {lead.name}</DialogTitle>
+          <DialogTitle className="text-base">
+            Log activity · {lead.name}
+            {call ? <span className="ml-2 rounded bg-primary/10 px-1.5 py-0.5 text-[11px] font-semibold text-primary">C{call}</span> : null}
+          </DialogTitle>
           <DialogDescription className="text-xs">
-            Pick what happened, then choose what happens next. Stage and the next follow-up are set for you.
+            {call ? `Closing out call C${call}. ` : ""}Pick what happened, then choose what happens next. Stage and the next follow-up are set for you.
           </DialogDescription>
         </DialogHeader>
 

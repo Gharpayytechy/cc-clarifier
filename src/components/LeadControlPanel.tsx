@@ -263,6 +263,7 @@ export function LeadControlPanel() {
           }}
           onLogActivity={(call) => {
             logCall(lead.id);
+            setLogCall(call);
             setLogOpen(true);
             toast.success(`C${call} call attempt logged — pick the outcome`);
           }}
@@ -794,7 +795,8 @@ export function LeadControlPanel() {
         <LogActivityDialog
           lead={lead}
           open={logOpen}
-          onOpenChange={setLogOpen}
+          call={logCall}
+          onOpenChange={(o) => { setLogOpen(o); if (!o) setLogCall(undefined); }}
           onLogged={() => setTab("followups")}
         />
       </SheetContent>
