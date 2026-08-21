@@ -261,7 +261,7 @@ export function LogActivityDialog({
         </Step>
 
         {/* 4 · outcome */}
-        <Step n={4} title="What happened?">
+        <Step n={5} title="What happened?">
           <div className="flex flex-wrap gap-1.5">
             {category.types.map((t) => (
               <button
@@ -281,7 +281,7 @@ export function LogActivityDialog({
         {/* 5 · next step */}
         {type && (
           <>
-            <Step n={5} title="What happens next?">
+            <Step n={6} title="What happens next?">
               <div className="space-y-1.5">
                 {type.nextSteps.map((s) => (
                   <button
@@ -306,7 +306,7 @@ export function LogActivityDialog({
               </div>
             </Step>
 
-            <Step n={6} title="Details">
+            <Step n={7} title="Details">
               <Textarea
                 rows={3}
                 value={note}
