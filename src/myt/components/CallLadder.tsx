@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { CheckCircle2, Circle, Gauge, PhoneOff, Target } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -5,7 +6,9 @@ import { CallStage, Lead, DiscoveryKey } from '@/myt/lib/types';
 import {
   CALL_PLAYS, STAGE_ORDER, currentStage, closingReadiness, readinessTone,
   readinessVerdict, play, askFields, filled, attemptsAtStage, waStatusMeta,
+  type DiscoveryField,
 } from '@/myt/lib/call-plan';
+
 
 /**
  * The same ladder the call sheet runs on, in read-only form:
