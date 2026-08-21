@@ -241,6 +241,22 @@ export function LeadControlPanel() {
           onSelectCall={setSelectedCall}
           onContinue={continueCall}
         />
+        <LeadTalkTrack
+          lead={lead}
+          call={selectedCall as 1 | 2 | 3 | 4 | 5}
+          me={me?.name ?? "Gharpayy"}
+          onSaveCore={(field, value) => {
+            if (!value) return;
+            if (field === "budget") patchLead(lead.id, { budget: Number(value) || 0 });
+            else if (field === "moveInDate") patchLead(lead.id, { moveInDate: new Date(value).toISOString() });
+            else patchLead(lead.id, { preferredArea: value });
+            toast.success("Captured");
+          }}
+          onSaveNote={(text) => {
+            addNote(lead.id, text);
+            toast.success("Note added");
+          }}
+        />
         </div>
 
         {/* Lower half: every operational action scrolls independently. */}
