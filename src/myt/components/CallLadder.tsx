@@ -453,3 +453,69 @@ function StageGates({ lead, stage }: { lead: Lead; stage: CallCode }) {
     </div>
   );
 }
+
+/**
+ * Before anyone presses call: why we are calling, what we already know
+ * (and therefore must not ask again), what wins this call, and the red
+ * flags that change the script mid-sentence.
+ */
+function PreCallBriefCard({ brief, verdict }: {
+  brief: ReturnType<typeof preCallBrief>;
+  verdict: ReturnType<typeof callVerdict>;
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-card p-2 space-y-2">
+      <div className="flex items-start gap-1.5 text-[11px]">
+        <Info className="h-3 w-3 mt-0.5 shrink-0 text-primary" />
+        <span><span className="text-muted-foreground">Why this call: </span>{brief.why}</span>
+      </div>
+
+      <div className="flex items-start gap-1.5 text-[11px]">
+        <MapPin className="h-3 w-3 mt-0.5 shrink-0 text-role-hr" />
+        <span><span className="text-muted-foreground">{brief.pathLabel}: </span>{brief.pathWin}</span>
+      </div>
+
+      <div className="flex items-start gap-1.5 text-[11px]">
+        <Trophy className="h-3 w-3 mt-0.5 shrink-0 text-role-tcm" />
+        <span><span className="text-muted-foreground">Wins when: </span>{brief.win}</span>
+      </div>
+
+      {brief.know.length > 0 && (
+        <div className="space-y-1">
+          <div className="text-[9px] uppercase tracking-wide text-muted-foreground font-medium">Already known</div>
+          <div className="flex flex-wrap gap-1">
+            {brief.know.map((k) => (
+              <span key={k.label} className="rounded-md border border-border bg-surface-2 px-1.5 py-0.5 text-[10px]">
+                <span className="text-muted-foreground">{k.label}: </span>{k.value}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {brief.dontAsk.length > 0 && (
+        <div className="flex items-start gap-1.5 text-[10px] text-muted-foreground">
+          <EyeOff className="h-3 w-3 mt-0.5 shrink-0" />
+          <span>Do not ask again: {brief.dontAsk.join(' · ')}</span>
+        </div>
+      )}
+
+      {brief.redFlags.length > 0 && (
+        <ul className="space-y-0.5">
+          {brief.redFlags.map((f) => (
+            <li key={f} className="flex items-start gap-1.5 text-[10px] text-danger">
+              <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" /> {f}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div className={cn('rounded-md border px-1.5 py-1 text-[10px] font-medium',
+        verdict.won ? 'border-role-tcm/40 bg-role-tcm/10 text-role-tcm'
+          : verdict.complete ? 'border-role-hr/40 bg-role-hr/10 text-role-hr'
+          : 'border-border bg-surface-2 text-muted-foreground')}>
+        {verdict.verdict}
+      </div>
+    </div>
+  );
+}
