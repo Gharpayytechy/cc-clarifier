@@ -68,6 +68,14 @@ export function CallLadder({ lead, compact = false, selectedStage, onSelectStage
             : p.colour === 'warn' ? 'bg-role-hr/10 border-role-hr/40 text-role-hr'
             : 'bg-primary/10 border-primary/40 text-primary')}>{p.code}</span>
         <div className="text-xs font-semibold">Call {activeStage} · {p.name}</div>
+        <span className={cn('flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[9px] font-bold uppercase leading-none',
+          pathMeta.tone === 'good' ? 'border-role-tcm/40 bg-role-tcm/10 text-role-tcm'
+            : pathMeta.tone === 'warn' ? 'border-role-hr/40 bg-role-hr/10 text-role-hr'
+            : 'border-border bg-surface-2 text-muted-foreground')}
+          title={pathMeta.win}>
+          <MapPin className="h-2.5 w-2.5" /> {pathMeta.short}
+        </span>
+
         <span className={cn('ml-auto text-[10px] font-semibold',
           tone === 'good' ? 'text-role-tcm' : tone === 'warn' ? 'text-role-hr' : 'text-danger')}>
           {r.pct}%
