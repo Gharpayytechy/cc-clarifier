@@ -213,6 +213,8 @@ export function LeadControlPanel() {
             <Meta icon={Wallet} label="Budget" value={`₹${(lead.budget / 1000).toFixed(0)}k`} />
             <Meta icon={MapPin} label="Area" value={lead.preferredArea} />
           </div>
+          <LeadCapturedStrip lead={lead} />
+
           <div className="flex flex-wrap items-center gap-2 pt-1">
             <Button size="sm" className="h-8 flex-1 min-w-[160px]" onClick={() => setLogOpen(true)}>
               <ActivityIcon className="mr-1.5 h-3.5 w-3.5" /> + Log activity
