@@ -22,6 +22,8 @@ import { cn } from "@/lib/utils";
 import { format, formatDistanceToNow } from "date-fns";
 import { JourneyTrack } from "@/myt/components/JourneyTrack";
 import { CallLadder } from "@/myt/components/CallLadder";
+import { ObjectionKit } from "@/myt/components/ObjectionKit";
+
 import { DossierStrip } from "@/myt/components/DossierStrip";
 import { currentStage, play } from "@/myt/lib/call-plan";
 import { teamMembers } from "@/myt/lib/mock-data";
@@ -459,7 +461,29 @@ export function LeadControlPanel({ subject, trigger, defaultTab = "overview", on
             <Button onClick={saveFollowUp} className="w-full gap-1.5">
               <Bell className="h-4 w-4" /> Set follow-up
             </Button>
+
+            {lead && (
+              <ObjectionKit
+                lead={lead}
+                stage={selectedCall}
+                compact
+                onSaveField={(key, value) => {
+                  setLeads((prev) => prev.map((l) => l.id === lead.id
+                    ? { ...l, discovery: { ...(l.discovery ?? {}), [key]: value }, lastTouchAt: new Date().toISOString() }
+                    : l));
+                }}
+                onSaveNote={(text, stage) => {
+                  const stamp = `[C${stage} · ${format(new Date(), 'MMM d, HH:mm')}] ${text}`;
+                  setLeads((prev) => prev.map((l) => l.id === lead.id
+                    ? { ...l, notes: `${stamp}\n${l.notes ?? ''}`.trim(), lastTouchAt: new Date().toISOString() }
+                    : l));
+                  log('custom_message_sent', `C${stage} ${text.slice(0, 80)}`);
+                  toast.success('Logged to activity');
+                }}
+              />
+            )}
           </TabsContent>
+
 
           {/* ---- POST-TOUR (mandatory enforcement) ---- */}
           {tour && (

@@ -21,6 +21,8 @@ import {
   type BlockerId, type CallCode, type JourneyId,
 } from '@/myt/lib/journey';
 import { applyOverride, useJourneyOverrides } from '@/myt/lib/journey-store';
+import { ObjectionKit } from '@/myt/components/ObjectionKit';
+
 
 
 
@@ -152,6 +154,9 @@ export function CallLadder({ lead, compact = false, selectedStage, onSelectStage
               </ol>
 
               {onSaveNote && <ExtraNotes stage={activeStage} onSave={onSaveNote} existing={lead.notes} />}
+
+              <ObjectionKit lead={lead} stage={activeStage} onSaveField={onSaveField} onSaveNote={onSaveNote} />
+
 
               {open.length === 0 && (
                 <div className="text-[11px] text-role-tcm flex items-center gap-1.5">
