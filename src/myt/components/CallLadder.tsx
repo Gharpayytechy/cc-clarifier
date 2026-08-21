@@ -1,20 +1,27 @@
+import { useEffect, useState } from 'react';
 import { CheckCircle2, Circle, Gauge, PhoneOff, Target } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { CallStage, Lead } from '@/myt/lib/types';
+import { Input } from '@/components/ui/input';
+import { CallStage, Lead, DiscoveryKey } from '@/myt/lib/types';
 import {
   CALL_PLAYS, STAGE_ORDER, currentStage, closingReadiness, readinessTone,
   readinessVerdict, play, askFields, filled, attemptsAtStage, waStatusMeta,
+  type DiscoveryField,
 } from '@/myt/lib/call-plan';
+
 
 /**
  * The same ladder the call sheet runs on, in read-only form:
  * which call this lead is on, what that call needs, and how close to closeable.
+ * When `onSaveField` is passed, the "Ask on C#" list becomes fillable inline —
+ * so the dossier can be completed live from the drawer.
  */
-export function CallLadder({ lead, compact = false, selectedStage, onSelectStage }: {
+export function CallLadder({ lead, compact = false, selectedStage, onSelectStage, onSaveField }: {
   lead: Lead;
   compact?: boolean;
   selectedStage?: CallStage;
   onSelectStage?: (stage: CallStage) => void;
+  onSaveField?: (key: DiscoveryKey, value: string) => void;
 }) {
   const stage = currentStage(lead);
   const activeStage = selectedStage ?? stage;
@@ -22,8 +29,10 @@ export function CallLadder({ lead, compact = false, selectedStage, onSelectStage
   const r = closingReadiness(lead);
   const tone = readinessTone(r.pct);
   const attempts = attemptsAtStage(lead, activeStage);
-  const open = askFields(activeStage).filter((f) => !filled(lead.discovery, f.key));
+  const allAsks = askFields(activeStage);
+  const open = allAsks.filter((f) => !filled(lead.discovery, f.key));
   const wa = waStatusMeta(lead.waStatus);
+
 
   return (
     <div className="rounded-xl border bg-surface-2/40 p-3 space-y-2.5">
@@ -75,23 +84,43 @@ export function CallLadder({ lead, compact = false, selectedStage, onSelectStage
             <span className="text-muted-foreground">This call wins when: </span>{p.win}
           </div>
 
-          {open.length > 0 && (
-            <div className="space-y-1">
-              <div className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">
+          {onSaveField ? (
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2 text-[10px] uppercase tracking-wide text-muted-foreground font-medium">
                 Ask on {p.code} · {open.length} left
+                <span className="normal-case tracking-normal text-muted-foreground/70">fill live during the call</span>
               </div>
-              {open.map((f) => (
-                <div key={f.key} className="text-[11px] text-muted-foreground flex items-center gap-1.5">
-                  <Circle className="h-2.5 w-2.5" /> {f.label}
-                </div>
+              {allAsks.map((f) => (
+                <AskField key={f.key} field={f} value={lead.discovery?.[f.key] ?? ''} onSave={onSaveField} />
               ))}
+              {open.length === 0 && (
+                <div className="text-[11px] text-role-tcm flex items-center gap-1.5">
+                  <CheckCircle2 className="h-3 w-3" /> {p.code} dossier complete — move to Call {Math.min(activeStage + 1, 5)}.
+                </div>
+              )}
             </div>
+          ) : (
+            <>
+              {open.length > 0 && (
+                <div className="space-y-1">
+                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">
+                    Ask on {p.code} · {open.length} left
+                  </div>
+                  {open.map((f) => (
+                    <div key={f.key} className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                      <Circle className="h-2.5 w-2.5" /> {f.label}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {open.length === 0 && (
+                <div className="text-[11px] text-role-tcm flex items-center gap-1.5">
+                  <CheckCircle2 className="h-3 w-3" /> {p.code} data complete — move to Call {Math.min(activeStage + 1, 5)}.
+                </div>
+              )}
+            </>
           )}
-          {open.length === 0 && (
-            <div className="text-[11px] text-role-tcm flex items-center gap-1.5">
-               <CheckCircle2 className="h-3 w-3" /> {p.code} data complete — move to Call {Math.min(activeStage + 1, 5)}.
-            </div>
-          )}
+
 
           {attempts > 0 && (
             <div className="text-[11px] text-muted-foreground flex items-center gap-1.5">
@@ -114,3 +143,56 @@ export function CallLadder({ lead, compact = false, selectedStage, onSelectStage
     </div>
   );
 }
+
+/** One fillable dossier question — chips for choices, typed input otherwise. */
+function AskField({ field, value, onSave }: {
+  field: DiscoveryField;
+  value: string;
+  onSave: (key: DiscoveryKey, value: string) => void;
+}) {
+  const [draft, setDraft] = useState(value);
+  const done = value.trim().length > 0;
+
+  useEffect(() => { setDraft(value); }, [value]);
+
+  return (
+    <div className={cn('rounded-lg border p-2 space-y-1.5',
+      done ? 'border-role-tcm/40 bg-role-tcm/5' : 'border-border bg-card')}>
+      <div className="flex items-center gap-1.5">
+        {done
+          ? <CheckCircle2 className="h-3 w-3 text-role-tcm shrink-0" />
+          : <Circle className="h-2.5 w-2.5 text-muted-foreground shrink-0" />}
+        <span className="text-[11px] font-medium text-foreground">{field.label}</span>
+        {field.required && !done && <span className="text-[9px] text-danger">required</span>}
+      </div>
+
+      {field.kind === 'choice' ? (
+        <div className="flex flex-wrap gap-1">
+          {field.options!.map((o) => (
+            <button type="button" key={o}
+              onClick={() => onSave(field.key, value === o ? '' : o)}
+              className={cn('rounded-md border px-1.5 py-0.5 text-[10px] leading-tight transition-colors',
+                value === o
+                  ? 'bg-primary border-primary text-primary-foreground font-medium'
+                  : 'border-border bg-surface-2 text-muted-foreground hover:text-foreground hover:border-primary/50')}>
+              {o}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <Input
+          type={field.kind === 'date' ? 'date' : field.kind === 'number' ? 'number' : 'text'}
+          value={draft}
+          placeholder={field.label}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={() => { if (draft !== value) onSave(field.key, draft); }}
+          onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+          className="h-7 text-[11px]"
+        />
+      )}
+
+      <p className="text-[9px] text-muted-foreground">{field.why}</p>
+    </div>
+  );
+}
+
