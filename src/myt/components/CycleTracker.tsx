@@ -348,7 +348,36 @@ export function CycleTracker() {
                     {OUTCOMES.find(o => o.key === l.outcome)?.label}
                     {l.notes && ` · ${l.notes}`}
                   </div>
+                  {(() => {
+                    const chips = [
+                      l.city && { k: 'City', v: l.city },
+                      l.area && { k: 'Area', v: l.area },
+                      l.budget && { k: 'Budget', v: `₹${l.budget}` },
+                      l.movingDate && { k: 'Moving', v: l.movingDate },
+                      l.shortlist && { k: 'Shortlist', v: l.shortlist },
+                      l.property && { k: 'Property', v: l.property },
+                      l.sharing && { k: 'Sharing', v: l.sharing },
+                    ].filter(Boolean) as { k: string; v: string }[];
+                    const missing = ['Area', 'Budget', 'Moving', 'Sharing'].filter(
+                      k => !chips.some(c => c.k === k),
+                    );
+                    return (
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {chips.map(c => (
+                          <span key={c.k} className="rounded bg-surface-3/70 px-1.5 py-0.5 text-[10px] text-foreground">
+                            <span className="text-muted-foreground">{c.k} </span>{c.v}
+                          </span>
+                        ))}
+                        {missing.length > 0 && (
+                          <span className="rounded bg-warning/15 px-1.5 py-0.5 text-[10px] text-warning">
+                            Missing: {missing.join(', ')}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
+
                 <Button size="sm" variant="ghost" className="h-6 w-6 p-0 shrink-0" onClick={() => removeLog(l.id)}>
                   <Trash2 className="h-3 w-3 text-muted-foreground" />
                 </Button>
