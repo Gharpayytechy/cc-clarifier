@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { format, formatDistanceToNow } from "date-fns";
 import { JourneyTrack } from "@/myt/components/JourneyTrack";
 import { CallLadder } from "@/myt/components/CallLadder";
+import { DossierStrip } from "@/myt/components/DossierStrip";
 import { currentStage, play } from "@/myt/lib/call-plan";
 import { teamMembers } from "@/myt/lib/mock-data";
 import { useSessionTimer } from "@/lib/productivity/use-session-timer";
@@ -282,7 +283,9 @@ export function LeadControlPanel({ subject, trigger, defaultTab = "overview", on
             )}
           </div>
 
+          {lead && <DossierStrip lead={lead} className="mt-1.5" />}
           {lead && <JourneyTrack lead={lead} className="pt-1.5" />}
+
         </SheetHeader>
 
 
@@ -309,8 +312,17 @@ export function LeadControlPanel({ subject, trigger, defaultTab = "overview", on
                     : l));
                   toast.success(value ? 'Saved to dossier' : 'Cleared');
                 }}
+                onSaveNote={(text, stage) => {
+                  const stamp = `[C${stage} · ${format(new Date(), 'MMM d, HH:mm')}] ${text}`;
+                  setLeads((prev) => prev.map((l) => l.id === lead.id
+                    ? { ...l, notes: `${stamp}\n${l.notes ?? ''}`.trim(), lastTouchAt: new Date().toISOString() }
+                    : l));
+                  log('custom_message_sent', `C${stage} note: ${text.slice(0, 80)}`);
+                  toast.success('Note added to dossier');
+                }}
               />
             )}
+
 
             {lead && (
               <Button className="h-9 w-full" onClick={callNow}>
