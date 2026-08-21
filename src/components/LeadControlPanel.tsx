@@ -110,6 +110,7 @@ export function LeadControlPanel() {
   const [customMsg, setCustomMsg] = useState("");
   const [selectedCall, setSelectedCall] = useState(1);
   const [logOpen, setLogOpen] = useState(false);
+  const [logCall, setLogCall] = useState<number | undefined>(undefined);
   const drawerScrollRef = useRef<HTMLDivElement>(null);
   const actionEngineRef = useRef<HTMLDivElement>(null);
 
