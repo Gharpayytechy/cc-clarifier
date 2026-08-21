@@ -90,3 +90,54 @@ export function journeyProgress(lead: Lead) {
   const cleared = gates.filter((s) => done[s.id]).length;
   return { cleared, total: gates.length, pct: Math.round((cleared / gates.length) * 100) };
 }
+
+/** ---------------------------------------------------------------
+ *  C1..C5  ↔  S1..S8 wiring.
+ *  Every call owns a fixed set of journey gates, so "which call am I on"
+ *  and "which gate is open" can never drift apart.
+ *  --------------------------------------------------------------- */
+
+export type CallCode = 1 | 2 | 3 | 4 | 5;
+
+export const STAGE_GATES: Record<CallCode, JourneyId[]> = {
+  1: ['S1', 'PDF', 'S2', 'AMEN', 'S3'],
+  2: ['LOC', 'S4', 'S5', 'S6'],
+  3: ['S7'],
+  4: ['S8'],
+  5: [],
+};
+
+/** Steps a given call must clear. */
+export function stageGates(stage: CallCode): JourneyStep[] {
+  return STAGE_GATES[stage].map((id) => JOURNEY.find((s) => s.id === id)!).filter(Boolean);
+}
+
+/** Which call owns a gate — the reverse map. */
+export function gateStage(id: JourneyId): CallCode {
+  const found = (Object.keys(STAGE_GATES) as unknown as CallCode[])
+    .find((s) => STAGE_GATES[s].includes(id));
+  return found ?? 5;
+}
+
+/** The call the lead is actually on, derived from the first open gate. */
+export function stageFromJourney(lead: Lead): CallCode {
+  const blockers = journeyBlockers(lead);
+  if (blockers.includes('NR') || blockers.includes('NU')) return 5;
+  return gateStage(currentJourneyStep(lead).id);
+}
+
+/** Gate scoreboard for one call: cleared / open / done-ness. */
+export function stageGateStatus(lead: Lead, stage: CallCode) {
+  const done = journeyDone(lead);
+  const gates = stageGates(stage);
+  const cleared = gates.filter((s) => done[s.id]);
+  const open = gates.filter((s) => !done[s.id]);
+  return {
+    gates,
+    cleared: cleared.length,
+    total: gates.length,
+    open,
+    complete: gates.length > 0 && open.length === 0,
+    done,
+  };
+}
