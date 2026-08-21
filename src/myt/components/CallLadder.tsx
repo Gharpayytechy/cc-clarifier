@@ -118,9 +118,7 @@ export function CallLadder({ lead, compact = false, selectedStage, onSelectStage
 
       {!compact && (
         <>
-          <div className="text-[11px]">
-            <span className="text-muted-foreground">This call wins when: </span>{p.win}
-          </div>
+          <PreCallBriefCard brief={brief} verdict={verdict} />
 
           <StageGates lead={lead} stage={activeStage as CallCode} />
 
@@ -134,6 +132,18 @@ export function CallLadder({ lead, compact = false, selectedStage, onSelectStage
                 <span className="normal-case tracking-normal text-muted-foreground/70">read top to bottom</span>
                 <span className="ml-auto tabular-nums">{prog.done}/{prog.total} captured</span>
               </div>
+
+              <div className="flex items-center gap-1">
+                <Languages className="h-3 w-3 text-muted-foreground" />
+                {SCRIPT_LANGS.map((l) => (
+                  <button type="button" key={l.value} onClick={() => setLang(l.value)}
+                    className={cn('rounded-md border px-1.5 py-0.5 text-[10px] font-medium transition-colors',
+                      lang === l.value ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-primary/40')}>
+                    {l.label}
+                  </button>
+                ))}
+              </div>
+
 
               <ol className="space-y-1.5">
                 {script.map((line, i) => (
