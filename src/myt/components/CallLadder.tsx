@@ -48,9 +48,15 @@ export function CallLadder({ lead, compact = false, selectedStage, onSelectStage
   const attempts = attemptsAtStage(lead, activeStage);
   const allAsks = askFields(activeStage);
   const open = allAsks.filter((f) => !filled(lead.discovery, f.key));
-  const script = talkTrack(lead, activeStage);
+  const [lang, setLang] = useState<ScriptLang>('en');
+  const path = leadPath(lead);
+  const pathMeta = PATH_META[path];
+  const brief = preCallBrief(lead, activeStage);
+  const verdict = callVerdict(lead, activeStage);
+  const script = talkTrack(lead, activeStage, { lang, path });
   const prog = trackProgress(lead, activeStage);
   const wa = waStatusMeta(lead.waStatus);
+
 
 
 
