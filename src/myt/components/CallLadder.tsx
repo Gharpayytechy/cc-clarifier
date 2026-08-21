@@ -1,6 +1,7 @@
 import { CheckCircle2, Circle, Gauge, PhoneOff, Target } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { CallStage, Lead } from '@/myt/lib/types';
+import { Input } from '@/components/ui/input';
+import { CallStage, Lead, DiscoveryKey } from '@/myt/lib/types';
 import {
   CALL_PLAYS, STAGE_ORDER, currentStage, closingReadiness, readinessTone,
   readinessVerdict, play, askFields, filled, attemptsAtStage, waStatusMeta,
@@ -9,12 +10,15 @@ import {
 /**
  * The same ladder the call sheet runs on, in read-only form:
  * which call this lead is on, what that call needs, and how close to closeable.
+ * When `onSaveField` is passed, the "Ask on C#" list becomes fillable inline —
+ * so the dossier can be completed live from the drawer.
  */
-export function CallLadder({ lead, compact = false, selectedStage, onSelectStage }: {
+export function CallLadder({ lead, compact = false, selectedStage, onSelectStage, onSaveField }: {
   lead: Lead;
   compact?: boolean;
   selectedStage?: CallStage;
   onSelectStage?: (stage: CallStage) => void;
+  onSaveField?: (key: DiscoveryKey, value: string) => void;
 }) {
   const stage = currentStage(lead);
   const activeStage = selectedStage ?? stage;
@@ -22,8 +26,10 @@ export function CallLadder({ lead, compact = false, selectedStage, onSelectStage
   const r = closingReadiness(lead);
   const tone = readinessTone(r.pct);
   const attempts = attemptsAtStage(lead, activeStage);
-  const open = askFields(activeStage).filter((f) => !filled(lead.discovery, f.key));
+  const allAsks = askFields(activeStage);
+  const open = allAsks.filter((f) => !filled(lead.discovery, f.key));
   const wa = waStatusMeta(lead.waStatus);
+
 
   return (
     <div className="rounded-xl border bg-surface-2/40 p-3 space-y-2.5">
