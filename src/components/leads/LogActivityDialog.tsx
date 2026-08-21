@@ -18,9 +18,11 @@ import type { Lead, LeadStage } from "@/lib/types";
 import type { CallNumber } from "@/lib/journey-gates";
 import { gatesForCall } from "@/lib/journey-gates";
 import { CallScriptCapture, useScriptProgress } from "./CallScriptCapture";
+import { useCallMovement } from "./CallMovement";
 import {
   ACTIVITY_CATEGORIES, type ActivityType, type NextStepOption, toneClasses,
 } from "@/lib/lead-activity-catalog";
+
 
 const STAGES: LeadStage[] = [
   "new", "contacted", "tour-scheduled", "tour-done", "negotiation", "booked", "dropped",
@@ -81,6 +83,8 @@ export function LogActivityDialog({
   );
   const { captured, total } = useScriptProgress(lead, activeCall);
   const gates = useMemo(() => gatesForCall(activeCall), [activeCall]);
+  const movement = useCallMovement(lead, activeCall);
+
 
   useEffect(() => {
     if (!open) return;
@@ -133,7 +137,13 @@ export function LogActivityDialog({
     if (captures.length) addNote(lead.id, `${tag}Captured — ${captures.join(" · ")}`);
     if (scriptNote.trim()) addNote(lead.id, `${tag}${scriptNote.trim()}`);
 
-    if (stage !== lead.stage) setLeadStage(lead.id, stage);
+    // the movement half — PDF, tour, quotation, token/booking/check-in, revival
+    const moved = movement.apply();
+    moved.forEach((m) => addNote(lead.id, `${tag}${m}`));
+
+    const bookedByMovement = moved.some((m) => m.toLowerCase().includes("token"));
+    const finalStage: LeadStage = bookedByMovement ? "booked" : stage;
+    if (!bookedByMovement && stage !== lead.stage) setLeadStage(lead.id, stage);
 
     if (dueAt) {
       setLeadFollowUp(
@@ -145,13 +155,16 @@ export function LogActivityDialog({
     }
 
     toast.success(`C${activeCall} closed: ${type.label}`, {
-      description: dueAt
-        ? `Next: ${nextStep?.label ?? "follow-up"} · ${format(new Date(dueAt), "MMM d, p")}`
-        : "No follow-up scheduled",
+      description: [
+        moved.length ? moved.join(" · ") : null,
+        dueAt ? `Next: ${nextStep?.label ?? "follow-up"} · ${format(new Date(dueAt), "MMM d, p")}` : "No follow-up scheduled",
+        `Stage: ${finalStage.replace("-", " ")}`,
+      ].filter(Boolean).join(" — "),
     });
     onOpenChange(false);
     onLogged?.();
   };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -221,8 +234,14 @@ export function LogActivityDialog({
           </div>
         </Step>
 
-        {/* 3 · category */}
-        <Step n={3} title="Where did it happen?">
+        {/* 3 · movement */}
+        <Step n={3} title={`Move it forward · ${movement.title}`}>
+          <div className="rounded-lg border border-border bg-muted/20 p-2">{movement.node}</div>
+        </Step>
+
+        {/* 4 · category */}
+        <Step n={4} title="Where did it happen?">
+
           <div className="flex flex-wrap gap-1.5">
             {ACTIVITY_CATEGORIES.map((c) => (
               <button
@@ -242,7 +261,7 @@ export function LogActivityDialog({
         </Step>
 
         {/* 4 · outcome */}
-        <Step n={4} title="What happened?">
+        <Step n={5} title="What happened?">
           <div className="flex flex-wrap gap-1.5">
             {category.types.map((t) => (
               <button
@@ -262,7 +281,7 @@ export function LogActivityDialog({
         {/* 5 · next step */}
         {type && (
           <>
-            <Step n={5} title="What happens next?">
+            <Step n={6} title="What happens next?">
               <div className="space-y-1.5">
                 {type.nextSteps.map((s) => (
                   <button
@@ -287,7 +306,7 @@ export function LogActivityDialog({
               </div>
             </Step>
 
-            <Step n={6} title="Details">
+            <Step n={7} title="Details">
               <Textarea
                 rows={3}
                 value={note}
