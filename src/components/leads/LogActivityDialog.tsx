@@ -143,6 +143,10 @@ export function LogActivityDialog({
     const moved = movement.apply();
     moved.forEach((m) => addNote(lead.id, `${tag}${m}`));
 
+    // every other module — call intelligence, WhatsApp kit, objection 2, commitment, labels, gates
+    const modLines = modules.apply();
+    modLines.forEach((m) => addNote(lead.id, `${tag}${m}`));
+
     const bookedByMovement = moved.some((m) => m.toLowerCase().includes("token"));
     const finalStage: LeadStage = bookedByMovement ? "booked" : stage;
     if (!bookedByMovement && stage !== lead.stage) setLeadStage(lead.id, stage);
