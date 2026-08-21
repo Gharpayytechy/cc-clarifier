@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CheckCircle2, Circle, Gauge, PhoneOff, Target, MessageSquarePlus, Quote } from 'lucide-react';
+import { CheckCircle2, Circle, Gauge, PhoneOff, Target, MessageSquarePlus, Quote, MapPin, Info, AlertTriangle, Trophy, EyeOff, Languages } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -10,13 +10,18 @@ import {
   readinessVerdict, play, askFields, filled, attemptsAtStage, waStatusMeta, fieldByKey,
   type DiscoveryField,
 } from '@/myt/lib/call-plan';
-import { talkTrack, trackProgress, LINE_META, type TalkLine } from '@/myt/lib/talk-track';
+import {
+  talkTrack, trackProgress, LINE_META, leadPath, PATH_META, SCRIPT_LANGS,
+  type TalkLine, type ScriptLang,
+} from '@/myt/lib/talk-track';
+import { preCallBrief, callVerdict } from '@/myt/lib/call-os';
 import { DossierStrip } from '@/myt/components/DossierStrip';
 import {
   BLOCKERS, STAGE_GATES, journeyBlockers, journeyDone, stageGateStatus, stageGates,
   type BlockerId, type CallCode, type JourneyId,
 } from '@/myt/lib/journey';
 import { applyOverride, useJourneyOverrides } from '@/myt/lib/journey-store';
+
 
 
 
