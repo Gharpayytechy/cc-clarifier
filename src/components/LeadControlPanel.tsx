@@ -41,6 +41,8 @@ import { SessionTimerBadge } from "@/components/productivity/SessionTimerBadge";
 import { useIdentityStore } from "@/lib/lead-identity/store";
 import { useSettings } from "@/myt/lib/settings-context";
 import { LeadCallLadder } from "./leads/LeadCallLadder";
+import { LeadTalkTrack } from "./leads/LeadTalkTrack";
+import { LeadCapturedStrip } from "./leads/LeadCapturedStrip";
 import { LogActivityDialog } from "./leads/LogActivityDialog";
 import { LeadFollowUpsPanel } from "./leads/LeadFollowUpsPanel";
 
@@ -67,7 +69,7 @@ export function LeadControlPanel() {
     selectedLeadId, selectLead, leads, properties, tours, activities, tcms, followUps,
     setLeadStage, setLeadIntent, setLeadFollowUp, addLeadTag, removeLeadTag,
     scheduleTour, cancelTour, rescheduleTour, completeTour, setDecision, updatePostTour,
-    addNote, logCall, sendMessage, autoAssignLead, startSequence, closeDeal,
+    addNote, patchLead, logCall, sendMessage, autoAssignLead, startSequence, closeDeal,
     markHandoffsRead,
   } = useApp();
   const { settings } = useSettings();
