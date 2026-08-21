@@ -234,8 +234,14 @@ export function LogActivityDialog({
           </div>
         </Step>
 
-        {/* 3 · category */}
-        <Step n={3} title="Where did it happen?">
+        {/* 3 · movement */}
+        <Step n={3} title={`Move it forward · ${movement.title}`}>
+          <div className="rounded-lg border border-border bg-muted/20 p-2">{movement.node}</div>
+        </Step>
+
+        {/* 4 · category */}
+        <Step n={4} title="Where did it happen?">
+
           <div className="flex flex-wrap gap-1.5">
             {ACTIVITY_CATEGORIES.map((c) => (
               <button
