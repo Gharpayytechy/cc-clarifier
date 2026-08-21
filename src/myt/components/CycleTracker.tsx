@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Target, PhoneCall, Check, Trash2, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -92,6 +93,7 @@ export function CycleTracker() {
   const [sharing, setSharing] = useState('Double');
   const [outcome, setOutcome] = useState<OutcomeKey>('connected');
   const [notes, setNotes] = useState('');
+  const [selectedLog, setSelectedLog] = useState<CallLog | null>(null);
 
   const updateCycle = (field: MetricKey, delta: number) => {
     setCycles(prev => prev.map((c, i) => (i === activeCycle ? { ...c, [field]: Math.max(0, c[field] + delta) } : c)));
@@ -339,7 +341,7 @@ export function CycleTracker() {
         ) : (
           <div className="space-y-1.5">
             {cycleLogs.map(l => (
-              <div key={l.id} className="flex items-start justify-between gap-2 rounded-md bg-surface-2/50 px-2.5 py-1.5">
+              <div key={l.id} onClick={() => setSelectedLog(l)} className="flex items-start justify-between gap-2 rounded-md bg-surface-2/50 px-2.5 py-1.5 cursor-pointer hover:bg-surface-2/80 transition-colors">
                 <div className="min-w-0">
                   <div className="text-xs text-foreground truncate">
                     {l.name}{l.phone && <span className="text-muted-foreground"> · {l.phone}</span>}
@@ -378,7 +380,7 @@ export function CycleTracker() {
                   })()}
                 </div>
 
-                <Button size="sm" variant="ghost" className="h-6 w-6 p-0 shrink-0" onClick={() => removeLog(l.id)}>
+                <Button size="sm" variant="ghost" className="h-6 w-6 p-0 shrink-0" onClick={e => { e.stopPropagation(); removeLog(l.id); }}>
                   <Trash2 className="h-3 w-3 text-muted-foreground" />
                 </Button>
               </div>
@@ -386,6 +388,68 @@ export function CycleTracker() {
           </div>
         )}
       </div>
+
+      <Sheet open={selectedLog !== null} onOpenChange={open => !open && setSelectedLog(null)}>
+        <SheetContent className="sm:max-w-md">
+          <SheetHeader>
+            <SheetTitle>Call details · {selectedLog?.name ?? 'Unknown lead'}</SheetTitle>
+            <SheetDescription>
+              {selectedLog ? (
+                <>
+                  {OUTCOMES.find(o => o.key === selectedLog.outcome)?.label} · {CYCLES.find(c => c.n === selectedLog.cycle)?.label}
+                </>
+              ) : '—'}
+            </SheetDescription>
+          </SheetHeader>
+          {selectedLog && (
+            <div className="space-y-4 mt-5 text-sm">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-surface-2/50 rounded-lg p-3">
+                  <p className="text-[10px] text-muted-foreground mb-0.5">Phone</p>
+                  <p className="text-foreground">{selectedLog.phone || '—'}</p>
+                </div>
+                <div className="bg-surface-2/50 rounded-lg p-3">
+                  <p className="text-[10px] text-muted-foreground mb-0.5">City</p>
+                  <p className="text-foreground">{selectedLog.city || '—'}</p>
+                </div>
+                <div className="bg-surface-2/50 rounded-lg p-3">
+                  <p className="text-[10px] text-muted-foreground mb-0.5">Preferred area</p>
+                  <p className="text-foreground">{selectedLog.area || '—'}</p>
+                </div>
+                <div className="bg-surface-2/50 rounded-lg p-3">
+                  <p className="text-[10px] text-muted-foreground mb-0.5">Budget</p>
+                  <p className="text-foreground">{selectedLog.budget ? `₹${selectedLog.budget}` : '—'}</p>
+                </div>
+                <div className="bg-surface-2/50 rounded-lg p-3">
+                  <p className="text-[10px] text-muted-foreground mb-0.5">Moving date</p>
+                  <p className="text-foreground">{selectedLog.movingDate || '—'}</p>
+                </div>
+                <div className="bg-surface-2/50 rounded-lg p-3">
+                  <p className="text-[10px] text-muted-foreground mb-0.5">Shortlist</p>
+                  <p className="text-foreground">{selectedLog.shortlist || '—'}</p>
+                </div>
+              </div>
+              <div className="bg-surface-2/50 rounded-lg p-3">
+                <p className="text-[10px] text-muted-foreground mb-0.5">Property discussed</p>
+                <p className="text-foreground">{selectedLog.property || '—'}</p>
+              </div>
+              <div className="bg-surface-2/50 rounded-lg p-3">
+                <p className="text-[10px] text-muted-foreground mb-0.5">Sharing</p>
+                <p className="text-foreground">{selectedLog.sharing || '—'}</p>
+              </div>
+              {selectedLog.notes && (
+                <div className="bg-surface-2/50 rounded-lg p-3">
+                  <p className="text-[10px] text-muted-foreground mb-0.5">Notes</p>
+                  <p className="text-foreground whitespace-pre-wrap">{selectedLog.notes}</p>
+                </div>
+              )}
+              <p className="text-[10px] text-muted-foreground">
+                Logged at {new Date(selectedLog.at).toLocaleString()}
+              </p>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
 
       <div className="mt-3 pt-3 border-t border-border">
         <p className="text-[10px] text-muted-foreground mb-1">Day totals across C1–C5</p>
