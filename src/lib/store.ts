@@ -32,6 +32,7 @@ interface AppState {
   bookings: Booking[];
 
   setLeadStage: (leadId: string, stage: LeadStage) => void;
+  patchLead: (leadId: string, patch: Partial<Pick<Lead, "budget" | "moveInDate" | "preferredArea">>) => void;
   setLeadIntent: (leadId: string, intent: Intent) => void;
   setLeadFollowUp: (leadId: string, dueAt: string, priority: FollowUp["priority"], reason?: string) => void;
   addLeadTag: (leadId: string, tag: string) => void;
@@ -83,6 +84,14 @@ export const useApp = create<AppState>((set, get) => ({
   handoffs: HANDOFFS,
   sequences: SEQUENCES_INIT,
   bookings: [],
+
+  patchLead: (leadId, patch) => {
+    set((s) => ({
+      leads: s.leads.map((l) =>
+        l.id === leadId ? { ...l, ...patch, updatedAt: new Date().toISOString() } : l,
+      ),
+    }));
+  },
 
   setLeadStage: (leadId, stage) => {
     set((s) => ({

@@ -1,13 +1,17 @@
 import { useEffect, useState } from 'react';
-import { CheckCircle2, Circle, Gauge, PhoneOff, Target } from 'lucide-react';
+import { CheckCircle2, Circle, Gauge, PhoneOff, Target, MessageSquarePlus, Quote } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
 import { CallStage, Lead, DiscoveryKey } from '@/myt/lib/types';
 import {
   CALL_PLAYS, STAGE_ORDER, currentStage, closingReadiness, readinessTone,
-  readinessVerdict, play, askFields, filled, attemptsAtStage, waStatusMeta,
+  readinessVerdict, play, askFields, filled, attemptsAtStage, waStatusMeta, fieldByKey,
   type DiscoveryField,
 } from '@/myt/lib/call-plan';
+import { talkTrack, trackProgress, LINE_META, type TalkLine } from '@/myt/lib/talk-track';
+import { DossierStrip } from '@/myt/components/DossierStrip';
 import {
   BLOCKERS, STAGE_GATES, journeyBlockers, journeyDone, stageGateStatus, stageGates,
   type BlockerId, type CallCode, type JourneyId,
@@ -16,18 +20,20 @@ import { applyOverride, useJourneyOverrides } from '@/myt/lib/journey-store';
 
 
 
+
 /**
  * The same ladder the call sheet runs on, in read-only form:
  * which call this lead is on, what that call needs, and how close to closeable.
- * When `onSaveField` is passed, the "Ask on C#" list becomes fillable inline —
- * so the dossier can be completed live from the drawer.
+ * When `onSaveField` is passed, C1..C5 becomes a readable talk track — every
+ * line you say, in order, with the dossier field filled right under the line.
  */
-export function CallLadder({ lead, compact = false, selectedStage, onSelectStage, onSaveField }: {
+export function CallLadder({ lead, compact = false, selectedStage, onSelectStage, onSaveField, onSaveNote }: {
   lead: Lead;
   compact?: boolean;
   selectedStage?: CallStage;
   onSelectStage?: (stage: CallStage) => void;
   onSaveField?: (key: DiscoveryKey, value: string) => void;
+  onSaveNote?: (text: string, stage: CallStage) => void;
 }) {
   const stage = currentStage(lead);
   const activeStage = selectedStage ?? stage;
@@ -37,7 +43,10 @@ export function CallLadder({ lead, compact = false, selectedStage, onSelectStage
   const attempts = attemptsAtStage(lead, activeStage);
   const allAsks = askFields(activeStage);
   const open = allAsks.filter((f) => !filled(lead.discovery, f.key));
+  const script = talkTrack(lead, activeStage);
+  const prog = trackProgress(lead, activeStage);
   const wa = waStatusMeta(lead.waStatus);
+
 
 
   return (
@@ -98,14 +107,23 @@ export function CallLadder({ lead, compact = false, selectedStage, onSelectStage
 
 
           {onSaveField ? (
-            <div className="space-y-1.5">
+            <div className="space-y-2">
+              <DossierStrip lead={lead} />
+
               <div className="flex items-center gap-2 text-[10px] uppercase tracking-wide text-muted-foreground font-medium">
-                Ask on {p.code} · {open.length} left
-                <span className="normal-case tracking-normal text-muted-foreground/70">fill live during the call</span>
+                <Quote className="h-3 w-3" /> Say it like this · {p.code}
+                <span className="normal-case tracking-normal text-muted-foreground/70">read top to bottom</span>
+                <span className="ml-auto tabular-nums">{prog.done}/{prog.total} captured</span>
               </div>
-              {allAsks.map((f) => (
-                <AskField key={f.key} field={f} value={lead.discovery?.[f.key] ?? ''} onSave={onSaveField} />
-              ))}
+
+              <ol className="space-y-1.5">
+                {script.map((line, i) => (
+                  <ScriptLine key={i} n={i + 1} line={line} lead={lead} onSave={onSaveField} />
+                ))}
+              </ol>
+
+              {onSaveNote && <ExtraNotes stage={activeStage} onSave={onSaveNote} existing={lead.notes} />}
+
               {open.length === 0 && (
                 <div className="text-[11px] text-role-tcm flex items-center gap-1.5">
                   <CheckCircle2 className="h-3 w-3" /> {p.code} dossier complete — move to Call {Math.min(activeStage + 1, 5)}.
@@ -113,6 +131,7 @@ export function CallLadder({ lead, compact = false, selectedStage, onSelectStage
               )}
             </div>
           ) : (
+
             <>
               {open.length > 0 && (
                 <div className="space-y-1">
@@ -157,7 +176,130 @@ export function CallLadder({ lead, compact = false, selectedStage, onSelectStage
   );
 }
 
+/**
+ * One line of the conversation. Reads like speech; if the line captures a
+ * dossier field, the input sits directly under it so it is filled while said.
+ */
+function ScriptLine({ n, line, lead, onSave }: {
+  n: number;
+  line: TalkLine;
+  lead: Lead;
+  onSave: (key: DiscoveryKey, value: string) => void;
+}) {
+  const meta = LINE_META[line.kind];
+  const field = line.field ? fieldByKey(line.field) : undefined;
+  const value = line.field ? (lead.discovery?.[line.field] ?? '') : '';
+  const done = value.trim().length > 0;
+
+  return (
+    <li className={cn('rounded-lg border p-2 space-y-1.5',
+      done ? 'border-role-tcm/40 bg-role-tcm/5' : 'border-border bg-card')}>
+      <div className="flex items-start gap-2">
+        <span className="mt-[1px] text-[9px] font-bold tabular-nums text-muted-foreground/70 w-3 shrink-0">{n}</span>
+        <span className={cn('shrink-0 rounded border px-1 py-0.5 text-[9px] font-bold uppercase leading-none',
+          meta.tone === 'primary' ? 'border-primary/40 bg-primary/10 text-primary'
+            : meta.tone === 'good' ? 'border-role-tcm/40 bg-role-tcm/10 text-role-tcm'
+            : meta.tone === 'warn' ? 'border-role-hr/40 bg-role-hr/10 text-role-hr'
+            : 'border-border bg-surface-2 text-muted-foreground')}>
+          {meta.label}
+        </span>
+        <p className={cn('text-[11.5px] leading-snug',
+          line.kind === 'listen' || line.kind === 'handle'
+            ? 'italic text-muted-foreground' : 'text-foreground')}>
+          {line.kind === 'listen' || line.kind === 'handle' ? line.text : `“${line.text}”`}
+        </p>
+        {done && <CheckCircle2 className="ml-auto h-3 w-3 shrink-0 text-role-tcm" />}
+      </div>
+
+      {field && (
+        <div className="pl-5">
+          <FieldInput field={field} value={value} onSave={onSave} />
+        </div>
+      )}
+
+      {line.note && <p className="pl-5 text-[9px] text-muted-foreground">{line.note}</p>}
+    </li>
+  );
+}
+
+/** The bare control for a dossier field — chips for choices, typed input otherwise. */
+function FieldInput({ field, value, onSave }: {
+  field: DiscoveryField;
+  value: string;
+  onSave: (key: DiscoveryKey, value: string) => void;
+}) {
+  const [draft, setDraft] = useState(value);
+  useEffect(() => { setDraft(value); }, [value]);
+
+  if (field.kind === 'choice') {
+    return (
+      <div className="flex flex-wrap gap-1">
+        {field.options!.map((o) => (
+          <button type="button" key={o}
+            onClick={() => onSave(field.key, value === o ? '' : o)}
+            className={cn('rounded-md border px-1.5 py-0.5 text-[10px] leading-tight transition-colors',
+              value === o
+                ? 'bg-primary border-primary text-primary-foreground font-medium'
+                : 'border-border bg-surface-2 text-muted-foreground hover:text-foreground hover:border-primary/50')}>
+            {o}
+          </button>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <Input
+      type={field.kind === 'date' ? 'date' : field.kind === 'number' ? 'number' : 'text'}
+      value={draft}
+      placeholder={`Type what they said — ${field.label.toLowerCase()}`}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={() => { if (draft !== value) onSave(field.key, draft); }}
+      onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+      className="h-7 text-[11px]"
+    />
+  );
+}
+
+/** Anything they said that no field covers — captured in their own words. */
+function ExtraNotes({ stage, onSave, existing }: {
+  stage: CallStage;
+  onSave: (text: string, stage: CallStage) => void;
+  existing?: string;
+}) {
+  const [text, setText] = useState('');
+  const lines = (existing ?? '').split('\n').map((l) => l.trim()).filter(Boolean).slice(0, 6);
+
+  return (
+    <div className="rounded-lg border border-border bg-card p-2 space-y-1.5">
+      <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide font-medium text-muted-foreground">
+        <MessageSquarePlus className="h-3 w-3" /> Extra notes · C{stage}
+        <span className="normal-case tracking-normal text-muted-foreground/70">anything else they told you</span>
+      </div>
+      <Textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        rows={2}
+        placeholder="e.g. wants a gym nearby, sister may join in Dec, cannot pay before salary on the 5th…"
+        className="min-h-[52px] text-[11px]"
+      />
+      <Button size="sm" className="h-7 w-full text-[11px]" disabled={!text.trim()}
+        onClick={() => { onSave(text.trim(), stage); setText(''); }}>
+        Save note to dossier
+      </Button>
+      {lines.length > 0 && (
+        <ul className="space-y-0.5 pt-0.5">
+          {lines.map((l, i) => (
+            <li key={i} className="text-[10px] leading-snug text-muted-foreground">• {l}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 /** One fillable dossier question — chips for choices, typed input otherwise. */
+
 function AskField({ field, value, onSave }: {
   field: DiscoveryField;
   value: string;

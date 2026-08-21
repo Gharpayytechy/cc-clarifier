@@ -41,6 +41,8 @@ import { SessionTimerBadge } from "@/components/productivity/SessionTimerBadge";
 import { useIdentityStore } from "@/lib/lead-identity/store";
 import { useSettings } from "@/myt/lib/settings-context";
 import { LeadCallLadder } from "./leads/LeadCallLadder";
+import { LeadTalkTrack } from "./leads/LeadTalkTrack";
+import { LeadCapturedStrip } from "./leads/LeadCapturedStrip";
 import { LogActivityDialog } from "./leads/LogActivityDialog";
 import { LeadFollowUpsPanel } from "./leads/LeadFollowUpsPanel";
 
@@ -67,7 +69,7 @@ export function LeadControlPanel() {
     selectedLeadId, selectLead, leads, properties, tours, activities, tcms, followUps,
     setLeadStage, setLeadIntent, setLeadFollowUp, addLeadTag, removeLeadTag,
     scheduleTour, cancelTour, rescheduleTour, completeTour, setDecision, updatePostTour,
-    addNote, logCall, sendMessage, autoAssignLead, startSequence, closeDeal,
+    addNote, patchLead, logCall, sendMessage, autoAssignLead, startSequence, closeDeal,
     markHandoffsRead,
   } = useApp();
   const { settings } = useSettings();
@@ -213,6 +215,8 @@ export function LeadControlPanel() {
             <Meta icon={Wallet} label="Budget" value={`₹${(lead.budget / 1000).toFixed(0)}k`} />
             <Meta icon={MapPin} label="Area" value={lead.preferredArea} />
           </div>
+          <LeadCapturedStrip lead={lead} />
+
           <div className="flex flex-wrap items-center gap-2 pt-1">
             <Button size="sm" className="h-8 flex-1 min-w-[160px]" onClick={() => setLogOpen(true)}>
               <ActivityIcon className="mr-1.5 h-3.5 w-3.5" /> + Log activity
@@ -238,6 +242,22 @@ export function LeadControlPanel() {
           selectedCall={selectedCall}
           onSelectCall={setSelectedCall}
           onContinue={continueCall}
+        />
+        <LeadTalkTrack
+          lead={lead}
+          call={selectedCall as 1 | 2 | 3 | 4 | 5}
+          me={me?.name ?? "Gharpayy"}
+          onSaveCore={(field, value) => {
+            if (!value) return;
+            if (field === "budget") patchLead(lead.id, { budget: Number(value) || 0 });
+            else if (field === "moveInDate") patchLead(lead.id, { moveInDate: new Date(value).toISOString() });
+            else patchLead(lead.id, { preferredArea: value });
+            toast.success("Captured");
+          }}
+          onSaveNote={(text) => {
+            addNote(lead.id, text);
+            toast.success("Note added");
+          }}
         />
         </div>
 
