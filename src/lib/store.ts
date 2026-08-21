@@ -85,6 +85,14 @@ export const useApp = create<AppState>((set, get) => ({
   sequences: SEQUENCES_INIT,
   bookings: [],
 
+  patchLead: (leadId, patch) => {
+    set((s) => ({
+      leads: s.leads.map((l) =>
+        l.id === leadId ? { ...l, ...patch, updatedAt: new Date().toISOString() } : l,
+      ),
+    }));
+  },
+
   setLeadStage: (leadId, stage) => {
     set((s) => ({
       leads: s.leads.map((l) =>
