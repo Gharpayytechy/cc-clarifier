@@ -1,17 +1,13 @@
-import { useState } from 'react';
 import { useNavigate } from '@/shims/react-router-dom';
 import { useAppState } from '@/myt/lib/app-context';
 import { MetricCard } from '@/myt/components/MetricCard';
-import { CalendarCheck, Phone, TrendingUp, FileText, Target, CalendarPlus, Sparkles } from 'lucide-react';
-import { CycleData } from '@/myt/lib/types';
-import { cn } from '@/lib/utils';
+import { CalendarCheck, Phone, TrendingUp, FileText, CalendarPlus, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { LeadControlPanel } from '@/myt/components/LeadControlPanel';
 import { GlueFeed } from '@/components/GlueFeed';
 import { CoachInline } from '@/components/CoachInline';
 import { RoleGuaranteePanel } from '@/components/workflow/RoleGuaranteePanel';
-
-const CYCLE_TARGETS = { chatsClosed: 30, mytLeads: 10, toursScheduled: 4, sameDayConfirmed: 2 };
+import { CycleTracker } from '@/myt/components/CycleTracker';
 
 export default function FlowOpsDashboard() {
   const { tours, currentMemberId } = useAppState();
@@ -23,26 +19,6 @@ export default function FlowOpsDashboard() {
   const drafts = myTours.filter(t => t.outcome === 'draft').length;
   const pending = myTours.filter(t => t.status === 'scheduled').length;
 
-  const [cycles, setCycles] = useState<CycleData[]>([
-    { cycleNumber: 1, chatsClosed: 0, mytLeads: 0, toursScheduled: 0, sameDayConfirmed: 0 },
-    { cycleNumber: 2, chatsClosed: 0, mytLeads: 0, toursScheduled: 0, sameDayConfirmed: 0 },
-    { cycleNumber: 3, chatsClosed: 0, mytLeads: 0, toursScheduled: 0, sameDayConfirmed: 0 },
-    { cycleNumber: 4, chatsClosed: 0, mytLeads: 0, toursScheduled: 0, sameDayConfirmed: 0 },
-  ]);
-  const [activeCycle, setActiveCycle] = useState(0);
-
-  const updateCycle = (field: keyof CycleData, delta: number) => {
-    setCycles(prev => prev.map((c, i) =>
-      i === activeCycle ? { ...c, [field]: Math.max(0, (c[field] as number) + delta) } : c
-    ));
-  };
-
-  const dailyTotals = cycles.reduce((acc, c) => ({
-    chatsClosed: acc.chatsClosed + c.chatsClosed,
-    mytLeads: acc.mytLeads + c.mytLeads,
-    toursScheduled: acc.toursScheduled + c.toursScheduled,
-    sameDayConfirmed: acc.sameDayConfirmed + c.sameDayConfirmed,
-  }), { chatsClosed: 0, mytLeads: 0, toursScheduled: 0, sameDayConfirmed: 0 });
 
   return (
     <div className="space-y-4 md:space-y-6 animate-slide-up">
@@ -66,68 +42,8 @@ export default function FlowOpsDashboard() {
         <MetricCard label="Drafts" value={drafts} color="amber" icon={<FileText className="h-4 w-4" />} />
       </div>
 
-      <div className="glass-card p-3 md:p-5">
-        <div className="flex items-center gap-2 mb-3">
-          <Target className="h-4 w-4 text-primary" />
-          <h3 className="font-heading font-semibold text-xs md:text-sm text-foreground">90-Min Cycle Tracker</h3>
-        </div>
+      <CycleTracker />
 
-        <div className="flex gap-1 mb-4">
-          {cycles.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setActiveCycle(i)}
-              className={cn(
-                'flex-1 py-1.5 text-xs font-medium rounded-md transition-colors',
-                activeCycle === i ? 'bg-primary text-primary-foreground' : 'bg-surface-2 text-muted-foreground hover:text-foreground'
-              )}
-            >
-              G{i + 1}
-            </button>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-2 gap-2">
-          {([
-            { key: 'chatsClosed' as const, label: 'Chats Closed', target: CYCLE_TARGETS.chatsClosed },
-            { key: 'mytLeads' as const, label: 'MYT Leads', target: CYCLE_TARGETS.mytLeads },
-            { key: 'toursScheduled' as const, label: 'Tours Scheduled', target: CYCLE_TARGETS.toursScheduled },
-            { key: 'sameDayConfirmed' as const, label: 'Same-Day', target: CYCLE_TARGETS.sameDayConfirmed },
-          ]).map(item => {
-            const val = cycles[activeCycle][item.key] as number;
-            const pct = Math.min(100, Math.round((val / item.target) * 100));
-            return (
-              <div key={item.key} className="bg-surface-2/50 rounded-lg p-3">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[10px] text-muted-foreground">{item.label}</span>
-                  <span className="text-[10px] text-muted-foreground">{val}/{item.target}</span>
-                </div>
-                <div className="h-1.5 bg-surface-3 rounded-full mb-2">
-                  <div
-                    className={cn('h-full rounded-full transition-all', pct >= 100 ? 'bg-success' : pct >= 50 ? 'bg-primary' : 'bg-warning')}
-                    style={{ width: `${pct}%` }}
-                  />
-                </div>
-                <div className="flex items-center justify-center gap-2">
-                  <Button size="sm" variant="ghost" onClick={() => updateCycle(item.key, -1)} className="h-7 w-7 p-0 text-xs">−</Button>
-                  <span className="text-lg font-heading font-bold text-foreground w-8 text-center">{val}</span>
-                  <Button size="sm" variant="ghost" onClick={() => updateCycle(item.key, 1)} className="h-7 w-7 p-0 text-xs">+</Button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="mt-3 pt-3 border-t border-border">
-          <p className="text-[10px] text-muted-foreground mb-1">Legacy cycle totals — Workflow Guarantee above is the source of truth for role health</p>
-          <div className="flex flex-wrap gap-3 text-xs">
-            <span className="text-foreground"><strong>{dailyTotals.chatsClosed}</strong>/120 chats</span>
-            <span className="text-foreground"><strong>{dailyTotals.mytLeads}</strong>/40 MYT</span>
-            <span className="text-foreground"><strong>{dailyTotals.toursScheduled}</strong>/16 tours</span>
-            <span className="text-foreground"><strong>{dailyTotals.sameDayConfirmed}</strong>/8 same-day</span>
-          </div>
-        </div>
-      </div>
 
       <div className="glass-card p-3 md:p-5">
         <h3 className="font-heading font-semibold text-xs md:text-sm mb-3 text-foreground">Tours I Scheduled</h3>
