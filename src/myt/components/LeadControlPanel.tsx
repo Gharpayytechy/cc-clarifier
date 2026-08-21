@@ -22,6 +22,8 @@ import { cn } from "@/lib/utils";
 import { format, formatDistanceToNow } from "date-fns";
 import { JourneyTrack } from "@/myt/components/JourneyTrack";
 import { CallLadder } from "@/myt/components/CallLadder";
+import { ObjectionKit } from "@/myt/components/ObjectionKit";
+
 import { DossierStrip } from "@/myt/components/DossierStrip";
 import { currentStage, play } from "@/myt/lib/call-plan";
 import { teamMembers } from "@/myt/lib/mock-data";
