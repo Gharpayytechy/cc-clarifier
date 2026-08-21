@@ -463,7 +463,7 @@ export interface NoAnswerPlay {
 }
 
 const first = (lead: Lead) => (lead.name ?? '').split(' ')[0] || 'there';
-const area = (lead: Lead) => lead.discovery?.areas || lead.preferredArea || 'your area';
+const area = (lead: Lead) => lead.discovery?.areas || lead.area || 'your area';
 
 export const NO_ANSWER_2: Record<CallStage, NoAnswerPlay> = {
   1: {
