@@ -81,23 +81,43 @@ export function CallLadder({ lead, compact = false, selectedStage, onSelectStage
             <span className="text-muted-foreground">This call wins when: </span>{p.win}
           </div>
 
-          {open.length > 0 && (
-            <div className="space-y-1">
-              <div className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">
+          {onSaveField ? (
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2 text-[10px] uppercase tracking-wide text-muted-foreground font-medium">
                 Ask on {p.code} · {open.length} left
+                <span className="normal-case tracking-normal text-muted-foreground/70">fill live during the call</span>
               </div>
-              {open.map((f) => (
-                <div key={f.key} className="text-[11px] text-muted-foreground flex items-center gap-1.5">
-                  <Circle className="h-2.5 w-2.5" /> {f.label}
-                </div>
+              {allAsks.map((f) => (
+                <AskField key={f.key} field={f} value={lead.discovery?.[f.key] ?? ''} onSave={onSaveField} />
               ))}
+              {open.length === 0 && (
+                <div className="text-[11px] text-role-tcm flex items-center gap-1.5">
+                  <CheckCircle2 className="h-3 w-3" /> {p.code} dossier complete — move to Call {Math.min(activeStage + 1, 5)}.
+                </div>
+              )}
             </div>
+          ) : (
+            <>
+              {open.length > 0 && (
+                <div className="space-y-1">
+                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">
+                    Ask on {p.code} · {open.length} left
+                  </div>
+                  {open.map((f) => (
+                    <div key={f.key} className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                      <Circle className="h-2.5 w-2.5" /> {f.label}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {open.length === 0 && (
+                <div className="text-[11px] text-role-tcm flex items-center gap-1.5">
+                  <CheckCircle2 className="h-3 w-3" /> {p.code} data complete — move to Call {Math.min(activeStage + 1, 5)}.
+                </div>
+              )}
+            </>
           )}
-          {open.length === 0 && (
-            <div className="text-[11px] text-role-tcm flex items-center gap-1.5">
-               <CheckCircle2 className="h-3 w-3" /> {p.code} data complete — move to Call {Math.min(activeStage + 1, 5)}.
-            </div>
-          )}
+
 
           {attempts > 0 && (
             <div className="text-[11px] text-muted-foreground flex items-center gap-1.5">
