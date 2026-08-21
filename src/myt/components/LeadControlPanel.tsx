@@ -298,7 +298,20 @@ export function LeadControlPanel({ subject, trigger, defaultTab = "overview", on
 
           {/* ---- OVERVIEW ---- */}
           <TabsContent value="overview" className="mt-2 min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
-            {lead && <CallLadder lead={lead} selectedStage={selectedCall} onSelectStage={setSelectedCall} />}
+            {lead && (
+              <CallLadder
+                lead={lead}
+                selectedStage={selectedCall}
+                onSelectStage={setSelectedCall}
+                onSaveField={(key, value) => {
+                  setLeads((prev) => prev.map((l) => l.id === lead.id
+                    ? { ...l, discovery: { ...(l.discovery ?? {}), [key]: value }, lastTouchAt: new Date().toISOString() }
+                    : l));
+                  toast.success(value ? 'Saved to dossier' : 'Cleared');
+                }}
+              />
+            )}
+
             {lead && (
               <Button className="h-9 w-full" onClick={callNow}>
                 <Phone className="mr-1.5 h-3.5 w-3.5" /> Start {play(selectedCall).code} · {play(selectedCall).name}
