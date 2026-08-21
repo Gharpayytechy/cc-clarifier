@@ -19,6 +19,7 @@ import type { CallNumber } from "@/lib/journey-gates";
 import { gatesForCall } from "@/lib/journey-gates";
 import { CallScriptCapture, useScriptProgress } from "./CallScriptCapture";
 import { useCallMovement } from "./CallMovement";
+import { useActivityModules } from "./ActivityModules";
 import {
   ACTIVITY_CATEGORIES, type ActivityType, type NextStepOption, toneClasses,
 } from "@/lib/lead-activity-catalog";
@@ -84,6 +85,7 @@ export function LogActivityDialog({
   const { captured, total } = useScriptProgress(lead, activeCall);
   const gates = useMemo(() => gatesForCall(activeCall), [activeCall]);
   const movement = useCallMovement(lead, activeCall);
+  const modules = useActivityModules(lead, activeCall);
 
 
   useEffect(() => {
@@ -140,6 +142,10 @@ export function LogActivityDialog({
     // the movement half — PDF, tour, quotation, token/booking/check-in, revival
     const moved = movement.apply();
     moved.forEach((m) => addNote(lead.id, `${tag}${m}`));
+
+    // every other module — call intelligence, WhatsApp kit, objection 2, commitment, labels, gates
+    const modLines = modules.apply();
+    modLines.forEach((m) => addNote(lead.id, `${tag}${m}`));
 
     const bookedByMovement = moved.some((m) => m.toLowerCase().includes("token"));
     const finalStage: LeadStage = bookedByMovement ? "booked" : stage;
