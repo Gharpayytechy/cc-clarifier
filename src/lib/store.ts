@@ -32,6 +32,7 @@ interface AppState {
   bookings: Booking[];
 
   setLeadStage: (leadId: string, stage: LeadStage) => void;
+  patchLead: (leadId: string, patch: Partial<Pick<Lead, "budget" | "moveInDate" | "preferredArea">>) => void;
   setLeadIntent: (leadId: string, intent: Intent) => void;
   setLeadFollowUp: (leadId: string, dueAt: string, priority: FollowUp["priority"], reason?: string) => void;
   addLeadTag: (leadId: string, tag: string) => void;
