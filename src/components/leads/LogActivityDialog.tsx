@@ -83,6 +83,8 @@ export function LogActivityDialog({
   );
   const { captured, total } = useScriptProgress(lead, activeCall);
   const gates = useMemo(() => gatesForCall(activeCall), [activeCall]);
+  const movement = useCallMovement(lead, activeCall);
+
 
   useEffect(() => {
     if (!open) return;
