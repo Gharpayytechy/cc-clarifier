@@ -137,7 +137,13 @@ export function LogActivityDialog({
     if (captures.length) addNote(lead.id, `${tag}Captured — ${captures.join(" · ")}`);
     if (scriptNote.trim()) addNote(lead.id, `${tag}${scriptNote.trim()}`);
 
-    if (stage !== lead.stage) setLeadStage(lead.id, stage);
+    // the movement half — PDF, tour, quotation, token/booking/check-in, revival
+    const moved = movement.apply();
+    moved.forEach((m) => addNote(lead.id, `${tag}${m}`));
+
+    const bookedByMovement = moved.some((m) => m.toLowerCase().includes("token"));
+    const finalStage: LeadStage = bookedByMovement ? "booked" : stage;
+    if (!bookedByMovement && stage !== lead.stage) setLeadStage(lead.id, stage);
 
     if (dueAt) {
       setLeadFollowUp(
@@ -149,13 +155,16 @@ export function LogActivityDialog({
     }
 
     toast.success(`C${activeCall} closed: ${type.label}`, {
-      description: dueAt
-        ? `Next: ${nextStep?.label ?? "follow-up"} · ${format(new Date(dueAt), "MMM d, p")}`
-        : "No follow-up scheduled",
+      description: [
+        moved.length ? moved.join(" · ") : null,
+        dueAt ? `Next: ${nextStep?.label ?? "follow-up"} · ${format(new Date(dueAt), "MMM d, p")}` : "No follow-up scheduled",
+        `Stage: ${finalStage.replace("-", " ")}`,
+      ].filter(Boolean).join(" — "),
     });
     onOpenChange(false);
     onLogged?.();
   };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
