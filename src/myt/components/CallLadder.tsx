@@ -140,3 +140,56 @@ export function CallLadder({ lead, compact = false, selectedStage, onSelectStage
     </div>
   );
 }
+
+/** One fillable dossier question — chips for choices, typed input otherwise. */
+function AskField({ field, value, onSave }: {
+  field: DiscoveryField;
+  value: string;
+  onSave: (key: DiscoveryKey, value: string) => void;
+}) {
+  const [draft, setDraft] = useState(value);
+  const done = value.trim().length > 0;
+
+  useEffect(() => { setDraft(value); }, [value]);
+
+  return (
+    <div className={cn('rounded-lg border p-2 space-y-1.5',
+      done ? 'border-role-tcm/40 bg-role-tcm/5' : 'border-border bg-card')}>
+      <div className="flex items-center gap-1.5">
+        {done
+          ? <CheckCircle2 className="h-3 w-3 text-role-tcm shrink-0" />
+          : <Circle className="h-2.5 w-2.5 text-muted-foreground shrink-0" />}
+        <span className="text-[11px] font-medium text-foreground">{field.label}</span>
+        {field.required && !done && <span className="text-[9px] text-danger">required</span>}
+      </div>
+
+      {field.kind === 'choice' ? (
+        <div className="flex flex-wrap gap-1">
+          {field.options!.map((o) => (
+            <button type="button" key={o}
+              onClick={() => onSave(field.key, value === o ? '' : o)}
+              className={cn('rounded-md border px-1.5 py-0.5 text-[10px] leading-tight transition-colors',
+                value === o
+                  ? 'bg-primary border-primary text-primary-foreground font-medium'
+                  : 'border-border bg-surface-2 text-muted-foreground hover:text-foreground hover:border-primary/50')}>
+              {o}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <Input
+          type={field.kind === 'date' ? 'date' : field.kind === 'number' ? 'number' : 'text'}
+          value={draft}
+          placeholder={field.label}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={() => { if (draft !== value) onSave(field.key, draft); }}
+          onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+          className="h-7 text-[11px]"
+        />
+      )}
+
+      <p className="text-[9px] text-muted-foreground">{field.why}</p>
+    </div>
+  );
+}
+
