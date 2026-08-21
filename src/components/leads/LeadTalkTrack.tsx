@@ -26,12 +26,18 @@ export function LeadTalkTrack({
   me,
   onSaveCore,
   onSaveNote,
+  onCapture,
+  onLogActivity,
 }: {
   lead: Lead;
   call: CallNumber;
   me: string;
   onSaveCore: (field: "budget" | "moveInDate" | "preferredArea", value: string) => void;
   onSaveNote: (text: string) => void;
+  /** Every answer captured on the script is written to the lead's activity log. */
+  onCapture?: (label: string, value: string, call: CallNumber) => void;
+  /** Close the call out through the full Log activity flow. */
+  onLogActivity?: (call: CallNumber) => void;
 }) {
   const dossier = useLeadDossier((s) => s.byLead[lead.id]) ?? {};
   const setField = useLeadDossier((s) => s.setField);
@@ -46,6 +52,7 @@ export function LeadTalkTrack({
     } else {
       setField(lead.id, field as DossierKey, value);
     }
+    if (value) onCapture?.(FIELD_LABELS[field], value, call);
   };
 
   return (
@@ -55,6 +62,7 @@ export function LeadTalkTrack({
         <span className="normal-case tracking-normal text-muted-foreground/70">read top to bottom</span>
         <span className="ml-auto tabular-nums">{captured}/{asks.length} captured</span>
       </div>
+
 
       <ol className="space-y-1.5">
         {script.map((line, i) => (
