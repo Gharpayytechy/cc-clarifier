@@ -153,6 +153,9 @@ export function CallLadder({ lead, compact = false, selectedStage, onSelectStage
 
               {onSaveNote && <ExtraNotes stage={activeStage} onSave={onSaveNote} existing={lead.notes} />}
 
+              <ObjectionKit lead={lead} stage={activeStage} onSaveField={onSaveField} onSaveNote={onSaveNote} />
+
+
               {open.length === 0 && (
                 <div className="text-[11px] text-role-tcm flex items-center gap-1.5">
                   <CheckCircle2 className="h-3 w-3" /> {p.code} dossier complete — move to Call {Math.min(activeStage + 1, 5)}.
