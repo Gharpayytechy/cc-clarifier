@@ -9,6 +9,12 @@ import { useApp } from "@/lib/store";
 import { useLeadDossier } from "@/lib/lead-dossier-store";
 import type { Lead } from "@/lib/types";
 import type { CallNumber } from "@/lib/journey-gates";
+import { VisitSyncKit, type VisitSyncMessage } from "./VisitSyncKit";
+import {
+  customerVisitMessage, ownerPreVisitMessage, ownerVisitDoneMessage,
+  ownerRoomAvailabilityMessage, customerPreBookingMessage,
+} from "@/lib/visit-sync";
+
 
 /**
  * The movement half of a call. C1..C5 each push the lead one physical step
