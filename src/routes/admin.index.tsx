@@ -298,7 +298,8 @@ function AdminDesk() {
       </header>
 
       {/* Date filters */}
-      <section className="rounded-2xl border border-border bg-card px-3 py-2.5 mb-4 flex flex-wrap items-center gap-2">
+      <section className="sticky top-0 z-30 rounded-2xl border border-border bg-card/95 backdrop-blur px-3 py-2.5 mb-4 flex flex-wrap items-center gap-2">
+
         <CalendarDays className="w-4 h-4 text-muted-foreground" />
         {([
           ["today", "Today"], ["yesterday", "Yesterday"], ["7d", "Last 7 days"], ["30d", "Last 30 days"],
