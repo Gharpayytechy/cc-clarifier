@@ -245,8 +245,13 @@ export function LogActivityDialog({
           <div className="rounded-lg border border-border bg-muted/20 p-2">{movement.node}</div>
         </Step>
 
-        {/* 4 · category */}
-        <Step n={4} title="Where did it happen?">
+        {/* 4 · every other module */}
+        <Step n={4} title="All modules · gates, call, WhatsApp, objection, commitment, label">
+          <div className="rounded-lg border border-border bg-muted/20 p-2">{modules.node}</div>
+        </Step>
+
+        {/* 5 · category */}
+        <Step n={5} title="Where did it happen?">
 
           <div className="flex flex-wrap gap-1.5">
             {ACTIVITY_CATEGORIES.map((c) => (
