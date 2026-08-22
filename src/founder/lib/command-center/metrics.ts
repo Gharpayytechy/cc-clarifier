@@ -102,7 +102,10 @@ function blockFor(list: Employee[], key: string): Block {
   const atRisk = list.filter((e) => e.performance < 75 || e.flags.length > 0).length;
   // Real CRM numbers for exactly these people.
   const crm = crmBlockFor(key === "company" ? null : list.map((e) => e.id));
-  const compliance = Math.round((present ? (present - Math.min(late, present)) / present : 1) * 100);
+  // Reporting compliance = people who actually moved work today (logged a call
+  // or hold no call target) out of everyone present.
+  const reported = list.filter((e) => e.callsToday > 0 || e.callTarget === 0).length;
+  const compliance = present ? Math.round((Math.min(reported, present) / present) * 100) : 100;
 
 
   return {
