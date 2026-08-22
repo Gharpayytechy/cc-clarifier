@@ -32,7 +32,9 @@ export const Route = createFileRoute("/admin")({
 
 function AdminShell() {
   const auth = useTowerAuth();
+  const crm = useCrmLink();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+
 
   return (
     <div className="min-h-screen bg-background text-foreground">
