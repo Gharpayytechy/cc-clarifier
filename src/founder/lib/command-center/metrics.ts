@@ -1,6 +1,7 @@
 // Zone Command Center metrics.
 // Deterministic, seed-derived numbers so Company → Zone → Role → Person all agree.
 import { EMPLOYEES, type Employee } from "@/founder/data/seed";
+import { crmBlockFor } from "@/founder/lib/crm-link";
 
 export type Health = "green" | "amber" | "red";
 
@@ -99,75 +100,43 @@ function blockFor(list: Employee[], key: string): Block {
   const idle = list.filter((e) => e.status === "Idle").length;
   const active = Math.max(present - idle, 0);
   const atRisk = list.filter((e) => e.performance < 75 || e.flags.length > 0).length;
-  const seed = `${key}:${dayStamp()}`;
-  const activeLeads = list.reduce((s, e) => s + (e.leadsActive || 0), 0) * 4 + pick(seed + "leads", 20, 90);
-  const unassigned = pick(seed + "un", 0, 4);
-  const waitingUs = pick(seed + "wu", 0, 6);
-  const scheduled = pick(seed + "ts", 6, 24);
-  const confirmed = Math.max(scheduled - pick(seed + "tc", 0, 7), 0);
-  const completed = pick(seed + "tdone", 2, Math.max(confirmed - 1, 3));
-  const bookings = list.reduce((s, e) => s + (e.closedDeals || 0), 0) % 9 + pick(seed + "bk", 0, 3);
-  const bbdTarget = bookings + pick(seed + "bt", 1, 5);
-  const compliance = Math.round((present ? (present - pick(seed + "rc", 0, Math.min(present, 2))) / present : 1) * 100);
+  // Real CRM numbers for exactly these people.
+  const crm = crmBlockFor(key === "company" ? null : list.map((e) => e.id));
+  // Reporting compliance = people who actually moved work today (logged a call
+  // or hold no call target) out of everyone present.
+  const reported = list.filter((e) => e.callsToday > 0 || e.callTarget === 0).length;
+  const compliance = present ? Math.round((Math.min(reported, present) / present) * 100) : 100;
+
 
   return {
     people: {
       expected,
       present,
       absent: Math.max(expected - present, 0),
-      leave: pick(seed + "lv", 0, 2),
+      leave: 0,
       active,
-      onBreak: pick(seed + "br", 0, 3),
+      onBreak: 0,
       idle,
-      blocked: pick(seed + "bl", 0, 2),
+      blocked: list.filter((e) => e.flags.some((f) => /overdue|blocked/i.test(f))).length,
       atRisk,
-      productive: Math.max(active - pick(seed + "pr", 0, 1), 0),
+      productive: list.filter((e) => e.status === "Active" && e.callsToday > 0).length,
     },
     reporting: {
-      gm: Math.max(present - pick(seed + "gm", 0, 1), 0),
-      cp1: Math.max(present - pick(seed + "c1", 0, 2), 0),
-      cp4: Math.max(present - pick(seed + "c4", 0, 2), 0),
-      cp5: Math.max(present - pick(seed + "c5", 0, 2), 0),
-      eod: Math.max(present - pick(seed + "eo", 0, 3), 0),
+      gm: present,
+      cp1: Math.max(present - late, 0),
+      cp4: Math.max(present - late, 0),
+      cp5: Math.max(present - late, 0),
+      eod: Math.max(present - late, 0),
       compliance,
     },
-    demand: {
-      newLeads: pick(seed + "nl", 30, 120),
-      activeLeads,
-      assigned: activeLeads - unassigned,
-      unassigned,
-    },
-    chats: {
-      active: Math.round(activeLeads * 0.55),
-      waitingCustomer: Math.round(activeLeads * 0.28),
-      waitingUs,
-      slaBreached: pick(seed + "sla", 0, 3),
-      noNextAction: pick(seed + "nna", 0, 4),
-    },
-    tours: {
-      scheduled,
-      confirmed,
-      enRoute: pick(seed + "er", 0, 5),
-      completed,
-      noShow: pick(seed + "ns", 0, 3),
-      unconfirmed: Math.max(scheduled - confirmed, 0),
-    },
-    closing: {
-      highIntent: pick(seed + "hi", 3, 15),
-      quotesOpen: pick(seed + "qo", 2, 13),
-      paymentPending: pick(seed + "pp", 0, 7),
-      paymentReceived: pick(seed + "pre", 0, 8),
-      bookings,
-      bbdTarget,
-    },
-    management: {
-      supportPending: pick(seed + "sp", 0, 4),
-      supportBreached: pick(seed + "sb", 0, 2),
-      managerActions: pick(seed + "ma", 0, 5),
-      reconciliationIssues: pick(seed + "ri", 0, 2),
-    },
+    demand: crm.demand,
+    chats: crm.chats,
+    tours: crm.tours,
+    closing: crm.closing,
+    management: crm.management,
   };
 }
+
 
 export function companyBlock(): Block {
   return blockFor(EMPLOYEES, "company");
