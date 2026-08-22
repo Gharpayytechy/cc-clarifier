@@ -52,6 +52,15 @@ type Filter = "all" | "pending" | "flagged" | "missing" | "risk" | "late" | "ove
 type Tab = "pulse" | "people" | "sheet" | "discipline" | "zones" | "report";
 type Preset = "today" | "yesterday" | "7d" | "30d" | "custom";
 
+const RHYTHM: { time: string; rule: string }[] = [
+  { time: "10:35", rule: "decides the goal" },
+  { time: "13:15", rule: "exposes reality" },
+  { time: "17:00", rule: "forces recovery" },
+  { time: "20:00", rule: "measures impact" },
+];
+
+
+
 function AdminDesk() {
   const [hydrated, setHydrated] = useState(false);
   const [tick, setTick] = useState(0);
