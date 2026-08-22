@@ -362,36 +362,6 @@ function AdminDesk() {
 
       {hydrated && tab === "pulse" && (
         <div className="space-y-4">
-          {/* Checkpoint rail */}
-          <section className="grid md:grid-cols-4 gap-2.5">
-            {CHECKPOINTS.map((cp) => {
-              const done = rows.filter((r) => r.submitted[cp.id as CheckpointId]).length;
-              const pct = rows.length ? Math.round((done / rows.length) * 100) : 0;
-              return (
-                <div key={cp.id} role="button" tabIndex={0}
-                  onClick={() => openDrill(`${cp.time} · ${cp.label}`, `${done} of ${rows.length} submitted · tap a name for the full timeline`,
-                    clean(rows.filter((r) => !r.submitted[cp.id as CheckpointId]).map((r) => entryFor(r.emp.id, `Nothing filed at ${cp.time}`, "Missing", "warn"))), "reports")}
-                  onKeyDown={(e) => { if (e.key === "Enter") setTab("people"); }}
-                  className="rounded-2xl border border-border bg-card p-4 text-left cursor-pointer hover:border-primary/50 hover:shadow-sm transition-all">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{cp.time}</div>
-                      <div className="font-display text-base font-semibold">{cp.label}</div>
-                    </div>
-                    <span className={`text-xs font-mono px-1.5 py-0.5 rounded border ${badge(tone(pct, 85, 70))}`}>{pct}%</span>
-                  </div>
-                  <div className="text-sm text-muted-foreground mt-1">{done} of {rows.length} submitted</div>
-                  <div className="h-1.5 rounded-full bg-muted mt-2 overflow-hidden">
-                    <div className="h-full bg-primary" style={{ width: `${pct}%` }} />
-                  </div>
-                  <Button variant="ghost" size="sm" className="mt-2 h-7 px-2 text-xs"
-                    onClick={(e) => { e.stopPropagation(); copy(buildCheckpointDigest(date, rows, cp.id as CheckpointId), `${cp.time} update`); }}>
-                    <Copy className="w-3.5 h-3.5 mr-1" /> Copy {cp.time}
-                  </Button>
-                </div>
-              );
-            })}
-          </section>
 
           <div className="grid lg:grid-cols-3 gap-4">
             <Panel title="First five in" icon={<AlarmClock className="w-4 h-4" />} onSee={() => openDrill("Login order", `${prettyDate(date)} · earliest first`, presentEntries)}>
