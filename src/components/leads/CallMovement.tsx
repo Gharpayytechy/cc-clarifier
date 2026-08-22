@@ -9,6 +9,12 @@ import { useApp } from "@/lib/store";
 import { useLeadDossier } from "@/lib/lead-dossier-store";
 import type { Lead } from "@/lib/types";
 import type { CallNumber } from "@/lib/journey-gates";
+import { VisitSyncKit, type VisitSyncMessage } from "./VisitSyncKit";
+import {
+  customerVisitMessage, ownerPreVisitMessage, ownerVisitDoneMessage,
+  ownerRoomAvailabilityMessage, customerPreBookingMessage,
+} from "@/lib/visit-sync";
+
 
 /**
  * The movement half of a call. C1..C5 each push the lead one physical step
@@ -172,7 +178,62 @@ export function useCallMovement(lead: Lead, call: CallNumber): CallMovementResul
     </div>
   );
 
+  const prop = properties.find((p) => p.id === propertyId)
+    ?? properties.find((p) => p.id === (openTour?.propertyId ?? latestTour?.propertyId));
+  const fmtWhen = (v: string) =>
+    v
+      ? new Date(v).toLocaleString("en-IN", {
+          weekday: "short", day: "numeric", month: "short",
+          hour: "2-digit", minute: "2-digit",
+        })
+      : "";
+  const base = {
+    leadName: lead.name,
+    propertyName: prop?.name ?? "the property",
+    area: prop?.area ?? lead.preferredArea,
+    whenLabel: "",
+    sharing,
+    rent: rent || lead.budget,
+    moveInDate: lead.moveInDate,
+  };
+
+  const syncMessages: VisitSyncMessage[] = [];
+  if (call === 2) {
+    const when = fmtWhen(tourAt) || "the confirmed slot";
+    syncMessages.push(
+      { key: "cust_visit", label: "1 · Visit confirmation", to: "customer", text: customerVisitMessage({ ...base, whenLabel: when, mode: tourMode }) },
+      { key: "owner_ready", label: "2 · Owner group — is everything ready?", to: "owner_group", text: ownerPreVisitMessage({ ...base, whenLabel: when }) },
+    );
+  } else if (call === 3) {
+    const when = fmtWhen(openTour?.scheduledAt ?? new Date().toISOString());
+    syncMessages.push(
+      { key: "owner_done", label: "1 · Owner group — visit is done", to: "owner_group", text: ownerVisitDoneMessage({ ...base, whenLabel: when }) },
+      { key: "owner_avail", label: "2 · Owner group — room available for pre-booking?", to: "owner_group", text: ownerRoomAvailabilityMessage({ ...base, whenLabel: when, checkInDate: lead.moveInDate }) },
+    );
+  } else if (call === 4) {
+    const when = checkInAt || lead.moveInDate;
+    syncMessages.push(
+      { key: "owner_avail4", label: "1 · Owner group — block room for this check-in", to: "owner_group", text: ownerRoomAvailabilityMessage({ ...base, whenLabel: when, checkInDate: checkInAt, token }) },
+      { key: "cust_prebook", label: "2 · Customer — room confirmed, pre-book now", to: "customer", text: customerPreBookingMessage({ ...base, whenLabel: when, checkInDate: checkInAt, token }) },
+    );
+  }
+
+  const syncNode = syncMessages.length ? (
+    <VisitSyncKit
+      messages={syncMessages}
+      phone={lead.phone}
+      hint={
+        call === 3
+          ? "Close the loop in the PG owner group, then confirm the room is free for the pre-booking date."
+          : call === 4
+            ? "Room availability confirmation is the gate — get the owner's AVAILABLE before you ask for the token."
+            : "Send the customer their confirmation and ask the PG owner group to get the room ready."
+      }
+    />
+  ) : null;
+
   let node: ReactNode = null;
+
 
   if (call === 1) {
     node = (
@@ -259,7 +320,10 @@ export function useCallMovement(lead: Lead, call: CallNumber): CallMovementResul
     );
   }
 
+  if (syncNode) node = <div className="space-y-2">{node}{syncNode}</div>;
+
   return { node, apply, title: CALL_MOVEMENT[call] };
+
 }
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
