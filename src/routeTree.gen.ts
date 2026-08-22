@@ -95,6 +95,7 @@ import { Route as MytDraftsRouteImport } from './routes/myt/drafts'
 import { Route as MytCalendarRouteImport } from './routes/myt/calendar'
 import { Route as MytBookingsRouteImport } from './routes/myt/bookings'
 import { Route as LeadsAddRouteImport } from './routes/leads.add'
+import { Route as AdminSheetRouteImport } from './routes/admin.sheet'
 import { Route as AdminReportCenterRouteImport } from './routes/admin.report-center'
 import { Route as AdminPlaybooksRouteImport } from './routes/admin.playbooks'
 import { Route as AdminOpsRouteImport } from './routes/admin.ops'
@@ -541,6 +542,11 @@ const LeadsAddRoute = LeadsAddRouteImport.update({
   path: '/add',
   getParentRoute: () => LeadsRoute,
 } as any)
+const AdminSheetRoute = AdminSheetRouteImport.update({
+  id: '/sheet',
+  path: '/sheet',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminReportCenterRoute = AdminReportCenterRouteImport.update({
   id: '/report-center',
   path: '/report-center',
@@ -659,6 +665,7 @@ export interface FileRoutesByFullPath {
   '/admin/ops': typeof AdminOpsRoute
   '/admin/playbooks': typeof AdminPlaybooksRoute
   '/admin/report-center': typeof AdminReportCenterRoute
+  '/admin/sheet': typeof AdminSheetRoute
   '/leads/add': typeof LeadsAddRoute
   '/myt/bookings': typeof MytBookingsRoute
   '/myt/calendar': typeof MytCalendarRoute
@@ -760,6 +767,7 @@ export interface FileRoutesByTo {
   '/admin/ops': typeof AdminOpsRoute
   '/admin/playbooks': typeof AdminPlaybooksRoute
   '/admin/report-center': typeof AdminReportCenterRoute
+  '/admin/sheet': typeof AdminSheetRoute
   '/leads/add': typeof LeadsAddRoute
   '/myt/bookings': typeof MytBookingsRoute
   '/myt/calendar': typeof MytCalendarRoute
@@ -864,6 +872,7 @@ export interface FileRoutesById {
   '/admin/ops': typeof AdminOpsRoute
   '/admin/playbooks': typeof AdminPlaybooksRoute
   '/admin/report-center': typeof AdminReportCenterRoute
+  '/admin/sheet': typeof AdminSheetRoute
   '/leads/add': typeof LeadsAddRoute
   '/myt/bookings': typeof MytBookingsRoute
   '/myt/calendar': typeof MytCalendarRoute
@@ -969,6 +978,7 @@ export interface FileRouteTypes {
     | '/admin/ops'
     | '/admin/playbooks'
     | '/admin/report-center'
+    | '/admin/sheet'
     | '/leads/add'
     | '/myt/bookings'
     | '/myt/calendar'
@@ -1070,6 +1080,7 @@ export interface FileRouteTypes {
     | '/admin/ops'
     | '/admin/playbooks'
     | '/admin/report-center'
+    | '/admin/sheet'
     | '/leads/add'
     | '/myt/bookings'
     | '/myt/calendar'
@@ -1173,6 +1184,7 @@ export interface FileRouteTypes {
     | '/admin/ops'
     | '/admin/playbooks'
     | '/admin/report-center'
+    | '/admin/sheet'
     | '/leads/add'
     | '/myt/bookings'
     | '/myt/calendar'
@@ -1915,6 +1927,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LeadsAddRouteImport
       parentRoute: typeof LeadsRoute
     }
+    '/admin/sheet': {
+      id: '/admin/sheet'
+      path: '/sheet'
+      fullPath: '/admin/sheet'
+      preLoaderRoute: typeof AdminSheetRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/report-center': {
       id: '/admin/report-center'
       path: '/report-center'
@@ -2030,6 +2049,7 @@ interface AdminRouteChildren {
   AdminOpsRoute: typeof AdminOpsRoute
   AdminPlaybooksRoute: typeof AdminPlaybooksRoute
   AdminReportCenterRoute: typeof AdminReportCenterRoute
+  AdminSheetRoute: typeof AdminSheetRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
@@ -2040,6 +2060,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminOpsRoute: AdminOpsRoute,
   AdminPlaybooksRoute: AdminPlaybooksRoute,
   AdminReportCenterRoute: AdminReportCenterRoute,
+  AdminSheetRoute: AdminSheetRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
 

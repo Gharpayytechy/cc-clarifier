@@ -5,7 +5,9 @@ import { useCrmLink } from "@/founder/hooks/useCrmLink";
 
 const TABS = [
   { to: "/admin", label: "Founder Desk", exact: true },
+  { to: "/admin/sheet", label: "Sheet" },
   { to: "/admin/command-center", label: "Command Centre" },
+
   { to: "/admin/ops", label: "Ops" },
   { to: "/admin/console", label: "Console" },
   { to: "/admin/flow", label: "Role Flow" },
