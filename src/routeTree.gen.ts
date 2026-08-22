@@ -97,6 +97,7 @@ import { Route as MytBookingsRouteImport } from './routes/myt/bookings'
 import { Route as LeadsAddRouteImport } from './routes/leads.add'
 import { Route as AdminSheetRouteImport } from './routes/admin.sheet'
 import { Route as AdminReportCenterRouteImport } from './routes/admin.report-center'
+import { Route as AdminPulseRouteImport } from './routes/admin.pulse'
 import { Route as AdminPlaybooksRouteImport } from './routes/admin.playbooks'
 import { Route as AdminOpsRouteImport } from './routes/admin.ops'
 import { Route as AdminFlowRouteImport } from './routes/admin.flow'
@@ -552,6 +553,11 @@ const AdminReportCenterRoute = AdminReportCenterRouteImport.update({
   path: '/report-center',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminPulseRoute = AdminPulseRouteImport.update({
+  id: '/pulse',
+  path: '/pulse',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminPlaybooksRoute = AdminPlaybooksRouteImport.update({
   id: '/playbooks',
   path: '/playbooks',
@@ -664,6 +670,7 @@ export interface FileRoutesByFullPath {
   '/admin/flow': typeof AdminFlowRoute
   '/admin/ops': typeof AdminOpsRoute
   '/admin/playbooks': typeof AdminPlaybooksRoute
+  '/admin/pulse': typeof AdminPulseRoute
   '/admin/report-center': typeof AdminReportCenterRoute
   '/admin/sheet': typeof AdminSheetRoute
   '/leads/add': typeof LeadsAddRoute
@@ -766,6 +773,7 @@ export interface FileRoutesByTo {
   '/admin/flow': typeof AdminFlowRoute
   '/admin/ops': typeof AdminOpsRoute
   '/admin/playbooks': typeof AdminPlaybooksRoute
+  '/admin/pulse': typeof AdminPulseRoute
   '/admin/report-center': typeof AdminReportCenterRoute
   '/admin/sheet': typeof AdminSheetRoute
   '/leads/add': typeof LeadsAddRoute
@@ -871,6 +879,7 @@ export interface FileRoutesById {
   '/admin/flow': typeof AdminFlowRoute
   '/admin/ops': typeof AdminOpsRoute
   '/admin/playbooks': typeof AdminPlaybooksRoute
+  '/admin/pulse': typeof AdminPulseRoute
   '/admin/report-center': typeof AdminReportCenterRoute
   '/admin/sheet': typeof AdminSheetRoute
   '/leads/add': typeof LeadsAddRoute
@@ -977,6 +986,7 @@ export interface FileRouteTypes {
     | '/admin/flow'
     | '/admin/ops'
     | '/admin/playbooks'
+    | '/admin/pulse'
     | '/admin/report-center'
     | '/admin/sheet'
     | '/leads/add'
@@ -1079,6 +1089,7 @@ export interface FileRouteTypes {
     | '/admin/flow'
     | '/admin/ops'
     | '/admin/playbooks'
+    | '/admin/pulse'
     | '/admin/report-center'
     | '/admin/sheet'
     | '/leads/add'
@@ -1183,6 +1194,7 @@ export interface FileRouteTypes {
     | '/admin/flow'
     | '/admin/ops'
     | '/admin/playbooks'
+    | '/admin/pulse'
     | '/admin/report-center'
     | '/admin/sheet'
     | '/leads/add'
@@ -1941,6 +1953,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminReportCenterRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/pulse': {
+      id: '/admin/pulse'
+      path: '/pulse'
+      fullPath: '/admin/pulse'
+      preLoaderRoute: typeof AdminPulseRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/playbooks': {
       id: '/admin/playbooks'
       path: '/playbooks'
@@ -2048,6 +2067,7 @@ interface AdminRouteChildren {
   AdminFlowRoute: typeof AdminFlowRoute
   AdminOpsRoute: typeof AdminOpsRoute
   AdminPlaybooksRoute: typeof AdminPlaybooksRoute
+  AdminPulseRoute: typeof AdminPulseRoute
   AdminReportCenterRoute: typeof AdminReportCenterRoute
   AdminSheetRoute: typeof AdminSheetRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -2059,6 +2079,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminFlowRoute: AdminFlowRoute,
   AdminOpsRoute: AdminOpsRoute,
   AdminPlaybooksRoute: AdminPlaybooksRoute,
+  AdminPulseRoute: AdminPulseRoute,
   AdminReportCenterRoute: AdminReportCenterRoute,
   AdminSheetRoute: AdminSheetRoute,
   AdminIndexRoute: AdminIndexRoute,
