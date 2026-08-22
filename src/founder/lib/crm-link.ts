@@ -271,3 +271,8 @@ export function crmBlockFor(personIds: string[] | null, snap: CrmSnapshot = crmS
     },
   };
 }
+
+// Link the roster as soon as this module loads, so every ported screen and
+// store (attendance, presence, goals, digests) reads real CRM people on the
+// very first render — server and client alike.
+syncCrmRoster();
