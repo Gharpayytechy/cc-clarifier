@@ -8,6 +8,38 @@ export type RoleManual = {
 };
 
 export const ROLE_MANUAL: Record<Role, RoleManual> = {
+  founder_admin: {
+    mission:
+      "Hold the whole company in one view: demand line, supply line and the Control Tower between them. You look for the one number that is drifting and put an owner on it before the day ends.",
+    day: [
+      { time: "Start of day", do: "Founder Admin → company block: people present, chats waiting, tours unconfirmed. Fix the biggest gap first." },
+      { time: "Mid-day", do: "Zone rows → find the zone that is behind and ask its Zone Manager for the blocker, not the excuse." },
+      { time: "5 PM", do: "Report Centre → every checkpoint report in, every missing one named." },
+      { time: "End of day", do: "EOD → close the day only when every open loop has a named owner and a deadline." },
+    ],
+    rules: [
+      "Never fix a person's task yourself — fix the owner, the standard or the system.",
+      "One drifting number per day gets your full attention; the rest get a note.",
+      "Everything you decide is written where the team can read it.",
+    ],
+    measured: ["Company checkpoint completion", "Zones on target", "Open loops carried into tomorrow"],
+  },
+  zone_manager: {
+    mission:
+      "Own one zone end to end: its leads, its people, its SLA and its conversion. If a lead in your zone goes cold, that is yours.",
+    day: [
+      { time: "Start of day", do: "Control Tower → unassigned and SLA-risk leads inside your zone. Assign before the first hour ends." },
+      { time: "Mid-day", do: "Team → who is at capacity, who is idle. Rebalance rather than escalate." },
+      { time: "Afternoon", do: "Quality → review coverage for your zone's people; open a correction where the score slipped." },
+      { time: "End of day", do: "Founder Admin → your zone row must be explainable in one sentence." },
+    ],
+    rules: [
+      "No lead in your zone sits unassigned past the accept SLA.",
+      "Reassign with a written reason, always.",
+      "Coach on the specific call, not on the average.",
+    ],
+    measured: ["Zone SLA rate", "Zone conversion", "Review coverage in-zone", "Open corrections closed on time"],
+  },
   admin: {
     mission:
       "Keep the system itself correct: who exists, what role they hold, which team and zone they sit in, and that every module stays reachable by the right people.",

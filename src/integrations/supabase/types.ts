@@ -1102,7 +1102,14 @@ export type Database = {
     }
     Enums: {
       ack_choice: "understood" | "need_clarification" | "disagree"
-      app_role: "admin" | "manager" | "operator" | "sales" | "control_tower"
+      app_role:
+        | "admin"
+        | "manager"
+        | "operator"
+        | "sales"
+        | "control_tower"
+        | "founder_admin"
+        | "zone_manager"
       assignment_state:
         | "pending_accept"
         | "accepted"
@@ -1295,7 +1302,15 @@ export const Constants = {
   public: {
     Enums: {
       ack_choice: ["understood", "need_clarification", "disagree"],
-      app_role: ["admin", "manager", "operator", "sales", "control_tower"],
+      app_role: [
+        "admin",
+        "manager",
+        "operator",
+        "sales",
+        "control_tower",
+        "founder_admin",
+        "zone_manager",
+      ],
       assignment_state: [
         "pending_accept",
         "accepted",

@@ -40,6 +40,7 @@ import { Route as ControlTowerTeamRouteImport } from './routes/control-tower-tea
 import { Route as CoachRouteImport } from './routes/coach'
 import { Route as ClosingRouteImport } from './routes/closing'
 import { Route as CalendarRouteImport } from './routes/calendar'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as ActivityRouteImport } from './routes/activity'
 import { Route as AcademyRouteImport } from './routes/academy'
 import { Route as IndexRouteImport } from './routes/index'
@@ -48,6 +49,7 @@ import { Route as SupplyHubIndexRouteImport } from './routes/supply-hub/index'
 import { Route as Property360IndexRouteImport } from './routes/property360/index'
 import { Route as OwnerIndexRouteImport } from './routes/owner/index'
 import { Route as MytIndexRouteImport } from './routes/myt/index'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as TowerWorkflowGuaranteeRouteImport } from './routes/tower.workflow-guarantee'
 import { Route as TowerTeamRouteImport } from './routes/tower.team'
 import { Route as TowerQualityRouteImport } from './routes/tower.quality'
@@ -93,6 +95,12 @@ import { Route as MytDraftsRouteImport } from './routes/myt/drafts'
 import { Route as MytCalendarRouteImport } from './routes/myt/calendar'
 import { Route as MytBookingsRouteImport } from './routes/myt/bookings'
 import { Route as LeadsAddRouteImport } from './routes/leads.add'
+import { Route as AdminReportCenterRouteImport } from './routes/admin.report-center'
+import { Route as AdminPlaybooksRouteImport } from './routes/admin.playbooks'
+import { Route as AdminOpsRouteImport } from './routes/admin.ops'
+import { Route as AdminFlowRouteImport } from './routes/admin.flow'
+import { Route as AdminConsoleRouteImport } from './routes/admin.console'
+import { Route as AdminCommandCenterRouteImport } from './routes/admin.command-center'
 import { Route as TowerReviewIndexRouteImport } from './routes/tower.review.index'
 import { Route as TowerReviewIdRouteImport } from './routes/tower.review.$id'
 import { Route as TowerLeadsIdRouteImport } from './routes/tower.leads.$id'
@@ -258,6 +266,11 @@ const CalendarRoute = CalendarRouteImport.update({
   path: '/calendar',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ActivityRoute = ActivityRouteImport.update({
   id: '/activity',
   path: '/activity',
@@ -297,6 +310,11 @@ const MytIndexRoute = MytIndexRouteImport.update({
   id: '/myt/',
   path: '/myt/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
 } as any)
 const TowerWorkflowGuaranteeRoute = TowerWorkflowGuaranteeRouteImport.update({
   id: '/workflow-guarantee',
@@ -523,6 +541,36 @@ const LeadsAddRoute = LeadsAddRouteImport.update({
   path: '/add',
   getParentRoute: () => LeadsRoute,
 } as any)
+const AdminReportCenterRoute = AdminReportCenterRouteImport.update({
+  id: '/report-center',
+  path: '/report-center',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPlaybooksRoute = AdminPlaybooksRouteImport.update({
+  id: '/playbooks',
+  path: '/playbooks',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminOpsRoute = AdminOpsRouteImport.update({
+  id: '/ops',
+  path: '/ops',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminFlowRoute = AdminFlowRouteImport.update({
+  id: '/flow',
+  path: '/flow',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminConsoleRoute = AdminConsoleRouteImport.update({
+  id: '/console',
+  path: '/console',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCommandCenterRoute = AdminCommandCenterRouteImport.update({
+  id: '/command-center',
+  path: '/command-center',
+  getParentRoute: () => AdminRoute,
+} as any)
 const TowerReviewIndexRoute = TowerReviewIndexRouteImport.update({
   id: '/review/',
   path: '/review/',
@@ -573,6 +621,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/academy': typeof AcademyRoute
   '/activity': typeof ActivityRoute
+  '/admin': typeof AdminRouteWithChildren
   '/calendar': typeof CalendarRoute
   '/closing': typeof ClosingRoute
   '/coach': typeof CoachRoute
@@ -604,6 +653,12 @@ export interface FileRoutesByFullPath {
   '/tower': typeof TowerRouteWithChildren
   '/zone-brain': typeof ZoneBrainRoute
   '/zones': typeof ZonesRoute
+  '/admin/command-center': typeof AdminCommandCenterRoute
+  '/admin/console': typeof AdminConsoleRoute
+  '/admin/flow': typeof AdminFlowRoute
+  '/admin/ops': typeof AdminOpsRoute
+  '/admin/playbooks': typeof AdminPlaybooksRoute
+  '/admin/report-center': typeof AdminReportCenterRoute
   '/leads/add': typeof LeadsAddRoute
   '/myt/bookings': typeof MytBookingsRoute
   '/myt/calendar': typeof MytCalendarRoute
@@ -649,6 +704,7 @@ export interface FileRoutesByFullPath {
   '/tower/quality': typeof TowerQualityRoute
   '/tower/team': typeof TowerTeamRoute
   '/tower/workflow-guarantee': typeof TowerWorkflowGuaranteeRoute
+  '/admin/': typeof AdminIndexRoute
   '/myt/': typeof MytIndexRoute
   '/owner/': typeof OwnerIndexRoute
   '/property360/': typeof Property360IndexRoute
@@ -698,6 +754,12 @@ export interface FileRoutesByTo {
   '/tours': typeof ToursRoute
   '/zone-brain': typeof ZoneBrainRoute
   '/zones': typeof ZonesRoute
+  '/admin/command-center': typeof AdminCommandCenterRoute
+  '/admin/console': typeof AdminConsoleRoute
+  '/admin/flow': typeof AdminFlowRoute
+  '/admin/ops': typeof AdminOpsRoute
+  '/admin/playbooks': typeof AdminPlaybooksRoute
+  '/admin/report-center': typeof AdminReportCenterRoute
   '/leads/add': typeof LeadsAddRoute
   '/myt/bookings': typeof MytBookingsRoute
   '/myt/calendar': typeof MytCalendarRoute
@@ -743,6 +805,7 @@ export interface FileRoutesByTo {
   '/tower/quality': typeof TowerQualityRoute
   '/tower/team': typeof TowerTeamRoute
   '/tower/workflow-guarantee': typeof TowerWorkflowGuaranteeRoute
+  '/admin': typeof AdminIndexRoute
   '/myt': typeof MytIndexRoute
   '/owner': typeof OwnerIndexRoute
   '/property360': typeof Property360IndexRoute
@@ -763,6 +826,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/academy': typeof AcademyRoute
   '/activity': typeof ActivityRoute
+  '/admin': typeof AdminRouteWithChildren
   '/calendar': typeof CalendarRoute
   '/closing': typeof ClosingRoute
   '/coach': typeof CoachRoute
@@ -794,6 +858,12 @@ export interface FileRoutesById {
   '/tower': typeof TowerRouteWithChildren
   '/zone-brain': typeof ZoneBrainRoute
   '/zones': typeof ZonesRoute
+  '/admin/command-center': typeof AdminCommandCenterRoute
+  '/admin/console': typeof AdminConsoleRoute
+  '/admin/flow': typeof AdminFlowRoute
+  '/admin/ops': typeof AdminOpsRoute
+  '/admin/playbooks': typeof AdminPlaybooksRoute
+  '/admin/report-center': typeof AdminReportCenterRoute
   '/leads/add': typeof LeadsAddRoute
   '/myt/bookings': typeof MytBookingsRoute
   '/myt/calendar': typeof MytCalendarRoute
@@ -839,6 +909,7 @@ export interface FileRoutesById {
   '/tower/quality': typeof TowerQualityRoute
   '/tower/team': typeof TowerTeamRoute
   '/tower/workflow-guarantee': typeof TowerWorkflowGuaranteeRoute
+  '/admin/': typeof AdminIndexRoute
   '/myt/': typeof MytIndexRoute
   '/owner/': typeof OwnerIndexRoute
   '/property360/': typeof Property360IndexRoute
@@ -860,6 +931,7 @@ export interface FileRouteTypes {
     | '/'
     | '/academy'
     | '/activity'
+    | '/admin'
     | '/calendar'
     | '/closing'
     | '/coach'
@@ -891,6 +963,12 @@ export interface FileRouteTypes {
     | '/tower'
     | '/zone-brain'
     | '/zones'
+    | '/admin/command-center'
+    | '/admin/console'
+    | '/admin/flow'
+    | '/admin/ops'
+    | '/admin/playbooks'
+    | '/admin/report-center'
     | '/leads/add'
     | '/myt/bookings'
     | '/myt/calendar'
@@ -936,6 +1014,7 @@ export interface FileRouteTypes {
     | '/tower/quality'
     | '/tower/team'
     | '/tower/workflow-guarantee'
+    | '/admin/'
     | '/myt/'
     | '/owner/'
     | '/property360/'
@@ -985,6 +1064,12 @@ export interface FileRouteTypes {
     | '/tours'
     | '/zone-brain'
     | '/zones'
+    | '/admin/command-center'
+    | '/admin/console'
+    | '/admin/flow'
+    | '/admin/ops'
+    | '/admin/playbooks'
+    | '/admin/report-center'
     | '/leads/add'
     | '/myt/bookings'
     | '/myt/calendar'
@@ -1030,6 +1115,7 @@ export interface FileRouteTypes {
     | '/tower/quality'
     | '/tower/team'
     | '/tower/workflow-guarantee'
+    | '/admin'
     | '/myt'
     | '/owner'
     | '/property360'
@@ -1049,6 +1135,7 @@ export interface FileRouteTypes {
     | '/'
     | '/academy'
     | '/activity'
+    | '/admin'
     | '/calendar'
     | '/closing'
     | '/coach'
@@ -1080,6 +1167,12 @@ export interface FileRouteTypes {
     | '/tower'
     | '/zone-brain'
     | '/zones'
+    | '/admin/command-center'
+    | '/admin/console'
+    | '/admin/flow'
+    | '/admin/ops'
+    | '/admin/playbooks'
+    | '/admin/report-center'
     | '/leads/add'
     | '/myt/bookings'
     | '/myt/calendar'
@@ -1125,6 +1218,7 @@ export interface FileRouteTypes {
     | '/tower/quality'
     | '/tower/team'
     | '/tower/workflow-guarantee'
+    | '/admin/'
     | '/myt/'
     | '/owner/'
     | '/property360/'
@@ -1145,6 +1239,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AcademyRoute: typeof AcademyRoute
   ActivityRoute: typeof ActivityRoute
+  AdminRoute: typeof AdminRouteWithChildren
   CalendarRoute: typeof CalendarRoute
   ClosingRoute: typeof ClosingRoute
   CoachRoute: typeof CoachRoute
@@ -1435,6 +1530,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CalendarRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/activity': {
       id: '/activity'
       path: '/activity'
@@ -1490,6 +1592,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/myt/'
       preLoaderRoute: typeof MytIndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/tower/workflow-guarantee': {
       id: '/tower/workflow-guarantee'
@@ -1806,6 +1915,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LeadsAddRouteImport
       parentRoute: typeof LeadsRoute
     }
+    '/admin/report-center': {
+      id: '/admin/report-center'
+      path: '/report-center'
+      fullPath: '/admin/report-center'
+      preLoaderRoute: typeof AdminReportCenterRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/playbooks': {
+      id: '/admin/playbooks'
+      path: '/playbooks'
+      fullPath: '/admin/playbooks'
+      preLoaderRoute: typeof AdminPlaybooksRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/ops': {
+      id: '/admin/ops'
+      path: '/ops'
+      fullPath: '/admin/ops'
+      preLoaderRoute: typeof AdminOpsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/flow': {
+      id: '/admin/flow'
+      path: '/flow'
+      fullPath: '/admin/flow'
+      preLoaderRoute: typeof AdminFlowRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/console': {
+      id: '/admin/console'
+      path: '/console'
+      fullPath: '/admin/console'
+      preLoaderRoute: typeof AdminConsoleRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/command-center': {
+      id: '/admin/command-center'
+      path: '/command-center'
+      fullPath: '/admin/command-center'
+      preLoaderRoute: typeof AdminCommandCenterRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/tower/review/': {
       id: '/tower/review/'
       path: '/review'
@@ -1871,6 +2022,28 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AdminRouteChildren {
+  AdminCommandCenterRoute: typeof AdminCommandCenterRoute
+  AdminConsoleRoute: typeof AdminConsoleRoute
+  AdminFlowRoute: typeof AdminFlowRoute
+  AdminOpsRoute: typeof AdminOpsRoute
+  AdminPlaybooksRoute: typeof AdminPlaybooksRoute
+  AdminReportCenterRoute: typeof AdminReportCenterRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminCommandCenterRoute: AdminCommandCenterRoute,
+  AdminConsoleRoute: AdminConsoleRoute,
+  AdminFlowRoute: AdminFlowRoute,
+  AdminOpsRoute: AdminOpsRoute,
+  AdminPlaybooksRoute: AdminPlaybooksRoute,
+  AdminReportCenterRoute: AdminReportCenterRoute,
+  AdminIndexRoute: AdminIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface LeadsRouteChildren {
   LeadsAddRoute: typeof LeadsAddRoute
@@ -1953,6 +2126,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AcademyRoute: AcademyRoute,
   ActivityRoute: ActivityRoute,
+  AdminRoute: AdminRouteWithChildren,
   CalendarRoute: CalendarRoute,
   ClosingRoute: ClosingRoute,
   CoachRoute: CoachRoute,
