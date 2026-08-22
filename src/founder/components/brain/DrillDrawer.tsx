@@ -31,8 +31,8 @@ export function DrillDrawer({ drill, onClose }: { drill: Drill | null; onClose: 
               Nothing here right now. This checkpoint is clean.
             </div>
           )}
-          {drill?.rows.map((r) => (
-            <div key={r.kind + r.id} className="rounded-md border p-3 text-sm">
+          {drill?.rows.map((r, i) => (
+            <div key={r.kind + r.id + i} className="rounded-md border p-3 text-sm">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <div className="font-medium truncate">{r.title}</div>
