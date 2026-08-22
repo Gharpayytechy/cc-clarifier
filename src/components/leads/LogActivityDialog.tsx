@@ -245,8 +245,13 @@ export function LogActivityDialog({
           <div className="rounded-lg border border-border bg-muted/20 p-2">{movement.node}</div>
         </Step>
 
-        {/* 4 · category */}
-        <Step n={4} title="Where did it happen?">
+        {/* 4 · every other module */}
+        <Step n={4} title="All modules · gates, call, WhatsApp, objection, commitment, label">
+          <div className="rounded-lg border border-border bg-muted/20 p-2">{modules.node}</div>
+        </Step>
+
+        {/* 5 · category */}
+        <Step n={5} title="Where did it happen?">
 
           <div className="flex flex-wrap gap-1.5">
             {ACTIVITY_CATEGORIES.map((c) => (
@@ -266,8 +271,8 @@ export function LogActivityDialog({
           </div>
         </Step>
 
-        {/* 4 · outcome */}
-        <Step n={5} title="What happened?">
+        {/* 6 · outcome */}
+        <Step n={6} title="What happened?">
           <div className="flex flex-wrap gap-1.5">
             {category.types.map((t) => (
               <button
@@ -284,10 +289,10 @@ export function LogActivityDialog({
           </div>
         </Step>
 
-        {/* 5 · next step */}
+        {/* 7 · next step */}
         {type && (
           <>
-            <Step n={6} title="What happens next?">
+            <Step n={7} title="What happens next?">
               <div className="space-y-1.5">
                 {type.nextSteps.map((s) => (
                   <button
@@ -312,7 +317,7 @@ export function LogActivityDialog({
               </div>
             </Step>
 
-            <Step n={7} title="Details">
+            <Step n={8} title="Details">
               <Textarea
                 rows={3}
                 value={note}
