@@ -153,6 +153,11 @@ function AdminDesk() {
   const lateList = att.filter((a) => a.lateSerial).sort((a, b) => (a.lateSerial ?? 0) - (b.lateSerial ?? 0));
   const overBreak = att.filter((a) => a.overBreakMin > 0).sort((a, b) => b.overBreakMin - a.overBreakMin);
 
+  // EOD bubble: plain English, ready to paste in the group.
+  const eodBubble = `EOD ${prettyDate(date)} — Done: ${rows.filter((r) => r.submittedCount === 4).length} people fully reported. Pending: ${pending} waiting on a decision, ${rows.filter((r) => r.submittedCount < 4).length} reports missing. Late: ${roll.late} (${fmtDur(roll.lateMinutes)} lost), break overrun ${fmtDur(roll.overBreakMinutes)}. Punctuality ${roll.punctuality}%.`;
+
+
+
   const digest = useMemo(() => {
     if (!rows.length) return "";
     const head = multiDay ? `*Range ${prettyDate(from)} to ${prettyDate(to)} (${dates.length} days)*\n\n` : "";
