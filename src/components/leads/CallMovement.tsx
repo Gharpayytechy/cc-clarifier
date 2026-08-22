@@ -320,7 +320,10 @@ export function useCallMovement(lead: Lead, call: CallNumber): CallMovementResul
     );
   }
 
+  if (syncNode) node = <div className="space-y-2">{node}{syncNode}</div>;
+
   return { node, apply, title: CALL_MOVEMENT[call] };
+
 }
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
