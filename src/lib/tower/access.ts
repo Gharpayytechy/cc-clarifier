@@ -5,34 +5,41 @@ export type Role = Database["public"]["Enums"]["app_role"];
 
 /* ---------------- Roles ---------------- */
 
-export const ALL_ROLES: Role[] = ["admin", "manager", "control_tower", "operator", "sales"];
+export const ALL_ROLES: Role[] = ["founder_admin", "admin", "manager", "zone_manager", "control_tower", "operator", "sales"];
 
 export const ROLE_LABEL: Record<Role, string> = {
+  founder_admin: "Founder Admin",
   admin: "Admin",
   manager: "Manager",
+  zone_manager: "Zone Manager",
   control_tower: "Control Tower",
   operator: "Operator",
   sales: "Team Member",
 };
 
 export const ROLE_SUMMARY: Record<Role, string> = {
+  founder_admin: "Company-wide founder view — every zone, every person, every report, plus the Founder Admin console.",
   admin: "Full access — roles, teams, zones, settings and every review.",
   manager: "Full quality and performance view across all teams, closes reviews.",
+  zone_manager: "Owns a zone — its leads, its team, its SLA and its performance.",
   control_tower: "Only the major things: lead flow, assignment, SLA, review coverage and quality pulse.",
   operator: "Day-to-day lead operations plus the review queue.",
   sales: "Own leads, own feedback, and all reviews across teams.",
 };
 
 /** Roles that operate the tower itself (lead flow, assignment, SLA). */
-export const TOWER_ROLES: Role[] = ["admin", "manager", "control_tower", "operator"];
+export const TOWER_ROLES: Role[] = ["founder_admin", "admin", "manager", "zone_manager", "control_tower", "operator"];
 
 /** Default team a role belongs to, used when the profile has no team set. */
 export const ROLE_DEFAULT_TEAM: Partial<Record<Role, ReviewTeam>> = {
+  founder_admin: "control_tower",
   admin: "control_tower",
   manager: "cross_functional",
+  zone_manager: "cross_functional",
   control_tower: "control_tower",
   operator: "control_tower",
 };
+
 
 /* ---------------- Modules ---------------- */
 
@@ -48,7 +55,8 @@ export type ModuleId =
   | "eod"
   | "access"
   | "guide"
-  | "admin";
+  | "admin"
+  | "founder";
 
 export type TowerModule = {
   id: ModuleId;
@@ -68,7 +76,7 @@ export const MODULES: TowerModule[] = [
     exact: true,
     group: "Operations",
     purpose: "Live lead flow, unassigned queue, SLA risk — the major picture only.",
-    roles: ["admin", "manager", "control_tower", "operator"],
+    roles: ["founder_admin", "admin", "manager", "zone_manager", "control_tower", "operator"],
   },
   {
     id: "my-leads",
@@ -76,7 +84,7 @@ export const MODULES: TowerModule[] = [
     label: "My Leads",
     group: "Operations",
     purpose: "The leads assigned to you, with the shared quality timeline on each.",
-    roles: ["admin", "manager", "control_tower", "operator", "sales"],
+    roles: ["founder_admin", "admin", "manager", "zone_manager", "control_tower", "operator", "sales"],
   },
   {
     id: "team",
@@ -84,7 +92,7 @@ export const MODULES: TowerModule[] = [
     label: "Team",
     group: "Operations",
     purpose: "Who is on shift, workload and capacity across the floor.",
-    roles: ["admin", "manager", "control_tower", "operator"],
+    roles: ["founder_admin", "admin", "manager", "zone_manager", "control_tower", "operator"],
   },
   {
     id: "review",
@@ -92,7 +100,7 @@ export const MODULES: TowerModule[] = [
     label: "Review OS",
     group: "Review OS",
     purpose: "Every chat, call and lead-journey review — visible to all teams.",
-    roles: ["admin", "manager", "control_tower", "operator", "sales"],
+    roles: ["founder_admin", "admin", "manager", "zone_manager", "control_tower", "operator", "sales"],
   },
   {
     id: "feedback",
@@ -100,7 +108,7 @@ export const MODULES: TowerModule[] = [
     label: "My Feedback",
     group: "Review OS",
     purpose: "Your quality card, open corrections and deadlines.",
-    roles: ["admin", "manager", "control_tower", "operator", "sales"],
+    roles: ["founder_admin", "admin", "manager", "zone_manager", "control_tower", "operator", "sales"],
   },
   {
     id: "quality",
@@ -108,7 +116,7 @@ export const MODULES: TowerModule[] = [
     label: "Quality",
     group: "Review OS",
     purpose: "Company quality pulse, coverage per person and the daily cadence.",
-    roles: ["admin", "manager", "control_tower"],
+    roles: ["founder_admin", "admin", "manager", "zone_manager", "control_tower"],
   },
   {
     id: "analytics",
@@ -116,7 +124,7 @@ export const MODULES: TowerModule[] = [
     label: "100x Analytics",
     group: "Review OS",
     purpose: "Everything interconnected: lead flow, SLA, review coverage, feedback closure and the 14 checkpoints.",
-    roles: ["admin", "manager", "control_tower", "operator", "sales"],
+    roles: ["founder_admin", "admin", "manager", "zone_manager", "control_tower", "operator", "sales"],
   },
   {
     id: "dashboard",
@@ -124,7 +132,7 @@ export const MODULES: TowerModule[] = [
     label: "Dashboard",
     group: "Management",
     purpose: "Deeper performance analytics for managers.",
-    roles: ["admin", "manager"],
+    roles: ["founder_admin", "admin", "manager", "zone_manager"],
   },
   {
     id: "eod",
@@ -132,7 +140,7 @@ export const MODULES: TowerModule[] = [
     label: "EOD",
     group: "Management",
     purpose: "End-of-day close-out and checklist.",
-    roles: ["admin", "manager", "control_tower"],
+    roles: ["founder_admin", "admin", "manager", "zone_manager", "control_tower"],
   },
   {
     id: "access",
@@ -140,7 +148,7 @@ export const MODULES: TowerModule[] = [
     label: "Access Map",
     group: "Management",
     purpose: "Who sees what — the role-wise visibility matrix.",
-    roles: ["admin", "manager", "control_tower", "operator", "sales"],
+    roles: ["founder_admin", "admin", "manager", "zone_manager", "control_tower", "operator", "sales"],
   },
   {
     id: "guide",
@@ -148,7 +156,7 @@ export const MODULES: TowerModule[] = [
     label: "How to use",
     group: "Management",
     purpose: "The daily review rhythm, step by step, for every team.",
-    roles: ["admin", "manager", "control_tower", "operator", "sales"],
+    roles: ["founder_admin", "admin", "manager", "zone_manager", "control_tower", "operator", "sales"],
   },
   {
     id: "admin",
@@ -156,7 +164,15 @@ export const MODULES: TowerModule[] = [
     label: "Admin",
     group: "Management",
     purpose: "Roles, teams, zones and performer categories.",
-    roles: ["admin"],
+    roles: ["founder_admin", "admin"],
+  },
+  {
+    id: "founder",
+    to: "/admin",
+    label: "Founder Admin",
+    group: "Management",
+    purpose: "Company pulse, zone performance, people discipline, playbooks and the daily report centre.",
+    roles: ["founder_admin", "admin", "manager", "zone_manager"],
   },
 ];
 

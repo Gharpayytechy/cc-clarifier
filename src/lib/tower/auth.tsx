@@ -112,10 +112,12 @@ export function TowerAuthProvider({ children }: { children: ReactNode }) {
   const user = useMemo(() => members.find((m) => m.id === selectedId) ?? null, [members, selectedId]);
   const roles = user?.roles ?? [];
 
-  const isAdmin = roles.includes("admin");
-  const isManager = roles.includes("manager") || isAdmin;
+  const isFounder = roles.includes("founder_admin");
+  const isAdmin = roles.includes("admin") || isFounder;
+  const isManager = roles.includes("manager") || roles.includes("zone_manager") || isAdmin;
   const isControlTower = roles.includes("control_tower") || isAdmin;
   const isOperator = roles.includes("operator") || isAdmin;
+
 
   const value: AuthState = {
     user,
