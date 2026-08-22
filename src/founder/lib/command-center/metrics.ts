@@ -1,6 +1,7 @@
 // Zone Command Center metrics.
 // Deterministic, seed-derived numbers so Company → Zone → Role → Person all agree.
 import { EMPLOYEES, type Employee } from "@/founder/data/seed";
+import { crmBlockFor } from "@/founder/lib/crm-link";
 
 export type Health = "green" | "amber" | "red";
 
@@ -99,7 +100,6 @@ function blockFor(list: Employee[], key: string): Block {
   const idle = list.filter((e) => e.status === "Idle").length;
   const active = Math.max(present - idle, 0);
   const atRisk = list.filter((e) => e.performance < 75 || e.flags.length > 0).length;
-  const seed = `${key}:${dayStamp()}`;
   // Real CRM numbers for exactly these people.
   const crm = crmBlockFor(key === "company" ? null : list.map((e) => e.id));
   const compliance = Math.round((present ? (present - Math.min(late, present)) / present : 1) * 100);
