@@ -345,7 +345,66 @@ function AdminDesk() {
         </section>
       )}
 
+      {/* One-rule rhythm strip */}
+      <section className="rounded-2xl border border-border bg-secondary/40 px-3 py-2 mb-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+        <span className="font-mono uppercase tracking-widest text-primary">The one rule</span>
+        {RHYTHM.map((r) => (
+          <span key={r.time} className="text-muted-foreground">
+            <b className="font-mono text-foreground">{r.time}</b> {r.rule}
+          </span>
+        ))}
+      </section>
+
+      {/* Checkpoint rail — always on, every tab */}
+      {hydrated && (
+        <section className="grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-4">
+          {CHECKPOINTS.map((cp) => {
+            const done = rows.filter((r) => r.submitted[cp.id as CheckpointId]).length;
+            const missingRows = rows.filter((r) => !r.submitted[cp.id as CheckpointId]);
+            const pct = rows.length ? Math.round((done / rows.length) * 100) : 0;
+            const rule = RHYTHM.find((r) => r.time === cp.time)?.rule ?? "";
+            return (
+              <div key={cp.id} role="button" tabIndex={0}
+                onClick={() => openDrill(`${cp.time} · ${cp.label}`, `${done} of ${rows.length} submitted · tap a name for the full timeline`,
+                  clean(missingRows.map((r) => entryFor(r.emp.id, `Nothing filed at ${cp.time}`, "Missing", "warn"))), "reports")}
+                onKeyDown={(e) => { if (e.key === "Enter") setTab("people"); }}
+                className="rounded-2xl border border-border bg-card p-3 text-left cursor-pointer hover:border-primary/50 hover:shadow-sm transition-all">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{cp.time} · {rule}</div>
+                    <div className="font-display text-base font-semibold truncate">{cp.label}</div>
+                  </div>
+                  <span className={`text-xs font-mono px-1.5 py-0.5 rounded border ${badge(tone(pct, 85, 70))}`}>{pct}%</span>
+                </div>
+                <div className="text-sm text-muted-foreground mt-1">
+                  {done} in · <span className="text-warning">{missingRows.length} missing</span>
+                </div>
+                <div className="h-1.5 rounded-full bg-muted mt-2 overflow-hidden">
+                  <div className="h-full bg-primary" style={{ width: `${pct}%` }} />
+                </div>
+                <Button variant="ghost" size="sm" className="mt-2 h-8 px-2 text-xs"
+                  onClick={(e) => { e.stopPropagation(); copy(buildCheckpointDigest(date, rows, cp.id as CheckpointId), `${cp.time} update`); }}>
+                  <Copy className="w-3.5 h-3.5 mr-1" /> Copy {cp.time}
+                </Button>
+              </div>
+            );
+          })}
+        </section>
+      )}
+
+      {/* EOD bubble */}
+      {hydrated && (
+        <section className="rounded-2xl border border-border bg-card px-3 py-2.5 mb-4 flex flex-wrap items-center gap-2">
+          <MessageCircle className="w-4 h-4 text-primary shrink-0" />
+          <p className="text-sm flex-1 min-w-[220px]">{eodBubble}</p>
+          <Button variant="outline" size="sm" onClick={() => copy(eodBubble, "EOD summary")}>
+            <Copy className="w-4 h-4 mr-1.5" /> Copy for WhatsApp
+          </Button>
+        </section>
+      )}
+
       {/* Tabs */}
+
       <div className="flex flex-wrap gap-1.5 mb-4">
         {TABS.map((t) => (
           <button
