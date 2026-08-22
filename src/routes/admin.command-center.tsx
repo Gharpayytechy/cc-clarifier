@@ -1,333 +1,527 @@
 import { useMemo, useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { RoleGate } from "@/founder/components/RoleGate";
-import { SendUpdateButton } from "@/founder/components/reporting/SendUpdateButton";
-import { DownloadMenu } from "@/founder/components/reporting/DownloadMenu";
+import { DrillDrawer, type Drill } from "@/founder/components/brain/DrillDrawer";
+import { useCrmLink } from "@/founder/hooks/useCrmLink";
 import {
-  allZones, biggestRisk, companyBlock, healthClass, healthDot, PERIOD_LABEL,
-  peopleInScope, scopeBlock, zoneRows, type Period, type Scope,
-} from "@/founder/lib/command-center/metrics";
-import { Avatar } from "@/founder/components/Avatar";
-import { ChevronRight, Activity, LayoutGrid, Table2, Flame } from "lucide-react";
+  buildBrain, searchBrain, DATE_OPTIONS, DEFAULT_FILTERS,
+  type BrainFilters, type DateKey, type HealthKey, type BrainRow,
+} from "@/founder/lib/brain/engine";
+import {
+  BUSINESSES, ROLE_LABEL, useBrainTargets, currentPhase, targetsFor,
+  band, BAND_CLASS, BAND_LABEL, type BrainRole, type PhaseId,
+} from "@/founder/lib/brain/targets";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin/command-center")({
   component: () => (
-    <RoleGate allow={["leadership", "hr"]}>
+    <RoleGate>
       <CommandCenter />
     </RoleGate>
   ),
   head: () => ({
     meta: [
-      { title: "Zone Command Center · Gharpayy Admin" },
-      { name: "description", content: "Company → Zone → Role → Person → Customer control in one screen: live people, demand, chat health, tours, closing and reporting compliance." },
-      { property: "og:title", content: "Zone Command Center · Gharpayy Admin" },
-      { property: "og:description", content: "Total company view, zone health grid, at-risk people and one-click founder updates." },
+      { title: "Gharpayy Command Center · Admin Operating Brain" },
+      { name: "description", content: "One page to operate Gharpayy: BBD targets, reverse funnel planner, impact queue, zone and person drill-downs, checkpoints and admin actions from live CRM data." },
+      { property: "og:title", content: "Gharpayy Command Center · Admin Operating Brain" },
+      { property: "og:description", content: "What happened, what is going wrong, who owns it, what must happen next — from one interconnected admin page." },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
 });
 
-const PERIODS: Period[] = ["live", "last60", "today", "cp_1pm", "cp_4pm", "cp_5pm", "eod", "week", "month"];
+const HEALTH: { id: HealthKey; label: string }[] = [
+  { id: "all", label: "All health" },
+  { id: "healthy", label: "Healthy" },
+  { id: "action-due", label: "Action due" },
+  { id: "at-risk", label: "At risk" },
+  { id: "breached", label: "Breached" },
+  { id: "blocked", label: "Supply blocked" },
+  { id: "orphaned", label: "Orphaned" },
+  { id: "handoff-pending", label: "Handoff pending" },
+  { id: "recovery", label: "Recovery" },
+];
+
+const ROLES: (BrainRole | "all")[] = ["all", "control-tower", "flow-ops", "tcm", "closing"];
+const PHASES: PhaseId[] = ["p1", "p2", "eod", "week", "month"];
+const PHASE_LABEL: Record<PhaseId, string> = { p1: "P1 · 1 PM", p2: "P2 · 5 PM", eod: "EOD", week: "Week", month: "Month" };
 
 function CommandCenter() {
-  const [period, setPeriod] = useState<Period>("live");
-  const [scope, setScope] = useState<Scope>({ kind: "company", zones: [] });
-  const [view, setView] = useState<"cards" | "table" | "heatmap">("cards");
-  const [control, setControl] = useState(false);
+  useCrmLink(); // re-render on every CRM mutation
+  const business = useBrainTargets((s) => s.business);
+  const setBusiness = useBrainTargets((s) => s.setBusiness);
+  const overrides = useBrainTargets((s) => s.overrides);
+  const setOverride = useBrainTargets((s) => s.setOverride);
 
-  const rows = useMemo(() => zoneRows(), []);
-  const block = useMemo(() => (scope.kind === "company" ? companyBlock() : scopeBlock(scope)), [scope]);
-  const risk = biggestRisk(block);
-  const people = peopleInScope(scope);
-  const attention = people.filter((e) => e.performance < 78 || e.flags.length > 0 || e.status === "Idle");
+  const [filters, setFilters] = useState<BrainFilters>(DEFAULT_FILTERS);
+  const [query, setQuery] = useState("");
+  const [drill, setDrill] = useState<Drill | null>(null);
+  const [mode, setMode] = useState<"brain" | "sheet">("brain");
+  const [sheetSet, setSheetSet] = useState<"people" | "leads">("people");
+  const [done, setDone] = useState<Record<string, boolean>>({});
+
+  const patch = (p: Partial<BrainFilters>) => setFilters((f) => ({ ...f, ...p }));
+  const model = useMemo(() => buildBrain(filters, business, undefined, Date.now()), [filters, business, overrides]);
+  const results = useMemo(() => searchBrain(model, query), [model, query]);
+  const phase = currentPhase();
+
+  const open = (title: string, rows: BrainRow[], subtitle?: string) => setDrill({ title, rows, subtitle });
 
   return (
-    <div className="px-4 md:px-8 py-6 max-w-[1500px] mx-auto">
-      <header className="mb-4 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <div className="font-mono text-[11px] uppercase tracking-widest text-primary mb-1.5">Gharpayy Today · Live · Last sync 2 min ago</div>
-          <h1 className="font-display text-2xl md:text-4xl font-semibold tracking-tight">Zone Command Center</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            {scope.kind === "company" ? "All Gharpayy" : scope.zones.join(", ")} · {PERIOD_LABEL[period]}
-          </p>
+    <div className="space-y-4 pb-16">
+      {/* ---------------------------------------------------------- hero */}
+      <section className="rounded-lg border bg-card p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Gharpayy Command Center</h1>
+            <p className="text-sm text-muted-foreground">
+              What needs your attention right now? · {model.range.label} · Phase {phase.toUpperCase()} · counted live from the CRM
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Select value={business} onValueChange={(v) => setBusiness(v as typeof business)}>
+              <SelectTrigger className="w-[190px] h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>{BUSINESSES.map((b) => <SelectItem key={b.id} value={b.id}>{b.label}</SelectItem>)}</SelectContent>
+            </Select>
+            <div className="flex rounded-md border p-0.5">
+              {(["brain", "sheet"] as const).map((m) => (
+                <button key={m} onClick={() => setMode(m)}
+                  className={cn("px-3 py-1.5 text-xs rounded", mode === m ? "bg-primary text-primary-foreground" : "hover:bg-muted")}>
+                  {m === "brain" ? "Operating brain" : "Sheet view"}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
+
+        <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+          {model.attention.length === 0 && (
+            <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground md:col-span-2 xl:col-span-3">
+              Every checkpoint is green for this scope. Protect the pace and verify booking evidence.
+            </div>
+          )}
+          {model.attention.map((a, i) => (
+            <div key={a.id} className="rounded-md border p-3">
+              <div className="text-[10px] font-mono text-muted-foreground">{String(i + 1).padStart(2, "0")}</div>
+              <div className="font-semibold text-sm">{a.title}</div>
+              <div className="text-xs text-muted-foreground mt-0.5">{a.metricLine}</div>
+              <ul className="mt-2 space-y-0.5 text-xs">
+                {a.reasons.filter(Boolean).map((r) => <li key={r} className="text-muted-foreground">· {r}</li>)}
+              </ul>
+              <Button size="sm" className="mt-2 h-7 text-xs" onClick={() => open(a.title, a.rows, a.metricLine)}>
+                {a.cta}
+              </Button>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* --------------------------------------------------- filter bar */}
+      <section className="sticky top-[68px] z-30 rounded-lg border bg-card/95 backdrop-blur p-2">
         <div className="flex flex-wrap items-center gap-2">
-          <DownloadMenu label="Download" scope={scope} period={period} />
-          <SendUpdateButton defaultScope={scope} defaultPeriod={period} />
-        </div>
-      </header>
-
-      {/* Sticky scope + time bar */}
-      <div className="sticky top-0 z-20 -mx-4 md:-mx-8 px-4 md:px-8 py-2.5 bg-background/95 backdrop-blur border-y border-border mb-5">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mr-1">Scope</span>
-          <Chip active={scope.kind === "company"} onClick={() => setScope({ kind: "company", zones: [] })}>All Gharpayy</Chip>
-          {allZones().map((z) => {
-            const on = scope.kind === "zones" && scope.zones.includes(z);
-            return (
-              <Chip key={z} active={on} onClick={() => setScope((s) => {
-                const zones = s.kind === "zones" ? (on ? s.zones.filter((x) => x !== z) : [...s.zones, z]) : [z];
-                return zones.length ? { kind: "zones", zones } : { kind: "company", zones: [] };
-              })}>{z}</Chip>
-            );
-          })}
-          <span className="w-px h-4 bg-border mx-1" />
-          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mr-1">Time</span>
-          {PERIODS.map((p) => <Chip key={p} active={period === p} onClick={() => setPeriod(p)}>{PERIOD_LABEL[p]}</Chip>)}
-          <span className="w-px h-4 bg-border mx-1" />
-          <Chip active={control} onClick={() => setControl((c) => !c)}>🔥 Control mode</Chip>
-        </div>
-      </div>
-
-      {/* Company result strip */}
-      <section className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2 mb-5">
-        <Stat label="BBD" value={`${block.closing.bookings}/${block.closing.bbdTarget}`} tone={block.closing.bookings >= block.closing.bbdTarget ? "good" : "warn"} />
-        <Stat label="Present" value={`${block.people.present}/${block.people.expected}`} />
-        <Stat label="Active now" value={block.people.active} />
-        <Stat label="Unassigned" value={block.demand.unassigned} tone={block.demand.unassigned ? "bad" : "good"} />
-        <Stat label="Chats waiting us" value={block.chats.waitingUs} tone={block.chats.waitingUs ? "bad" : "good"} />
-        <Stat label="Tours done" value={`${block.tours.completed}/${block.tours.scheduled}`} />
-      </section>
-
-      {control ? (
-        <section className="rounded-2xl border border-destructive/30 bg-destructive/5 p-4 md:p-5 mb-6">
-          <div className="flex items-center gap-2 mb-3">
-            <Flame className="h-4 w-4 text-destructive" />
-            <h2 className="font-display text-lg font-semibold">Control mode · needs intervention right now</h2>
+          <Select value={filters.date} onValueChange={(v) => patch({ date: v as DateKey })}>
+            <SelectTrigger className="h-8 w-[140px] text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>{DATE_OPTIONS.map((d) => <SelectItem key={d.id} value={d.id}>{d.label}</SelectItem>)}</SelectContent>
+          </Select>
+          <Select value={filters.zone} onValueChange={(v) => patch({ zone: v })}>
+            <SelectTrigger className="h-8 w-[140px] text-xs"><SelectValue placeholder="Zone" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All zones</SelectItem>
+              {model.zoneNames.map((z) => <SelectItem key={z} value={z}>{z}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={filters.role} onValueChange={(v) => patch({ role: v as BrainFilters["role"] })}>
+            <SelectTrigger className="h-8 w-[170px] text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {ROLES.map((r) => <SelectItem key={r} value={r}>{r === "all" ? "All roles" : ROLE_LABEL[r]}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={filters.source} onValueChange={(v) => patch({ source: v })}>
+            <SelectTrigger className="h-8 w-[130px] text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All sources</SelectItem>
+              {model.sources.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={filters.intent} onValueChange={(v) => patch({ intent: v as BrainFilters["intent"] })}>
+            <SelectTrigger className="h-8 w-[120px] text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All intent</SelectItem>
+              <SelectItem value="hot">Hard / hot</SelectItem>
+              <SelectItem value="warm">Medium</SelectItem>
+              <SelectItem value="cold">Soft</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={filters.health} onValueChange={(v) => patch({ health: v as HealthKey })}>
+            <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>{HEALTH.map((h) => <SelectItem key={h.id} value={h.id}>{h.label}</SelectItem>)}</SelectContent>
+          </Select>
+          <div className="flex-1 min-w-[220px]">
+            <Input value={query} onChange={(e) => setQuery(e.target.value)} className="h-8 text-xs"
+              placeholder="Search lead, phone, employee, zone… or: leads never called, completed tours without quotation, payment promises due" />
           </div>
-          <ul className="space-y-2 text-sm">
-            <Need n={block.people.idle} what="people idle" to="/tower/team" cta="Open roster" />
-            <Need n={block.chats.waitingUs} what="chats waiting on Gharpayy" to="/inbox" cta="Open chats" />
-            <Need n={block.tours.unconfirmed} what="tours not confirmed" to="/tower/dashboard" cta="Open tours" />
-            <Need n={Math.max(block.people.present - block.reporting.cp5, 0)} what="5 PM reports missing" to="/tower/quality" cta="Open reporting" />
-            <Need n={block.management.supportPending} what="support requests pending" to="/inbox" cta="Escalate" />
-          </ul>
-        </section>
-      ) : null}
-
-      <div className="grid lg:grid-cols-3 gap-4 mb-6">
-        <Panel title="People">
-          <Row k="Expected" v={block.people.expected} />
-          <Row k="Present" v={block.people.present} />
-          <Row k="Absent" v={block.people.absent} />
-          <Row k="Active now" v={block.people.active} />
-          <Row k="On break" v={block.people.onBreak} />
-          <Row k="Idle / underloaded" v={block.people.idle} />
-          <Row k="Blocked" v={block.people.blocked} />
-          <Row k="At risk" v={block.people.atRisk} tone="bad" />
-        </Panel>
-        <Panel title="Demand & conversations">
-          <Row k="New leads" v={block.demand.newLeads} />
-          <Row k="Active leads" v={block.demand.activeLeads} />
-          <Row k="Assigned" v={`${block.demand.assigned}/${block.demand.activeLeads}`} />
-          <Row k="Unassigned" v={block.demand.unassigned} tone={block.demand.unassigned ? "bad" : "good"} />
-          <Row k="Active chats" v={block.chats.active} />
-          <Row k="Waiting on us" v={block.chats.waitingUs} tone={block.chats.waitingUs ? "bad" : "good"} />
-          <Row k="SLA breached" v={block.chats.slaBreached} tone={block.chats.slaBreached ? "bad" : "good"} />
-          <Row k="No next action" v={block.chats.noNextAction} />
-        </Panel>
-        <Panel title="Tours, closing & reporting">
-          <Row k="Tours scheduled" v={block.tours.scheduled} />
-          <Row k="Confirmed" v={block.tours.confirmed} />
-          <Row k="Unconfirmed" v={block.tours.unconfirmed} tone={block.tours.unconfirmed ? "warn" : "good"} />
-          <Row k="Completed" v={block.tours.completed} />
-          <Row k="High intent" v={block.closing.highIntent} />
-          <Row k="Payments pending" v={block.closing.paymentPending} />
-          <Row k="Verified bookings" v={block.closing.bookings} />
-          <Row k="Reporting compliance" v={`${block.reporting.compliance}%`} />
-        </Panel>
-      </div>
-
-      <section className="rounded-2xl border border-border bg-card p-4 md:p-5 mb-6">
-        <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Today's biggest problem</div>
-        <div className="font-display text-lg font-semibold">{risk.risk}</div>
-        <div className="text-sm text-muted-foreground mt-1">Action taken: {risk.action}</div>
-      </section>
-
-      {/* Zone health */}
-      <section className="mb-6">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-display text-lg md:text-xl font-semibold">Zone health</h2>
-          <div className="flex gap-1">
-            <Toggle on={view === "cards"} onClick={() => setView("cards")} icon={LayoutGrid} label="Cards" />
-            <Toggle on={view === "table"} onClick={() => setView("table")} icon={Table2} label="Table" />
-            <Toggle on={view === "heatmap"} onClick={() => setView("heatmap")} icon={Activity} label="Heatmap" />
-          </div>
+          {(filters.zone !== "all" || filters.role !== "all" || filters.health !== "all" || filters.intent !== "all" || filters.source !== "all") && (
+            <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => setFilters({ ...DEFAULT_FILTERS, date: filters.date })}>Clear</Button>
+          )}
         </div>
 
-        {view === "cards" && (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {rows.map((r) => (
-              <div key={r.zone} className="rounded-2xl border border-border bg-card p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="font-display text-base font-semibold">{r.zone}</div>
-                  <span className={`text-[10px] font-mono uppercase tracking-widest px-2 py-0.5 rounded border ${healthClass(r.health)}`}>{r.health}</span>
-                </div>
-                <div className="grid grid-cols-2 gap-y-1 text-[12px] text-muted-foreground">
-                  <span>Present</span><span className="text-foreground text-right">{r.block.people.present}/{r.block.people.expected}</span>
-                  <span>Active</span><span className="text-foreground text-right">{r.block.people.active}</span>
-                  <span>Unassigned</span><span className="text-foreground text-right">{r.block.demand.unassigned}</span>
-                  <span>Waiting us</span><span className="text-foreground text-right">{r.block.chats.waitingUs}</span>
-                  <span>Tours</span><span className="text-foreground text-right">{r.block.tours.completed}/{r.block.tours.scheduled}</span>
-                  <span>BBD</span><span className="text-foreground text-right">{r.block.closing.bookings}/{r.block.closing.bbdTarget}</span>
-                  <span>Reporting</span><span className="text-foreground text-right">{r.block.reporting.compliance}%</span>
-                </div>
-                <div className="flex items-center gap-2 mt-3">
-                  <button onClick={() => setScope({ kind: "zones", zones: [r.zone] })}
-                    className="text-xs text-primary hover:underline inline-flex items-center">Open zone <ChevronRight className="h-3 w-3" /></button>
-                  <SendUpdateButton label="Send Zone Update" variant="outline" defaultScope={{ kind: "zones", zones: [r.zone] }} defaultPeriod={period} defaultRecipient="Zone Manager" />
-                </div>
-              </div>
+        {query && (
+          <div className="mt-2 max-h-64 overflow-y-auto rounded-md border">
+            {results.length === 0 && <div className="p-3 text-xs text-muted-foreground">No match. Try a phone number, a person, a zone or an operational query.</div>}
+            {results.map((r) => (
+              <button key={r.kind + r.id} onClick={() => open(r.title, [r], r.subtitle)}
+                className="w-full text-left px-3 py-2 text-xs border-b last:border-0 hover:bg-muted">
+                <span className="font-medium">{r.title}</span>
+                <span className="text-muted-foreground"> · {r.subtitle} · {r.owner} · {r.zone}</span>
+              </button>
             ))}
           </div>
         )}
+      </section>
 
-        {view === "table" && (
-          <div className="rounded-2xl border border-border bg-card overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/40 text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
-                <tr>{["Zone", "People", "Active", "Idle", "Leads", "Unassigned", "Waiting us", "Tours", "Completed", "BBD", "Reporting", "Health"].map((h) => (
-                  <th key={h} className="text-left px-3 py-2 whitespace-nowrap">{h}</th>))}</tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {rows.map((r) => (
-                  <tr key={r.zone} className="hover:bg-muted/30">
-                    <td className="px-3 py-2 font-medium">{r.zone}</td>
-                    <td className="px-3 py-2">{r.block.people.present}/{r.block.people.expected}</td>
-                    <td className="px-3 py-2">{r.block.people.active}</td>
-                    <td className="px-3 py-2">{r.block.people.idle}</td>
-                    <td className="px-3 py-2">{r.block.demand.activeLeads}</td>
-                    <td className="px-3 py-2">{r.block.demand.unassigned}</td>
-                    <td className="px-3 py-2">{r.block.chats.waitingUs}</td>
-                    <td className="px-3 py-2">{r.block.tours.scheduled}</td>
-                    <td className="px-3 py-2">{r.block.tours.completed}</td>
-                    <td className="px-3 py-2">{r.block.closing.bookings}/{r.block.closing.bbdTarget}</td>
-                    <td className="px-3 py-2">{r.block.reporting.compliance}%</td>
-                    <td className="px-3 py-2">{healthDot(r.health)}</td>
-                  </tr>
+      {mode === "sheet" ? (
+        <SheetMode model={model} setSheet={setSheetSet} sheetSet={sheetSet} open={open} />
+      ) : (
+        <>
+          {/* -------------------------------------------- score strip */}
+          <section className="grid gap-2 lg:grid-cols-5">
+            {model.groups.map((g) => (
+              <div key={g.key} className="rounded-lg border bg-card">
+                <div className="px-3 py-2 border-b text-[10px] uppercase tracking-widest text-muted-foreground">{g.label}</div>
+                <div className="divide-y">
+                  {g.metrics.map((m) => (
+                    <button key={m.key} disabled={m.rows.length === 0}
+                      onClick={() => open(`${g.label} · ${m.label}`, m.rows)}
+                      className={cn(
+                        "w-full flex items-center justify-between px-3 py-1.5 text-sm text-left",
+                        m.rows.length ? "hover:bg-muted cursor-pointer" : "cursor-default",
+                      )}>
+                      <span className="text-muted-foreground text-xs">{m.label}</span>
+                      <span className={cn("font-mono font-semibold",
+                        m.tone === "good" && "text-emerald-600 dark:text-emerald-400",
+                        m.tone === "warn" && "text-amber-600 dark:text-amber-400",
+                        m.tone === "bad" && m.value > 0 && "text-destructive")}>
+                        {m.suffix === "₹" ? `₹${m.value.toLocaleString("en-IN")}` : m.value}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </section>
+
+          {/* --------------------------------- reverse funnel planner */}
+          <section className="grid gap-3 lg:grid-cols-2">
+            <div className="rounded-lg border bg-card">
+              <div className="px-4 py-2 border-b flex items-center justify-between">
+                <div className="text-sm font-semibold">Reverse funnel planner</div>
+                <Badge variant={model.plan.structuralGap > 0 ? "destructive" : "secondary"} className="text-[10px]">
+                  {model.plan.structuralGap > 0 ? `Structural gap ${model.plan.structuralGap}` : "Pipeline sufficient"}
+                </Badge>
+              </div>
+              <div className="p-3 space-y-1.5">
+                <div className="text-xs text-muted-foreground">
+                  To land {model.plan.target} BBD at current conversion, the pipeline must carry:
+                </div>
+                {model.plan.requirements.map((r) => {
+                  const short = r.available < r.required;
+                  return (
+                    <div key={r.label} className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground text-xs">{r.label}</span>
+                      <span className="font-mono text-xs">
+                        <span className={short ? "text-destructive" : "text-emerald-600 dark:text-emerald-400"}>{r.available}</span>
+                        <span className="text-muted-foreground"> / {r.required}</span>
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* ------------------------------------- 14 checkpoints */}
+            <div className="rounded-lg border bg-card">
+              <div className="px-4 py-2 border-b text-sm font-semibold">Control Tower · 14 checkpoints</div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 p-2">
+                {model.checkpoints.map((c) => (
+                  <button key={c.id} onClick={() => open(`Checkpoint ${c.id} · ${c.label}`, c.failures, c.detail)}
+                    className="flex items-center gap-2 rounded px-2 py-1.5 text-left text-xs hover:bg-muted">
+                    <span className={cn("h-2 w-2 rounded-full shrink-0",
+                      c.state === "green" && "bg-emerald-500", c.state === "amber" && "bg-amber-500", c.state === "red" && "bg-destructive")} />
+                    <span className="truncate flex-1">{c.label}</span>
+                    <span className="font-mono text-muted-foreground">{c.failures.length}</span>
+                  </button>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+              </div>
+            </div>
+          </section>
 
-        {view === "heatmap" && (
-          <div className="rounded-2xl border border-border bg-card overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/40 text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
-                <tr><th className="text-left px-3 py-2">Zone</th>
-                  {["Workforce", "Lead ownership", "Chat health", "Tour movement", "Closing", "Reporting", "SLA", "Reconciliation"].map((h) => (
-                    <th key={h} className="text-left px-3 py-2 whitespace-nowrap">{h}</th>))}</tr>
+          {/* --------------------------------------------- funnel view */}
+          <section className="rounded-lg border bg-card">
+            <div className="px-4 py-2 border-b text-sm font-semibold">Funnel · click any stage to open the customers</div>
+            <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-2 p-3">
+              {model.funnel.map((s) => (
+                <button key={s.key} onClick={() => open(`${s.label} · ${s.count}`, s.rows)}
+                  className="rounded-md border p-3 text-left hover:bg-muted">
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground truncate">{s.label}</div>
+                  <div className="text-xl font-semibold">{s.count}</div>
+                  <div className="text-[10px] text-muted-foreground">{s.conversion}% from previous{s.breaches ? ` · ${s.breaches} overdue` : ""}</div>
+                </button>
+              ))}
+            </div>
+          </section>
+
+          {/* ------------------------------------------- impact queue */}
+          <section className="rounded-lg border bg-card">
+            <div className="px-4 py-2 border-b flex items-center justify-between">
+              <div className="text-sm font-semibold">Fix now · ranked by downstream business damage</div>
+              <Badge variant="outline" className="text-[10px]">{model.impact.length} open</Badge>
+            </div>
+            <div className="divide-y max-h-[420px] overflow-y-auto">
+              {model.impact.length === 0 && <div className="p-4 text-sm text-muted-foreground">Queue clear — no case is currently damaging the target.</div>}
+              {model.impact.slice(0, 40).map((r, i) => (
+                <div key={r.kind + r.id + i} className="px-3 py-2 grid grid-cols-1 md:grid-cols-[1fr_auto] gap-2 items-center hover:bg-muted/50">
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium truncate">{r.title} <span className="text-xs text-muted-foreground">· {r.owner} · {r.zone}</span></div>
+                    <div className="text-xs text-muted-foreground truncate">
+                      {r.problem}{r.impact ? ` — ${r.impact}` : ""}{r.overdue ? ` · ${r.overdue}` : ""}
+                    </div>
+                  </div>
+                  <div className="flex gap-1.5">
+                    <Button size="sm" className="h-7 text-xs" onClick={() => open(r.title, [r], r.problem)}>Fix</Button>
+                    <Button size="sm" variant="outline" className="h-7 text-xs"
+                      onClick={() => toast.success(`Escalated to ${r.owner}`, { description: r.nextAction })}>Escalate</Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* -------------------------------------------- zone command */}
+          <section className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+            {model.zones.map((z) => (
+              <div key={z.name} className="rounded-lg border bg-card p-3">
+                <div className="flex items-center justify-between">
+                  <div className="font-semibold text-sm uppercase tracking-wide">{z.name}</div>
+                  <span className={cn("text-xs font-mono", BAND_CLASS[band(z.bbdActual, z.bbdTarget)])}>
+                    {z.bbdActual}/{z.bbdTarget} BBD · {BAND_LABEL[band(z.bbdActual, z.bbdTarget)]}
+                  </span>
+                </div>
+                <div className="mt-2 grid grid-cols-4 gap-1 text-center text-xs">
+                  {[["Tours", z.tours], ["Done", z.done], ["Quotes", z.quotes], ["Hot", z.highIntent],
+                    ["No next", z.noNextAction], ["SLA", z.sla], ["Supply", z.supplyBlocked], ["People", z.people]].map(([l, v]) => (
+                    <div key={l as string} className="rounded border py-1">
+                      <div className="font-mono font-semibold">{v as number}</div>
+                      <div className="text-[9px] uppercase tracking-wider text-muted-foreground">{l as string}</div>
+                    </div>
+                  ))}
+                </div>
+                {z.reasons.length > 0 && (
+                  <ul className="mt-2 text-[11px] text-muted-foreground space-y-0.5">
+                    {z.reasons.slice(0, 3).map((r) => <li key={r}>· {r}</li>)}
+                  </ul>
+                )}
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  <Button size="sm" variant="outline" className="h-7 text-xs"
+                    onClick={() => open(`Zone 360 · ${z.name}`, z.rows, `Why behind: ${z.reasons.join(" · ") || "on plan"} → Do: ${z.actions.join(" · ")}`)}>
+                    Open Zone 360
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-7 text-xs"
+                    onClick={() => {
+                      void navigator.clipboard?.writeText(
+                        `${z.name.toUpperCase()} · ${model.range.label}\nBBD ${z.bbdActual}/${z.bbdTarget} (forecast ${z.forecast})\nTours ${z.tours} · Done ${z.done} · Quotes ${z.quotes}\nHot ${z.highIntent} · No next action ${z.noNextAction} · SLA ${z.sla}\nDo now: ${z.actions.join(", ")}`,
+                      );
+                      toast.success("Zone update copied for WhatsApp");
+                    }}>Copy to WhatsApp</Button>
+                </div>
+              </div>
+            ))}
+          </section>
+
+          {/* -------------------------------- zone × people matrix */}
+          <section className="rounded-lg border bg-card overflow-x-auto">
+            <div className="px-4 py-2 border-b text-sm font-semibold">Zone × people matrix · target vs executable work</div>
+            <table className="w-full text-xs">
+              <thead className="bg-muted/50 text-muted-foreground">
+                <tr>
+                  {["Person", "Role", "Zone", "P1", "P2", "EOD", "Week", "Month", "Work available", "SLA", "Classification"].map((h) => (
+                    <th key={h} className="text-left font-medium px-3 py-1.5 whitespace-nowrap">{h}</th>
+                  ))}
+                </tr>
               </thead>
-              <tbody className="divide-y divide-border">
-                {rows.map((r) => (
-                  <tr key={r.zone}>
-                    <td className="px-3 py-2 font-medium">{r.zone}</td>
-                    {r.components.map((c) => (
-                      <td key={c.label} className="px-3 py-2">
-                        <button onClick={() => setScope({ kind: "zones", zones: [r.zone] })} className="hover:underline">
-                          {c.pct >= 92 ? "🟢" : c.pct >= 84 ? "🟠" : "🔴"} <span className="text-xs text-muted-foreground">{c.pct}%</span>
-                        </button>
+              <tbody className="divide-y">
+                {model.people.map((p) => (
+                  <tr key={p.id} className="hover:bg-muted/40">
+                    <td className="px-3 py-1.5">
+                      <button className="font-medium hover:underline"
+                        onClick={() => open(`Person 360 · ${p.name}`, p.rows, `${p.zone} · EOD ${p.eod.actual}/${p.eod.target} · queue ${p.executable} executable vs ${p.requiredWork} required · ${p.slaBreaches} SLA breaches · ${p.classification}`)}>
+                        {p.name}
+                      </button>
+                    </td>
+                    <td className="px-3 py-1.5 text-muted-foreground">{ROLE_LABEL[p.role]}</td>
+                    <td className="px-3 py-1.5">{p.zone}</td>
+                    {(["p1", "p2", "eod", "week", "month"] as const).map((k) => (
+                      <td key={k} className={cn("px-3 py-1.5 font-mono", BAND_CLASS[band(p[k].actual, p[k].target)])}>
+                        {p[k].actual}/{p[k].target}
                       </td>
                     ))}
+                    <td className={cn("px-3 py-1.5 font-mono", p.executable < p.requiredWork && "text-destructive")}>
+                      {p.executable}/{p.requiredWork}
+                    </td>
+                    <td className={cn("px-3 py-1.5 font-mono", p.slaBreaches > 0 && "text-destructive")}>{p.slaBreaches}</td>
+                    <td className="px-3 py-1.5">
+                      <Badge variant={p.classification === "on-target" ? "secondary" : p.classification === "upstream" ? "outline" : "destructive"} className="text-[10px]">
+                        {p.classification}
+                      </Badge>
+                    </td>
                   </tr>
                 ))}
+                {model.people.length === 0 && (
+                  <tr><td colSpan={11} className="px-3 py-6 text-center text-muted-foreground">No people in this scope.</td></tr>
+                )}
               </tbody>
             </table>
-          </div>
-        )}
-      </section>
+          </section>
 
-      {/* People needing attention */}
-      <section className="rounded-2xl border border-border bg-card overflow-hidden">
-        <div className="px-4 md:px-5 py-3 border-b border-border flex items-center justify-between">
-          <div>
-            <h2 className="font-display text-lg font-semibold">People needing attention</h2>
-            <p className="text-xs text-muted-foreground">{attention.length} in current scope · click through to the person</p>
-          </div>
-          <DownloadMenu label="Download current view" scope={scope} period={period} />
-        </div>
-        <div className="divide-y divide-border">
-          {attention.slice(0, 12).map((e) => (
-            <div key={e.id} className="px-4 md:px-5 py-2.5 flex items-center gap-3">
-              <Avatar id={e.id} size={32} />
-              <div className="min-w-0 flex-1">
-                <div className="text-sm font-medium truncate">{e.name}</div>
-                <div className="text-[11px] text-muted-foreground truncate">{e.role} · {e.zone ?? "—"} · {e.flags[0] ?? e.status}</div>
+          {/* ---------------------------------- must-win + targets */}
+          <section className="grid gap-3 lg:grid-cols-2">
+            <div className="rounded-lg border bg-card">
+              <div className="px-4 py-2 border-b text-sm font-semibold">Must win today</div>
+              <div className="p-3 space-y-1.5">
+                {model.mustWin.map((m, i) => (
+                  <label key={m} className="flex items-start gap-2 text-sm">
+                    <input type="checkbox" className="mt-1" checked={!!done[m]}
+                      onChange={(e) => setDone((d) => ({ ...d, [m]: e.target.checked }))} />
+                    <span className={cn(done[m] && "line-through text-muted-foreground")}>
+                      <span className="font-mono text-xs text-muted-foreground mr-1">{i + 1}.</span>{m}
+                    </span>
+                  </label>
+                ))}
+                <Button size="sm" variant="outline" className="h-7 text-xs mt-2"
+                  onClick={() => {
+                    const g = model.groups;
+                    void navigator.clipboard?.writeText(
+                      `${new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })} GHARPAYY\nBBD: ${model.plan.actual} / ${model.plan.target} (forecast ${model.plan.projection})\nGap: ${model.plan.gap}\nTours: ${g[2].metrics[0].value} scheduled · ${g[2].metrics[1].value} done\nQuotations: ${g[3].metrics[0].value}\nImmediate opportunities:\n• ${g[3].metrics[2].value} payment promises\n• ${g[4].metrics[2].value} done tours need quote\n• ${g[1].metrics[5].value} leads without next action\nAdmin priorities:\n${model.mustWin.map((m, i) => `${i + 1}. ${m}`).join("\n")}`,
+                    );
+                    toast.success("Company update copied for WhatsApp");
+                  }}>Copy company update</Button>
               </div>
-              <div className="font-mono text-sm">{e.performance}%</div>
-              <SendUpdateButton label="Send Update to Manager" variant="outline" defaultRecipient="Manager"
-                defaultScope={{ kind: "person", zones: [], personId: e.id }} defaultPeriod={period} />
             </div>
+
+            <div className="rounded-lg border bg-card">
+              <div className="px-4 py-2 border-b text-sm font-semibold">Locked targets · admin editable</div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead className="bg-muted/50 text-muted-foreground">
+                    <tr><th className="text-left px-3 py-1.5">Role</th>{PHASES.map((p) => <th key={p} className="text-left px-3 py-1.5">{PHASE_LABEL[p]}</th>)}</tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {(["control-tower", "flow-ops", "tcm", "closing"] as BrainRole[]).map((role) => (
+                      <tr key={role}>
+                        <td className="px-3 py-1.5 font-medium whitespace-nowrap">{ROLE_LABEL[role]}</td>
+                        {PHASES.map((p) => {
+                          const t = targetsFor(business, role, p, overrides);
+                          return (
+                            <td key={p} className="px-3 py-1.5 space-y-1">
+                              {Object.entries(t).map(([metric, val]) => (
+                                <div key={metric} className="flex items-center gap-1">
+                                  <Input type="number" value={val as number}
+                                    onChange={(e) => setOverride(business, role, p, metric as never, e.target.value === "" ? null : Number(e.target.value))}
+                                    className="h-6 w-14 text-[11px] px-1" />
+                                  <span className="text-[10px] text-muted-foreground">{metric}</span>
+                                </div>
+                              ))}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        </>
+      )}
+
+      <DrillDrawer drill={drill} onClose={() => setDrill(null)} />
+    </div>
+  );
+}
+
+/* --------------------------------------------------------------- sheet */
+
+function SheetMode({
+  model, sheetSet, setSheet, open,
+}: {
+  model: ReturnType<typeof buildBrain>;
+  sheetSet: "people" | "leads";
+  setSheet: (s: "people" | "leads") => void;
+  open: (title: string, rows: BrainRow[], subtitle?: string) => void;
+}) {
+  const leadRows = model.groups[1].metrics[1].rows;
+  return (
+    <section className="rounded-lg border bg-card">
+      <div className="px-4 py-2 border-b flex items-center justify-between">
+        <div className="text-sm font-semibold">Sheet view</div>
+        <div className="flex rounded-md border p-0.5">
+          {(["people", "leads"] as const).map((s) => (
+            <button key={s} onClick={() => setSheet(s)}
+              className={cn("px-3 py-1 text-xs rounded capitalize", sheetSet === s ? "bg-primary text-primary-foreground" : "hover:bg-muted")}>{s}</button>
           ))}
-          {attention.length === 0 && <div className="px-5 py-6 text-sm text-muted-foreground">Nobody flagged in this scope.</div>}
         </div>
-      </section>
-
-      <div className="mt-6 text-xs text-muted-foreground">
-        Drill deeper: <Link to="/tower/team" className="text-primary hover:underline">People</Link> ·{" "}
-        <Link to="/tower/quality" className="text-primary hover:underline">Reporting OS</Link> ·{" "}
-        <Link to="/admin/report-center" className="text-primary hover:underline">Report Center</Link> ·{" "}
-        <Link to="/admin" className="text-primary hover:underline">Founder mode</Link>
       </div>
-    </div>
-  );
-}
-
-function Need({ n, what, to, cta }: { n: number; what: string; to: string; cta: string }) {
-  if (!n) return null;
-  return (
-    <li className="flex items-center justify-between gap-3 rounded-lg border border-border bg-background px-3 py-2">
-      <span><span className="font-mono font-semibold">{n}</span> {what}</span>
-      <Link to={to} className="text-xs text-primary hover:underline">{cta} →</Link>
-    </li>
-  );
-}
-
-function Stat({ label, value, tone }: { label: string; value: React.ReactNode; tone?: "good" | "warn" | "bad" }) {
-  const cls = tone === "good" ? "text-success" : tone === "bad" ? "text-destructive" : tone === "warn" ? "text-warning" : "";
-  return (
-    <div className="rounded-xl border border-border bg-card px-3 py-2.5">
-      <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{label}</div>
-      <div className={`font-display text-xl font-semibold ${cls}`}>{value}</div>
-    </div>
-  );
-}
-
-function Panel({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="rounded-2xl border border-border bg-card p-4">
-      <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2">{title}</div>
-      <div className="space-y-1">{children}</div>
-    </div>
-  );
-}
-
-function Row({ k, v, tone }: { k: string; v: React.ReactNode; tone?: "good" | "warn" | "bad" }) {
-  const cls = tone === "good" ? "text-success" : tone === "bad" ? "text-destructive" : tone === "warn" ? "text-warning" : "";
-  return (
-    <div className="flex items-center justify-between text-[13px]">
-      <span className="text-muted-foreground">{k}</span>
-      <span className={`font-mono font-medium ${cls}`}>{v}</span>
-    </div>
-  );
-}
-
-function Toggle({ on, onClick, icon: Icon, label }: { on: boolean; onClick: () => void; icon: React.ElementType; label: string }) {
-  return (
-    <button onClick={onClick}
-      className={`inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-md border ${on ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}>
-      <Icon className="h-3 w-3" /> {label}
-    </button>
-  );
-}
-
-function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button onClick={onClick}
-      className={`text-[11px] px-2.5 py-1 rounded-full border whitespace-nowrap transition-colors ${active ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}>
-      {children}
-    </button>
+      <div className="overflow-x-auto max-h-[70vh]">
+        {sheetSet === "people" ? (
+          <table className="w-full text-xs">
+            <thead className="bg-muted/50 text-muted-foreground sticky top-0">
+              <tr>{["Name", "Role", "Zone", "P1", "P2", "EOD", "Week", "Month", "Executable", "Required", "SLA", "Miss class"].map((h) => (
+                <th key={h} className="text-left font-medium px-3 py-1.5 whitespace-nowrap">{h}</th>))}</tr>
+            </thead>
+            <tbody className="divide-y">
+              {model.people.map((p) => (
+                <tr key={p.id} className="hover:bg-muted/40 cursor-pointer" onClick={() => open(`Person 360 · ${p.name}`, p.rows)}>
+                  <td className="px-3 py-1.5 font-medium">{p.name}</td>
+                  <td className="px-3 py-1.5">{p.role}</td>
+                  <td className="px-3 py-1.5">{p.zone}</td>
+                  {(["p1", "p2", "eod", "week", "month"] as const).map((k) => (
+                    <td key={k} className="px-3 py-1.5 font-mono">{p[k].actual}/{p[k].target}</td>
+                  ))}
+                  <td className="px-3 py-1.5 font-mono">{p.executable}</td>
+                  <td className="px-3 py-1.5 font-mono">{p.requiredWork}</td>
+                  <td className="px-3 py-1.5 font-mono">{p.slaBreaches}</td>
+                  <td className="px-3 py-1.5">{p.classification}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <table className="w-full text-xs">
+            <thead className="bg-muted/50 text-muted-foreground sticky top-0">
+              <tr>{["Lead", "Detail", "Owner", "Zone", "Problem", "Next action"].map((h) => (
+                <th key={h} className="text-left font-medium px-3 py-1.5 whitespace-nowrap">{h}</th>))}</tr>
+            </thead>
+            <tbody className="divide-y">
+              {leadRows.map((r) => (
+                <tr key={r.id} className="hover:bg-muted/40 cursor-pointer" onClick={() => open(r.title, [r], r.subtitle)}>
+                  <td className="px-3 py-1.5 font-medium">{r.title}</td>
+                  <td className="px-3 py-1.5 text-muted-foreground">{r.subtitle}</td>
+                  <td className="px-3 py-1.5">{r.owner}</td>
+                  <td className="px-3 py-1.5">{r.zone}</td>
+                  <td className="px-3 py-1.5 text-destructive">{r.problem ?? ""}</td>
+                  <td className="px-3 py-1.5">{r.nextAction}</td>
+                </tr>
+              ))}
+              {leadRows.length === 0 && <tr><td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">No leads in this scope.</td></tr>}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </section>
   );
 }
