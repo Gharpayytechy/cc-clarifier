@@ -426,7 +426,8 @@ export function buildBrain(
       return l ? { ...leadRow(l, tcms, `SLA breached · ${f.reason}`, "Conversion decays hourly", "Call now"), severity: 70 } : null;
     }).filter(Boolean) as BrainRow[],
     ...neverCalled.map((l) => ({ ...leadRow(l, tcms, "Untouched lead", "First-response SLA", "Call now"), severity: 60 })),
-  ].sort((a, b) => (b.severity ?? 0) - (a.severity ?? 0));
+  ].sort((a, b) => (b.severity ?? 0) - (a.severity ?? 0))
+    .filter((r, i, arr) => arr.findIndex((x) => x.kind === r.kind && x.id === r.id) === i);
 
   /* ------------------------------- people ------------------------------- */
   const people: PersonRow[] = tcms
