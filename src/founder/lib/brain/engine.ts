@@ -501,7 +501,7 @@ export function buildBrain(
     detail: detail || `${failures.length} failing case${failures.length === 1 ? "" : "s"}`,
   });
   const checkpoints: Checkpoint[] = [
-    cp(1, "Sufficient lead stock", active.length >= tcms.length * 8 ? [] : active.slice(0, 1), 1, 1, active.length >= tcms.length * 8 ? "Stock healthy" : "Lead stock below team capacity"),
+    cp(1, "Sufficient lead stock", active.length >= tcms.length * 8 ? [] : active.slice(0, 1).map((l) => leadRow(l, tcms, "Lead stock below team capacity", undefined, "Add lead supply")), 1, 1, active.length >= tcms.length * 8 ? "Stock healthy" : "Lead stock below team capacity"),
     cp(2, "Every lead captured", active.filter((l) => !l.phone).map((l) => leadRow(l, tcms, "No phone captured", undefined, "Complete record"))),
     cp(3, "Single owner", active.filter((l) => !l.assignedTcmId).map((l) => leadRow(l, tcms, "No owner", undefined, "Assign"))),
     cp(4, "First action within SLA", neverCalled.map((l) => leadRow(l, tcms, "Never called", undefined, "Call now"))),
