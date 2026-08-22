@@ -100,15 +100,10 @@ function blockFor(list: Employee[], key: string): Block {
   const active = Math.max(present - idle, 0);
   const atRisk = list.filter((e) => e.performance < 75 || e.flags.length > 0).length;
   const seed = `${key}:${dayStamp()}`;
-  const activeLeads = list.reduce((s, e) => s + (e.leadsActive || 0), 0) * 4 + pick(seed + "leads", 20, 90);
-  const unassigned = pick(seed + "un", 0, 4);
-  const waitingUs = pick(seed + "wu", 0, 6);
-  const scheduled = pick(seed + "ts", 6, 24);
-  const confirmed = Math.max(scheduled - pick(seed + "tc", 0, 7), 0);
-  const completed = pick(seed + "tdone", 2, Math.max(confirmed - 1, 3));
-  const bookings = list.reduce((s, e) => s + (e.closedDeals || 0), 0) % 9 + pick(seed + "bk", 0, 3);
-  const bbdTarget = bookings + pick(seed + "bt", 1, 5);
-  const compliance = Math.round((present ? (present - pick(seed + "rc", 0, Math.min(present, 2))) / present : 1) * 100);
+  // Real CRM numbers for exactly these people.
+  const crm = crmBlockFor(key === "company" ? null : list.map((e) => e.id));
+  const compliance = Math.round((present ? (present - Math.min(late, present)) / present : 1) * 100);
+
 
   return {
     people: {
