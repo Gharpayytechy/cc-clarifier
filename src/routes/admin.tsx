@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, Link, useRouterState } from "@tanstack/react-router";
 import { TowerAuthProvider, useTowerAuth } from "@/lib/tower/auth";
 import { MemberSwitcher } from "@/components/tower/MemberSwitcher";
+import { useCrmLink } from "@/founder/hooks/useCrmLink";
 
 const TABS = [
   { to: "/admin", label: "Founder Desk", exact: true },
@@ -65,7 +66,20 @@ function AdminShell() {
               </Link>
             </nav>
           </div>
-          <MemberSwitcher />
+          <div className="flex items-center gap-3">
+            <Link
+              to="/myt/flow-ops"
+              title="Every number on this console is counted from the live CRM"
+              className="hidden md:flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs hover:bg-muted"
+            >
+              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+              <span className="font-medium">Live CRM</span>
+              <span className="text-muted-foreground">
+                {crm.leads} leads · {crm.tours} tours · {crm.bookings} bookings · {crm.people} people
+              </span>
+            </Link>
+            <MemberSwitcher />
+          </div>
         </div>
       </header>
       <main className="max-w-[1600px] mx-auto p-4">
