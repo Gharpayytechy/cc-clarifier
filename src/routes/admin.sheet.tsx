@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, ClipboardCopy, Search } from "lucide-react";
 import { watchCrm, crmSnapshot } from "@/founder/lib/crm-link";
-import { buildPeople, peopleWhatsApp, type PersonNow } from "@/founder/lib/brain/people-now";
+import { buildPeople, buildTotal, peopleWhatsApp, personWhatsApp, type PersonNow } from "@/founder/lib/brain/people-now";
 import {
   COMPARE_OPTIONS, PERIOD_OPTIONS, compareRange, periodRange, rangeLabel,
   type CompareKey, type PeriodKey,
