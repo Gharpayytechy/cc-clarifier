@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, ClipboardCopy, Search } from "lucide-react";
 import { watchCrm, crmSnapshot } from "@/founder/lib/crm-link";
-import { buildPeople, peopleWhatsApp, type PersonNow } from "@/founder/lib/brain/people-now";
+import { buildPeople, buildTotal, peopleWhatsApp, personWhatsApp, type PersonNow } from "@/founder/lib/brain/people-now";
 import {
   COMPARE_OPTIONS, PERIOD_OPTIONS, compareRange, periodRange, rangeLabel,
   type CompareKey, type PeriodKey,
@@ -44,6 +44,9 @@ const COLS: Col[] = [
   { key: "effort", label: "Effort", group: "Verdict" },
   { key: "outcome", label: "Outcome", group: "Verdict" },
   { key: "discipline", label: "Discipline", group: "Verdict" },
+  { key: "newLeads", label: "New added", group: "Momentum", metric: "newLeads" },
+  { key: "oldContacted", label: "Old contacted", group: "Momentum", metric: "oldContacted" },
+  { key: "moved", label: "Moved", group: "Momentum", metric: "moved" },
   { key: "leads", label: "Leads", group: "Pipeline", metric: "leads" },
   { key: "active", label: "Active", group: "Pipeline", metric: "active" },
   { key: "touched", label: "Worked", group: "Pipeline", metric: "touched" },
@@ -66,12 +69,14 @@ const COLS: Col[] = [
   { key: "bookings", label: "Bookings", group: "Closing", metric: "bookings" },
   { key: "checkins", label: "Check-ins", group: "Closing", metric: "checkins" },
   { key: "revenue", label: "Revenue", group: "Closing", metric: "revenue" },
+  { key: "momentsStuck", label: "Stuck", group: "Moments" },
   { key: "overdue", label: "Overdue", group: "Discipline", metric: "overdue" },
   { key: "followUpsDone", label: "FU done", group: "Discipline", metric: "followUpsDone" },
   { key: "activity", label: "Actions", group: "Discipline", metric: "activity" },
 ];
 
-const badCols = new Set(["untouched", "untouched48", "noNext", "hotIdle", "noShow", "postMissing", "staleTours", "overdue"]);
+const badCols = new Set(["untouched", "untouched48", "noNext", "hotIdle", "noShow", "postMissing", "staleTours", "overdue", "momentsStuck"]);
+
 
 function FounderSheet() {
   const [hydrated, setHydrated] = useState(false);
@@ -100,6 +105,8 @@ function FounderSheet() {
     .filter((p) => !query || `${p.name} ${p.role} ${p.zone}`.toLowerCase().includes(query.toLowerCase()))
     .sort((a, b) => (b.v[sortKey] ?? 0) - (a.v[sortKey] ?? 0));
 
+  const total = rows.length ? buildTotal(rows, zone === "all" ? "TOTAL — whole team" : `${zone} — zone total`) : null;
+
   const openCell = (p: PersonNow, col: Col) => {
     if (!col.metric) { setPerson(p); return; }
     let found: Metric | undefined;
@@ -110,7 +117,7 @@ function FounderSheet() {
 
   const copyTsv = () => {
     const head = ["Person", "Zone", "Grade", ...COLS.map((c) => c.label)].join("\t");
-    const body = rows.map((p) => [p.name, p.zone, p.grade, ...COLS.map((c) => p.v[c.key] ?? 0)].join("\t"));
+    const body = [...(total ? [total] : []), ...rows].map((p) => [p.name, p.zone, p.grade, ...COLS.map((c) => p.v[c.key] ?? 0)].join("\t"));
     void navigator.clipboard?.writeText([head, ...body].join("\n"));
     toast.success("Grid copied for Excel");
   };
@@ -120,6 +127,7 @@ function FounderSheet() {
     if (last && last.group === c.group) last.span += 1; else acc.push({ group: c.group, span: 1 });
     return acc;
   }, []);
+
 
   return (
     <div className="space-y-3 pb-24">
@@ -179,6 +187,7 @@ function FounderSheet() {
                     {g.group}
                   </th>
                 ))}
+                <th className="border-l px-2 py-1 text-center text-[10px] uppercase tracking-wider text-muted-foreground" rowSpan={2}>Copy</th>
               </tr>
               <tr className="bg-muted/40">
                 {COLS.map((c) => (
@@ -190,28 +199,51 @@ function FounderSheet() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((p) => (
-                <tr key={p.id} className="border-t hover:bg-muted/40">
-                  <td className="sticky left-0 z-10 bg-card px-2 py-1.5">
-                    <button className="font-medium text-primary" onClick={() => setPerson(p)}>{p.name}</button>
-                    <div className="text-[10px] text-muted-foreground">{p.grade} · {p.zone} · {p.lastSeen}</div>
-                  </td>
-                  {COLS.map((c) => {
-                    const val = p.v[c.key] ?? 0;
-                    const tone = badCols.has(c.key) && val > 0 ? "text-destructive" : val === 0 ? "text-muted-foreground" : "";
-                    return (
-                      <td key={c.key} className="border-l px-2 py-1.5 text-right">
-                        <button className={`hover:underline ${tone}`} onClick={() => openCell(p, c)}>
-                          {c.key === "revenue" ? `₹${Math.round(val / 1000)}k` : val}{c.suffix ?? ""}
-                        </button>
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
+              {[...(total ? [total] : []), ...rows].map((p) => {
+                const isTotal = p.id === "__total__";
+                const tone = isTotal
+                  ? "bg-primary/5 font-semibold"
+                  : p.zeroDay && p.loggedInToday
+                    ? "bg-destructive/10"
+                    : p.star
+                      ? "bg-emerald-500/10"
+                      : "hover:bg-muted/40";
+                return (
+                  <tr key={p.id} className={`border-t ${tone}`}>
+                    <td className={`sticky left-0 z-10 px-2 py-1.5 ${isTotal ? "bg-primary/5" : "bg-card"}`}>
+                      <button className="font-medium text-primary" onClick={() => setPerson(p)}>{p.name}</button>
+                      <div className="text-[10px] font-normal text-muted-foreground">
+                        {p.grade} · {p.zone} · {p.lastSeen}
+                        {!isTotal && p.zeroDay && p.loggedInToday && <span className="ml-1 font-semibold text-destructive">ZERO</span>}
+                        {!isTotal && p.star && <span className="ml-1 text-emerald-600">★</span>}
+                      </div>
+                    </td>
+                    {COLS.map((c) => {
+                      const val = p.v[c.key] ?? 0;
+                      const cellTone = badCols.has(c.key) && val > 0 ? "text-destructive" : val === 0 ? "text-muted-foreground" : "";
+                      const prev = p.pv[c.key];
+                      return (
+                        <td key={c.key} className="border-l px-2 py-1.5 text-right">
+                          <button className={`hover:underline ${cellTone}`} onClick={() => openCell(p, c)}>
+                            {c.key === "revenue" ? `₹${Math.round(val / 1000)}k` : val}{c.suffix ?? ""}
+                          </button>
+                          {prev !== undefined && <span className="ml-1 text-[9px] text-muted-foreground/70">({prev})</span>}
+                        </td>
+                      );
+                    })}
+                    <td className="border-l px-2 py-1.5 text-center">
+                      <button className="text-[11px] text-primary"
+                        onClick={() => { void navigator.clipboard?.writeText(personWhatsApp(p, range.label)); toast.success(`${p.name} copied`); }}>
+                        copy
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
               {rows.length === 0 && (
-                <tr><td colSpan={COLS.length + 1} className="px-3 py-8 text-center text-muted-foreground">No people match this filter.</td></tr>
+                <tr><td colSpan={COLS.length + 2} className="px-3 py-8 text-center text-muted-foreground">No people match this filter.</td></tr>
               )}
+
             </tbody>
           </table>
         </div>
