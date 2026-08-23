@@ -416,6 +416,22 @@ export function buildPeople(snap: CrmSnapshot, range: Range, cmp: Range | null):
         ],
       },
       {
+        group: "Momentum",
+        items: [
+          m("newLeads", "New leads added", newLeads.length, leadRows(newLeads, undefined, "First call now"), newLeads.length ? "good" : "warn"),
+          m("oldContacted", "Old leads contacted", oldContacted.length, leadRows(oldContacted, undefined, "Push to next stage"), oldContacted.length ? "good" : "bad"),
+          m("moved", "Leads that actually moved", movedLeads.length, leadRows(movedLeads), movedLeads.length ? "good" : "bad"),
+          m("momentsStuck", "Stuck in a moment", moments.reduce((s, x) => s + x.stuck, 0), moments.flatMap((x) => x.stuckRows), "bad"),
+        ],
+      },
+      {
+        group: "Moments",
+        items: moments.flatMap((x) => [
+          m(`${x.key}-rate`, `${x.label} rate`, x.rate, x.rows, x.rate >= 50 ? "good" : x.rate > 0 ? "warn" : "bad", "%"),
+          m(`${x.key}-stuck`, `${x.label} stuck`, x.stuck, x.stuckRows, x.stuck ? "bad" : "good"),
+        ]),
+      },
+      {
         group: "Discipline",
         items: [
           m("overdue", "Overdue follow-ups", overdue.length, overdue.map((f) => leadOf.get(f.leadId)).filter(Boolean).map((l) => row(l as Lead, snap.tcms, "Follow-up overdue", "Do it now")), overdue.length ? "bad" : "good"),
@@ -439,11 +455,17 @@ export function buildPeople(snap: CrmSnapshot, range: Range, cmp: Range | null):
       verdict,
       flags,
       lastSeen: agoText(acts[0]?.ts ?? null),
+      loggedInToday,
+      zeroDay,
+      star,
       v,
+      pv,
+      moments,
       metrics,
       timeline,
       checkpoints: personCheckpoints(acts),
     };
+
   }).sort((a, b) => b.score - a.score);
 }
 
