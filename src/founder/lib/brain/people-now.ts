@@ -548,3 +548,167 @@ export function peopleWhatsApp(people: PersonNow[], rangeLabel: string) {
     `Post-tour updates missing: ${people.reduce((s, p) => s + p.v.postMissing, 0)}`,
   ].join("\n");
 }
+
+/* --------------------------- TOTAL (whole team) -------------------------- */
+
+const RATE_KEYS: Record<string, [string, string]> = {
+  connectRate: ["connected", "calls"],
+  tourShowRate: ["toursDone", "toursScheduled"],
+  tourDoneRate: ["toursDone", "toursScheduled"],
+  quoteBookRate: ["bookings", "quotes"],
+  checkinRate: ["checkins", "bookings"],
+};
+
+/**
+ * Sums every person into one synthetic "TOTAL" PersonNow so the total row is
+ * as clickable as any individual: each metric keeps every underlying customer.
+ */
+export function buildTotal(people: PersonNow[], label = "TOTAL — whole team"): PersonNow {
+  const sum = (k: string, from: "v" | "pv" = "v") => people.reduce((s, p) => s + (p[from][k] ?? 0), 0);
+  const keys = Array.from(new Set(people.flatMap((p) => Object.keys(p.v))));
+  const pkeys = Array.from(new Set(people.flatMap((p) => Object.keys(p.pv))));
+
+  const build = (ks: string[], from: "v" | "pv") => {
+    const out: Record<string, number> = {};
+    ks.forEach((k) => { out[k] = sum(k, from); });
+    Object.entries(RATE_KEYS).forEach(([k, [n, d]]) => {
+      if (ks.includes(k)) out[k] = pct(sum(n, from), sum(d, from));
+    });
+    ["effort", "outcome", "discipline", "score"].forEach((k) => {
+      if (ks.includes(k)) out[k] = Math.round(sum(k, from) / Math.max(people.length, 1));
+    });
+    return out;
+  };
+
+  const v = build(keys, "v");
+  const pv = people.some((p) => Object.keys(p.pv).length) ? build(pkeys, "pv") : {};
+
+  const groups = people[0]?.metrics.map((g) => g.group) ?? [];
+  const metrics = groups.map((group) => {
+    const itemKeys: string[] = [];
+    people.forEach((p) => p.metrics.find((g) => g.group === group)?.items.forEach((i) => {
+      if (!itemKeys.includes(i.key)) itemKeys.push(i.key);
+    }));
+    return {
+      group,
+      items: itemKeys.map((key) => {
+        const all = people.flatMap((p) => p.metrics.find((g) => g.group === group)?.items.filter((i) => i.key === key) ?? []);
+        const first = all[0];
+        const isRate = key.endsWith("Rate") || key.endsWith("-rate") || first?.suffix === "%";
+        const value = isRate
+          ? Math.round(all.reduce((s, i) => s + i.value, 0) / Math.max(all.length, 1))
+          : all.reduce((s, i) => s + i.value, 0);
+        return {
+          key,
+          label: first?.label ?? key,
+          value,
+          rows: all.flatMap((i) => i.rows),
+          tone: first?.tone ?? ("plain" as const),
+          suffix: first?.suffix,
+        } as Metric;
+      }),
+    };
+  });
+
+  const moments = (people[0]?.moments ?? []).map((mo, idx) => {
+    const all = people.map((p) => p.moments[idx]).filter(Boolean);
+    const from = all.reduce((s, x) => s + x.from, 0);
+    const to = all.reduce((s, x) => s + x.to, 0);
+    return {
+      key: mo.key,
+      label: mo.label,
+      from,
+      to,
+      rate: pct(to, from),
+      rows: all.flatMap((x) => x.rows),
+      stuck: all.reduce((s, x) => s + x.stuck, 0),
+      stuckRows: all.flatMap((x) => x.stuckRows),
+    };
+  });
+
+  const score = v.score ?? 0;
+  return {
+    id: "__total__",
+    name: label,
+    initials: "TT",
+    role: `${people.length} people`,
+    zone: "All zones",
+    effort: v.effort ?? 0,
+    outcome: v.outcome ?? 0,
+    discipline: v.discipline ?? 0,
+    score,
+    grade: score >= 80 ? "A" : score >= 60 ? "B" : score >= 40 ? "C" : "D",
+    verdict: `${v.calls ?? 0} calls · ${v.toursDone ?? 0} tours done · ${v.quotes ?? 0} quotations · ${v.bookings ?? 0} bookings · ${v.untouched ?? 0} untouched across ${people.length} people.`,
+    flags: [
+      v.momentsStuck ? `${v.momentsStuck} customers stuck between moments` : "",
+      people.filter((p) => p.zeroDay && p.loggedInToday).length ? `${people.filter((p) => p.zeroDay && p.loggedInToday).length} people logged in with zero output` : "",
+    ].filter(Boolean),
+    lastSeen: "live",
+    loggedInToday: people.some((p) => p.loggedInToday),
+    zeroDay: (v.calls ?? 0) === 0 && (v.bookings ?? 0) === 0,
+    star: (v.bookings ?? 0) > 0,
+    v,
+    pv,
+    moments,
+    metrics,
+    timeline: people
+      .flatMap((p) => p.timeline.map((t) => ({ ...t, text: `${p.name}: ${t.text}` })))
+      .sort((a, b) => b.ts - a.ts)
+      .slice(0, 120),
+    checkpoints: people[0]?.checkpoints.map((c, i) => ({
+      ...c,
+      proof: `${people.filter((p) => p.checkpoints[i]?.state === "done").length}/${people.length} people cleared this gate`,
+      state: people.every((p) => p.checkpoints[i]?.state === "upcoming")
+        ? ("upcoming" as const)
+        : people.filter((p) => p.checkpoints[i]?.state === "done").length >= Math.ceil(people.length / 2)
+          ? ("done" as const)
+          : ("missed" as const),
+    })) ?? [],
+  };
+}
+
+/* ------------------------------ copy blocks ----------------------------- */
+
+/** One person, WhatsApp ready. Works for the TOTAL row too. */
+export function personWhatsApp(p: PersonNow, rangeLabel: string) {
+  const mo = p.moments.map((x) => `${x.label}: ${x.to}/${x.from} (${x.rate}%) · ${x.stuck} stuck`);
+  return [
+    `GHARPAYY · ${p.name} — ${rangeLabel}`,
+    `Grade ${p.grade} · score ${p.score} (effort ${p.effort} / outcome ${p.outcome} / discipline ${p.discipline})`,
+    "",
+    `Leads: ${p.v.leads ?? 0} total · ${p.v.active ?? 0} active`,
+    `New leads added: ${p.v.newLeads ?? 0}`,
+    `Old leads contacted: ${p.v.oldContacted ?? 0}`,
+    `Leads that moved: ${p.v.moved ?? 0}`,
+    `Calls: ${p.v.calls ?? 0} (${p.v.connected ?? 0} connected · ${p.v.connectRate ?? 0}%)`,
+    `Tours: ${p.v.toursScheduled ?? 0} booked · ${p.v.toursDone ?? 0} done`,
+    `Quotations: ${p.v.quotes ?? 0} · Bookings: ${p.v.bookings ?? 0} · Check-ins: ${p.v.checkins ?? 0}`,
+    `Untouched: ${p.v.untouched ?? 0} · Overdue follow-ups: ${p.v.overdue ?? 0}`,
+    "",
+    "MOMENTS",
+    ...mo,
+    ...(p.flags.length ? ["", "FIX NOW", ...p.flags.map((f) => `• ${f}`)] : []),
+  ].join("\n");
+}
+
+export function momentsWhatsApp(people: PersonNow[], total: PersonNow, rangeLabel: string) {
+  const lines = people.map((p) =>
+    `${p.name}: ${p.moments.map((x) => `${x.label.split(" ")[0]} ${x.to}/${x.from}`).join(" · ")} · ${p.v.momentsStuck ?? 0} stuck`,
+  );
+  return [
+    `GHARPAYY MOMENTS — ${rangeLabel}`,
+    "",
+    ...total.moments.map((x) => `${x.label}: ${x.to}/${x.from} (${x.rate}%) · ${x.stuck} stuck`),
+    "",
+    "PER PERSON",
+    ...lines,
+  ].join("\n");
+}
+
+export function zeroAndStars(people: PersonNow[]) {
+  return {
+    zeros: people.filter((p) => p.zeroDay && p.loggedInToday),
+    ghosts: people.filter((p) => p.zeroDay && !p.loggedInToday),
+    stars: people.filter((p) => p.star),
+  };
+}
