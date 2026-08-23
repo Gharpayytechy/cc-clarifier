@@ -44,6 +44,9 @@ const COLS: Col[] = [
   { key: "effort", label: "Effort", group: "Verdict" },
   { key: "outcome", label: "Outcome", group: "Verdict" },
   { key: "discipline", label: "Discipline", group: "Verdict" },
+  { key: "newLeads", label: "New added", group: "Momentum", metric: "newLeads" },
+  { key: "oldContacted", label: "Old contacted", group: "Momentum", metric: "oldContacted" },
+  { key: "moved", label: "Moved", group: "Momentum", metric: "moved" },
   { key: "leads", label: "Leads", group: "Pipeline", metric: "leads" },
   { key: "active", label: "Active", group: "Pipeline", metric: "active" },
   { key: "touched", label: "Worked", group: "Pipeline", metric: "touched" },
@@ -66,12 +69,14 @@ const COLS: Col[] = [
   { key: "bookings", label: "Bookings", group: "Closing", metric: "bookings" },
   { key: "checkins", label: "Check-ins", group: "Closing", metric: "checkins" },
   { key: "revenue", label: "Revenue", group: "Closing", metric: "revenue" },
+  { key: "momentsStuck", label: "Stuck", group: "Moments" },
   { key: "overdue", label: "Overdue", group: "Discipline", metric: "overdue" },
   { key: "followUpsDone", label: "FU done", group: "Discipline", metric: "followUpsDone" },
   { key: "activity", label: "Actions", group: "Discipline", metric: "activity" },
 ];
 
-const badCols = new Set(["untouched", "untouched48", "noNext", "hotIdle", "noShow", "postMissing", "staleTours", "overdue"]);
+const badCols = new Set(["untouched", "untouched48", "noNext", "hotIdle", "noShow", "postMissing", "staleTours", "overdue", "momentsStuck"]);
+
 
 function FounderSheet() {
   const [hydrated, setHydrated] = useState(false);
