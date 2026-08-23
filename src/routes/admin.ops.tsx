@@ -1,5 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState, useSyncExternalStore } from "react";
+import { useAdminFocusOptional } from "@/founder/lib/admin-focus";
+import { PersonLink } from "@/founder/components/admin/PersonLink";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -116,7 +118,7 @@ function LiveTab() {
               <div className="flex items-center gap-2">
                 <div className="h-8 w-8 rounded-full bg-primary/20 grid place-items-center text-xs font-semibold">{e.name.charAt(0)}</div>
                 <div className="min-w-0 flex-1">
-                  <div className="text-sm font-medium truncate">{e.name}</div>
+                  <div className="text-sm font-medium truncate"><PersonLink name={e.name} /></div>
                   <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground truncate">{e.role} · {e.team}</div>
                 </div>
                 {missed && <AlertTriangle className="h-4 w-4 text-red-500" />}
@@ -654,7 +656,7 @@ function ActivelyFillingCard() {
         {active.map((r) => (
           <div key={r.emp.id} className="flex items-center gap-3 text-sm">
             <span className={`h-2 w-2 rounded-full ${r.status === "filling" ? "bg-emerald-500 animate-pulse" : "bg-amber-500"}`} />
-            <span className="font-medium truncate flex-1">{r.emp.name}</span>
+            <span className="font-medium truncate flex-1"><PersonLink name={r.emp.name} /></span>
             <span className="text-xs text-muted-foreground truncate hidden md:inline">{r.emp.role}</span>
             <span className="text-[11px] font-mono text-muted-foreground">{r.subs} submitted{r.drafts > 0 ? `, ${r.drafts} draft` : ""}</span>
             <span className="text-[11px] font-mono text-muted-foreground w-16 text-right">
@@ -741,7 +743,7 @@ function WeeklyLedgerCard() {
                 return (
                   <tr key={r.emp.id} className="border-b last:border-0">
                     <td className="py-1.5 pr-2">
-                      <div className="font-medium">{r.emp.name}</div>
+                      <div className="font-medium"><PersonLink name={r.emp.name} /></div>
                       <div className="text-[10px] font-mono text-muted-foreground">{r.emp.role}</div>
                     </td>
                     {kpiKeys.map((k) => {

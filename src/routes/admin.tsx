@@ -2,6 +2,9 @@ import { createFileRoute, Outlet, Link, useRouterState } from "@tanstack/react-r
 import { TowerAuthProvider, useTowerAuth } from "@/lib/tower/auth";
 import { MemberSwitcher } from "@/components/tower/MemberSwitcher";
 import { useCrmLink } from "@/founder/hooks/useCrmLink";
+import { AdminFocusProvider } from "@/founder/lib/admin-focus";
+import { BattlefieldBar } from "@/founder/components/admin/BattlefieldBar";
+
 
 const TABS = [
   { to: "/admin", label: "Founder Desk", exact: true },
@@ -28,9 +31,12 @@ export const Route = createFileRoute("/admin")({
   }),
   component: () => (
     <TowerAuthProvider>
-      <AdminShell />
+      <AdminFocusProvider>
+        <AdminShell />
+      </AdminFocusProvider>
     </TowerAuthProvider>
   ),
+
 });
 
 function AdminShell() {
@@ -84,9 +90,11 @@ function AdminShell() {
           </div>
         </div>
       </header>
-      <main className="max-w-[1600px] mx-auto p-4">
+      <main className="max-w-[1600px] mx-auto p-4 space-y-4">
+        <BattlefieldBar />
         <Outlet />
       </main>
+
     </div>
   );
 }

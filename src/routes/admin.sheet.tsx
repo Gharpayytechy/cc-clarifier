@@ -2,20 +2,16 @@
  * FOUNDER SHEET — the whole roster as one spreadsheet over PersonNow.v.
  * Same time engine as the command page; every cell opens the customers behind it.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { RoleGate } from "@/founder/components/RoleGate";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, ClipboardCopy, Search } from "lucide-react";
-import { watchCrm, crmSnapshot } from "@/founder/lib/crm-link";
-import { buildPeople, buildTotal, peopleWhatsApp, personWhatsApp, type PersonNow } from "@/founder/lib/brain/people-now";
-import {
-  COMPARE_OPTIONS, PERIOD_OPTIONS, compareRange, periodRange, rangeLabel,
-  type CompareKey, type PeriodKey,
-} from "@/founder/lib/brain/timeengine";
-import { DrillDrawer, type Drill } from "@/founder/components/brain/DrillDrawer";
-import { PersonSheet } from "@/founder/components/brain/PersonSheet";
+import { buildTotal, peopleWhatsApp, personWhatsApp, type PersonNow } from "@/founder/lib/brain/people-now";
+import { useAdminFocus } from "@/founder/lib/admin-focus";
+import { rangeLabel } from "@/founder/lib/brain/timeengine";
+
 import type { Metric } from "@/founder/lib/brain/engine";
 import { toast } from "sonner";
 
@@ -79,41 +75,27 @@ const badCols = new Set(["untouched", "untouched48", "noNext", "hotIdle", "noSho
 
 
 function FounderSheet() {
-  const [hydrated, setHydrated] = useState(false);
-  const [, bump] = useState(0);
-  useEffect(() => {
-    setHydrated(true);
-    return watchCrm(() => bump((n) => n + 1));
-  }, []);
-
-  const [period, setPeriod] = useState<PeriodKey>("today");
-  const [cmpKey, setCmpKey] = useState<CompareKey>("yesterday");
+  const f = useAdminFocus();
+  const { hydrated, range, people: scoped, allPeople } = f;
+  const zone = f.zoneName;
   const [query, setQuery] = useState("");
-  const [zone, setZone] = useState("all");
   const [sortKey, setSortKey] = useState("score");
-  const [drill, setDrill] = useState<Drill | null>(null);
-  const [person, setPerson] = useState<PersonNow | null>(null);
 
-  const range = useMemo(() => periodRange(period), [period, hydrated]);
-  const cmp = useMemo(() => compareRange(range, cmpKey), [range, cmpKey]);
-  const people = useMemo(() => (hydrated ? buildPeople(crmSnapshot(), range, cmp) : []), [hydrated, range, cmp, bump]);
-
-  const zoneNames = useMemo(() => Array.from(new Set(people.map((p) => p.zone))), [people]);
-
-  const rows = people
-    .filter((p) => (zone === "all" || p.zone === zone))
+  const people = allPeople;
+  const rows = scoped
     .filter((p) => !query || `${p.name} ${p.role} ${p.zone}`.toLowerCase().includes(query.toLowerCase()))
     .sort((a, b) => (b.v[sortKey] ?? 0) - (a.v[sortKey] ?? 0));
 
   const total = rows.length ? buildTotal(rows, zone === "all" ? "TOTAL — whole team" : `${zone} — zone total`) : null;
 
   const openCell = (p: PersonNow, col: Col) => {
-    if (!col.metric) { setPerson(p); return; }
+    if (!col.metric) { f.openPerson(p); return; }
     let found: Metric | undefined;
     p.metrics.forEach((g) => { const hit = g.items.find((i) => i.key === col.metric); if (hit) found = hit; });
-    if (!found) { setPerson(p); return; }
-    setDrill({ title: `${p.name} · ${found.label}`, subtitle: `${found.value}${found.suffix ?? ""} in ${range.label}`, rows: found.rows });
+    if (!found) { f.openPerson(p); return; }
+    f.openRows({ title: `${p.name} · ${found.label}`, subtitle: `${found.value}${found.suffix ?? ""} in ${range.label}`, rows: found.rows });
   };
+
 
   const copyTsv = () => {
     const head = ["Person", "Zone", "Grade", ...COLS.map((c) => c.label)].join("\t");
@@ -146,33 +128,18 @@ function FounderSheet() {
         </div>
       </header>
 
-      <section className="sticky top-[64px] z-30 rounded-lg border bg-card/95 p-2.5 backdrop-blur">
-        <div className="flex flex-wrap items-center gap-1.5">
-          {PERIOD_OPTIONS.filter((p) => p.id !== "custom").map((p) => (
-            <button key={p.id} onClick={() => setPeriod(p.id)}
-              className={`rounded-full border px-2.5 py-1 text-xs ${period === p.id ? "border-primary bg-primary text-primary-foreground" : "hover:bg-muted"}`}>
-              {p.label}
-            </button>
-          ))}
-        </div>
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          <select value={cmpKey} onChange={(e) => setCmpKey(e.target.value as CompareKey)} className="rounded border bg-background px-2 py-1 text-xs">
-            {COMPARE_OPTIONS.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
-          </select>
+      <section className="rounded-lg border bg-card p-2.5">
+        <div className="flex flex-wrap items-center gap-2">
           <div className="relative min-w-[160px] flex-1">
             <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search person, role or zone" className="h-8 pl-8 text-xs" />
           </div>
-          <div className="flex flex-wrap gap-1.5">
-            {["all", ...zoneNames].map((z) => (
-              <button key={z} onClick={() => setZone(z)}
-                className={`rounded-full border px-2.5 py-1 text-xs ${zone === z ? "border-primary bg-primary text-primary-foreground" : "hover:bg-muted"}`}>
-                {z === "all" ? "All zones" : z}
-              </button>
-            ))}
-          </div>
+          <span className="text-[11px] text-muted-foreground">
+            Scope: {zone === "all" ? "all zones" : zone} · {range.label} — change it in the battlefield bar above
+          </span>
         </div>
       </section>
+
 
       {!hydrated && <div className="rounded-lg border p-10 text-sm text-muted-foreground">Loading the grid…</div>}
 
@@ -211,7 +178,7 @@ function FounderSheet() {
                 return (
                   <tr key={p.id} className={`border-t ${tone}`}>
                     <td className={`sticky left-0 z-10 px-2 py-1.5 ${isTotal ? "bg-primary/5" : "bg-card"}`}>
-                      <button className="font-medium text-primary" onClick={() => setPerson(p)}>{p.name}</button>
+                      <button className="font-medium text-primary" onClick={() => f.openPerson(p)}>{p.name}</button>
                       <div className="text-[10px] font-normal text-muted-foreground">
                         {p.grade} · {p.zone} · {p.lastSeen}
                         {!isTotal && p.zeroDay && p.loggedInToday && <span className="ml-1 font-semibold text-destructive">ZERO</span>}
@@ -249,13 +216,7 @@ function FounderSheet() {
         </div>
       )}
 
-      <DrillDrawer drill={drill} onClose={() => setDrill(null)} />
-      <PersonSheet
-        person={person}
-        onClose={() => setPerson(null)}
-        rangeLabel={range.label}
-        onMetric={(p, m) => setDrill({ title: `${p.name} · ${m.label}`, subtitle: `${m.value}${m.suffix ?? ""} in ${range.label}`, rows: m.rows })}
-      />
+
     </div>
   );
 }

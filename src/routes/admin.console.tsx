@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Fragment, useMemo, useState } from "react";
+import { PersonLink } from "@/founder/components/admin/PersonLink";
 import { Download, ShieldCheck, Trash2, ChevronDown, ChevronRight, Search } from "lucide-react";
 import { RoleGate } from "@/founder/components/RoleGate";
 import { Avatar } from "@/founder/components/Avatar";
@@ -321,7 +322,7 @@ function AdminConsole() {
                         <div className="flex items-center gap-2">
                           <Avatar id={r.actorId} size={24} />
                           <div>
-                            <div className="font-medium leading-tight">{r.actorName}</div>
+                            <div className="font-medium leading-tight"><PersonLink name={r.actorName} /></div>
                             <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">{r.role} · {r.team}</div>
                           </div>
                         </div>
