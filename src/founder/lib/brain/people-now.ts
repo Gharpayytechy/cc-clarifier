@@ -56,6 +56,17 @@ const m = (
   suffix?: string,
 ): Metric => ({ key, label, value, rows, tone, suffix });
 
+export interface MomentSet {
+  key: string;
+  label: string;
+  from: number;
+  to: number;
+  rate: number;
+  rows: BrainRow[];
+  stuck: number;
+  stuckRows: BrainRow[];
+}
+
 export interface PersonNow {
   id: string;
   name: string;
@@ -71,12 +82,20 @@ export interface PersonNow {
   verdict: string;
   flags: string[];
   lastSeen: string;
+  /* attention states */
+  loggedInToday: boolean;
+  zeroDay: boolean;
+  star: boolean;
   /* raw values used for the sheet view */
   v: Record<string, number>;
+  /* same keys for the comparison window (empty when comparison is off) */
+  pv: Record<string, number>;
+  moments: MomentSet[];
   metrics: { group: string; items: Metric[] }[];
   timeline: { ts: number; time: string; text: string; kind: string; leadId?: string }[];
   checkpoints: { id: string; label: string; at: string; state: "done" | "late" | "missed" | "upcoming"; proof: string }[];
 }
+
 
 const CHECKPOINTS = [
   { id: "goal", label: "Goal Set", hour: 10, minute: 35 },
@@ -164,6 +183,58 @@ export function buildPeople(snap: CrmSnapshot, range: Range, cmp: Range | null):
     const tourRows = (ts: typeof myTours, problem: string, next: string) =>
       ts.map((x) => leadOf.get(x.leadId)).filter(Boolean).map((l) => row(l as Lead, snap.tcms, problem, next));
 
+    /* -------------------------- momentum in window --------------------- */
+    const newLeads = mine.filter((l) => inRange(l.createdAt, range));
+    const oldContacted = mine.filter((l) => touchedIds.has(l.id) && !inRange(l.createdAt, range));
+    const movedLeads = mine.filter((l) =>
+      inWin.some((a) => a.leadId === l.id && /stage|moved|tour|quot|booked|token|check[- ]?in/i.test(a.text)),
+    );
+    const loggedInToday = acts.some((a) => {
+      const d = new Date(a.ts);
+      const n = new Date();
+      return d.toDateString() === n.toDateString();
+    });
+
+    /* ------------------------------ moments ---------------------------- */
+    const quotedMine = new Set(quotes.map((a) => a.leadId).filter(Boolean) as string[]);
+    const mTourDone: MomentSet = {
+      key: "tour-to-done",
+      label: "Tour → Done",
+      from: sched.length,
+      to: done.length,
+      rate: pct(done.length, sched.length),
+      rows: tourRows(done, "Tour completed", "Send quotation now"),
+      stuck: scheduledNoOutcome.length,
+      stuckRows: tourRows(scheduledNoOutcome, "Tour time passed, no outcome", "Mark outcome now"),
+    };
+    const quoteBookings = bookings.filter((b) => quotedLeadIds.has(b.leadId));
+    const mQuoteBooking: MomentSet = {
+      key: "quote-to-booking",
+      label: "Quotation → Booking",
+      from: quotes.length,
+      to: bookings.length,
+      rate: pct(bookings.length, quotes.length || quoteBookings.length),
+      rows: bookings.map((b) => leadOf.get(b.leadId)).filter(Boolean).map((l) => row(l as Lead, snap.tcms, undefined, "Move to check-in")),
+      stuck: done.filter((x) => !quotedMine.has(x.leadId) && !quotedLeadIds.has(x.leadId)).length,
+      stuckRows: tourRows(done.filter((x) => !quotedMine.has(x.leadId) && !quotedLeadIds.has(x.leadId)), "Toured, no quotation", "Send quotation"),
+    };
+    const bookedNoCheckin = snap.bookings.filter(
+      (b) => b.tcmId === t.id && !snap.activities.some((a) => a.leadId === b.leadId && isCheckin(a)),
+    );
+    const mCheckin: MomentSet = {
+      key: "booking-to-checkin",
+      label: "Booking → Check-in",
+      from: bookings.length,
+      to: checkins.length,
+      rate: pct(checkins.length, bookings.length),
+      rows: toRows(checkins, undefined, "Confirm move-in experience"),
+      stuck: bookedNoCheckin.length,
+      stuckRows: bookedNoCheckin.map((b) => leadOf.get(b.leadId)).filter(Boolean).map((l) => row(l as Lead, snap.tcms, "Booked, no check-in yet", "Lock the check-in date")),
+    };
+    const moments = [mTourDone, mQuoteBooking, mCheckin];
+
+
+
     /* ------------------------------ scores ----------------------------- */
     const effortRaw = calls.length * 3 + conn.length * 4 + msgs.length * 1.5 + notes.length;
     const effort = Math.min(100, Math.round(effortRaw * 2));
@@ -242,12 +313,57 @@ export function buildPeople(snap: CrmSnapshot, range: Range, cmp: Range | null):
       overdue: overdue.length,
       followUpsDone: fusDone.length,
       activity: inWin.length,
+      newLeads: newLeads.length,
+      oldContacted: oldContacted.length,
+      moved: movedLeads.length,
+      tourDoneRate: mTourDone.rate,
+      quoteBookRate: mQuoteBooking.rate,
+      checkinRate: mCheckin.rate,
+      momentsStuck: moments.reduce((s, x) => s + x.stuck, 0),
       trend,
       effort,
       outcome,
       discipline,
       score,
     };
+
+    /* --------------------- comparison window values -------------------- */
+    const pv: Record<string, number> = {};
+    if (cmp) {
+      const pCalls = prevWin.filter((a) => a.kind === "call_logged");
+      const pQuotes = prevWin.filter(isQuote);
+      const pCheckins = prevWin.filter(isCheckin);
+      const pSched = myTours.filter((x) => inRange(x.createdAt, cmp));
+      const pDone = myTours.filter((x) => x.status === "completed" && inRange(x.updatedAt, cmp));
+      const pBookings = snap.bookings.filter((b) => b.tcmId === t.id && inRange(b.ts, cmp));
+      Object.assign(pv, {
+        calls: pCalls.length,
+        connected: pCalls.filter(connectedCall).length,
+        connectRate: pct(pCalls.filter(connectedCall).length, pCalls.length),
+        messages: prevWin.filter((a) => a.kind === "message_sent").length,
+        notes: prevWin.filter((a) => a.kind === "note_added").length,
+        toursScheduled: pSched.length,
+        toursDone: pDone.length,
+        quotes: pQuotes.length,
+        bookings: pBookings.length,
+        checkins: pCheckins.length,
+        revenue: pBookings.reduce((s, b) => s + b.amount, 0),
+        activity: prevWin.length,
+        newLeads: mine.filter((l) => inRange(l.createdAt, cmp)).length,
+        oldContacted: prevWin.filter((a) => a.leadId && !inRange(leadOf.get(a.leadId)?.createdAt, cmp)).length,
+        tourDoneRate: pct(pDone.length, pSched.length),
+        quoteBookRate: pct(pBookings.length, pQuotes.length),
+        checkinRate: pct(pCheckins.length, pBookings.length),
+      });
+    }
+
+    const zeroDay = calls.length === 0 && sched.length === 0 && quotes.length === 0 && bookings.length === 0;
+    const star =
+      bookings.length > 0 ||
+      (done.length >= 2 && quotes.length >= 2) ||
+      (calls.length >= 12 && conn.length >= 6 && sched.length >= 2);
+
+
 
     const metrics: PersonNow["metrics"] = [
       {
@@ -300,6 +416,22 @@ export function buildPeople(snap: CrmSnapshot, range: Range, cmp: Range | null):
         ],
       },
       {
+        group: "Momentum",
+        items: [
+          m("newLeads", "New leads added", newLeads.length, leadRows(newLeads, undefined, "First call now"), newLeads.length ? "good" : "warn"),
+          m("oldContacted", "Old leads contacted", oldContacted.length, leadRows(oldContacted, undefined, "Push to next stage"), oldContacted.length ? "good" : "bad"),
+          m("moved", "Leads that actually moved", movedLeads.length, leadRows(movedLeads), movedLeads.length ? "good" : "bad"),
+          m("momentsStuck", "Stuck in a moment", moments.reduce((s, x) => s + x.stuck, 0), moments.flatMap((x) => x.stuckRows), "bad"),
+        ],
+      },
+      {
+        group: "Moments",
+        items: moments.flatMap((x) => [
+          m(`${x.key}-rate`, `${x.label} rate`, x.rate, x.rows, x.rate >= 50 ? "good" : x.rate > 0 ? "warn" : "bad", "%"),
+          m(`${x.key}-stuck`, `${x.label} stuck`, x.stuck, x.stuckRows, x.stuck ? "bad" : "good"),
+        ]),
+      },
+      {
         group: "Discipline",
         items: [
           m("overdue", "Overdue follow-ups", overdue.length, overdue.map((f) => leadOf.get(f.leadId)).filter(Boolean).map((l) => row(l as Lead, snap.tcms, "Follow-up overdue", "Do it now")), overdue.length ? "bad" : "good"),
@@ -323,11 +455,17 @@ export function buildPeople(snap: CrmSnapshot, range: Range, cmp: Range | null):
       verdict,
       flags,
       lastSeen: agoText(acts[0]?.ts ?? null),
+      loggedInToday,
+      zeroDay,
+      star,
       v,
+      pv,
+      moments,
       metrics,
       timeline,
       checkpoints: personCheckpoints(acts),
     };
+
   }).sort((a, b) => b.score - a.score);
 }
 
@@ -409,4 +547,168 @@ export function peopleWhatsApp(people: PersonNow[], rangeLabel: string) {
     `Untouched leads across team: ${people.reduce((s, p) => s + p.v.untouched, 0)}`,
     `Post-tour updates missing: ${people.reduce((s, p) => s + p.v.postMissing, 0)}`,
   ].join("\n");
+}
+
+/* --------------------------- TOTAL (whole team) -------------------------- */
+
+const RATE_KEYS: Record<string, [string, string]> = {
+  connectRate: ["connected", "calls"],
+  tourShowRate: ["toursDone", "toursScheduled"],
+  tourDoneRate: ["toursDone", "toursScheduled"],
+  quoteBookRate: ["bookings", "quotes"],
+  checkinRate: ["checkins", "bookings"],
+};
+
+/**
+ * Sums every person into one synthetic "TOTAL" PersonNow so the total row is
+ * as clickable as any individual: each metric keeps every underlying customer.
+ */
+export function buildTotal(people: PersonNow[], label = "TOTAL — whole team"): PersonNow {
+  const sum = (k: string, from: "v" | "pv" = "v") => people.reduce((s, p) => s + (p[from][k] ?? 0), 0);
+  const keys = Array.from(new Set(people.flatMap((p) => Object.keys(p.v))));
+  const pkeys = Array.from(new Set(people.flatMap((p) => Object.keys(p.pv))));
+
+  const build = (ks: string[], from: "v" | "pv") => {
+    const out: Record<string, number> = {};
+    ks.forEach((k) => { out[k] = sum(k, from); });
+    Object.entries(RATE_KEYS).forEach(([k, [n, d]]) => {
+      if (ks.includes(k)) out[k] = pct(sum(n, from), sum(d, from));
+    });
+    ["effort", "outcome", "discipline", "score"].forEach((k) => {
+      if (ks.includes(k)) out[k] = Math.round(sum(k, from) / Math.max(people.length, 1));
+    });
+    return out;
+  };
+
+  const v = build(keys, "v");
+  const pv = people.some((p) => Object.keys(p.pv).length) ? build(pkeys, "pv") : {};
+
+  const groups = people[0]?.metrics.map((g) => g.group) ?? [];
+  const metrics = groups.map((group) => {
+    const itemKeys: string[] = [];
+    people.forEach((p) => p.metrics.find((g) => g.group === group)?.items.forEach((i) => {
+      if (!itemKeys.includes(i.key)) itemKeys.push(i.key);
+    }));
+    return {
+      group,
+      items: itemKeys.map((key) => {
+        const all = people.flatMap((p) => p.metrics.find((g) => g.group === group)?.items.filter((i) => i.key === key) ?? []);
+        const first = all[0];
+        const isRate = key.endsWith("Rate") || key.endsWith("-rate") || first?.suffix === "%";
+        const value = isRate
+          ? Math.round(all.reduce((s, i) => s + i.value, 0) / Math.max(all.length, 1))
+          : all.reduce((s, i) => s + i.value, 0);
+        return {
+          key,
+          label: first?.label ?? key,
+          value,
+          rows: all.flatMap((i) => i.rows),
+          tone: first?.tone ?? ("plain" as const),
+          suffix: first?.suffix,
+        } as Metric;
+      }),
+    };
+  });
+
+  const moments = (people[0]?.moments ?? []).map((mo, idx) => {
+    const all = people.map((p) => p.moments[idx]).filter(Boolean);
+    const from = all.reduce((s, x) => s + x.from, 0);
+    const to = all.reduce((s, x) => s + x.to, 0);
+    return {
+      key: mo.key,
+      label: mo.label,
+      from,
+      to,
+      rate: pct(to, from),
+      rows: all.flatMap((x) => x.rows),
+      stuck: all.reduce((s, x) => s + x.stuck, 0),
+      stuckRows: all.flatMap((x) => x.stuckRows),
+    };
+  });
+
+  const score = v.score ?? 0;
+  return {
+    id: "__total__",
+    name: label,
+    initials: "TT",
+    role: `${people.length} people`,
+    zone: "All zones",
+    effort: v.effort ?? 0,
+    outcome: v.outcome ?? 0,
+    discipline: v.discipline ?? 0,
+    score,
+    grade: score >= 80 ? "A" : score >= 60 ? "B" : score >= 40 ? "C" : "D",
+    verdict: `${v.calls ?? 0} calls · ${v.toursDone ?? 0} tours done · ${v.quotes ?? 0} quotations · ${v.bookings ?? 0} bookings · ${v.untouched ?? 0} untouched across ${people.length} people.`,
+    flags: [
+      v.momentsStuck ? `${v.momentsStuck} customers stuck between moments` : "",
+      people.filter((p) => p.zeroDay && p.loggedInToday).length ? `${people.filter((p) => p.zeroDay && p.loggedInToday).length} people logged in with zero output` : "",
+    ].filter(Boolean),
+    lastSeen: "live",
+    loggedInToday: people.some((p) => p.loggedInToday),
+    zeroDay: (v.calls ?? 0) === 0 && (v.bookings ?? 0) === 0,
+    star: (v.bookings ?? 0) > 0,
+    v,
+    pv,
+    moments,
+    metrics,
+    timeline: people
+      .flatMap((p) => p.timeline.map((t) => ({ ...t, text: `${p.name}: ${t.text}` })))
+      .sort((a, b) => b.ts - a.ts)
+      .slice(0, 120),
+    checkpoints: people[0]?.checkpoints.map((c, i) => ({
+      ...c,
+      proof: `${people.filter((p) => p.checkpoints[i]?.state === "done").length}/${people.length} people cleared this gate`,
+      state: people.every((p) => p.checkpoints[i]?.state === "upcoming")
+        ? ("upcoming" as const)
+        : people.filter((p) => p.checkpoints[i]?.state === "done").length >= Math.ceil(people.length / 2)
+          ? ("done" as const)
+          : ("missed" as const),
+    })) ?? [],
+  };
+}
+
+/* ------------------------------ copy blocks ----------------------------- */
+
+/** One person, WhatsApp ready. Works for the TOTAL row too. */
+export function personWhatsApp(p: PersonNow, rangeLabel: string) {
+  const mo = p.moments.map((x) => `${x.label}: ${x.to}/${x.from} (${x.rate}%) · ${x.stuck} stuck`);
+  return [
+    `GHARPAYY · ${p.name} — ${rangeLabel}`,
+    `Grade ${p.grade} · score ${p.score} (effort ${p.effort} / outcome ${p.outcome} / discipline ${p.discipline})`,
+    "",
+    `Leads: ${p.v.leads ?? 0} total · ${p.v.active ?? 0} active`,
+    `New leads added: ${p.v.newLeads ?? 0}`,
+    `Old leads contacted: ${p.v.oldContacted ?? 0}`,
+    `Leads that moved: ${p.v.moved ?? 0}`,
+    `Calls: ${p.v.calls ?? 0} (${p.v.connected ?? 0} connected · ${p.v.connectRate ?? 0}%)`,
+    `Tours: ${p.v.toursScheduled ?? 0} booked · ${p.v.toursDone ?? 0} done`,
+    `Quotations: ${p.v.quotes ?? 0} · Bookings: ${p.v.bookings ?? 0} · Check-ins: ${p.v.checkins ?? 0}`,
+    `Untouched: ${p.v.untouched ?? 0} · Overdue follow-ups: ${p.v.overdue ?? 0}`,
+    "",
+    "MOMENTS",
+    ...mo,
+    ...(p.flags.length ? ["", "FIX NOW", ...p.flags.map((f) => `• ${f}`)] : []),
+  ].join("\n");
+}
+
+export function momentsWhatsApp(people: PersonNow[], total: PersonNow, rangeLabel: string) {
+  const lines = people.map((p) =>
+    `${p.name}: ${p.moments.map((x) => `${x.label.split(" ")[0]} ${x.to}/${x.from}`).join(" · ")} · ${p.v.momentsStuck ?? 0} stuck`,
+  );
+  return [
+    `GHARPAYY MOMENTS — ${rangeLabel}`,
+    "",
+    ...total.moments.map((x) => `${x.label}: ${x.to}/${x.from} (${x.rate}%) · ${x.stuck} stuck`),
+    "",
+    "PER PERSON",
+    ...lines,
+  ].join("\n");
+}
+
+export function zeroAndStars(people: PersonNow[]) {
+  return {
+    zeros: people.filter((p) => p.zeroDay && p.loggedInToday),
+    ghosts: people.filter((p) => p.zeroDay && !p.loggedInToday),
+    stars: people.filter((p) => p.star),
+  };
 }
