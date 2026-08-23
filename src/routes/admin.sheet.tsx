@@ -105,6 +105,8 @@ function FounderSheet() {
     .filter((p) => !query || `${p.name} ${p.role} ${p.zone}`.toLowerCase().includes(query.toLowerCase()))
     .sort((a, b) => (b.v[sortKey] ?? 0) - (a.v[sortKey] ?? 0));
 
+  const total = rows.length ? buildTotal(rows, zone === "all" ? "TOTAL — whole team" : `${zone} — zone total`) : null;
+
   const openCell = (p: PersonNow, col: Col) => {
     if (!col.metric) { setPerson(p); return; }
     let found: Metric | undefined;
@@ -115,7 +117,7 @@ function FounderSheet() {
 
   const copyTsv = () => {
     const head = ["Person", "Zone", "Grade", ...COLS.map((c) => c.label)].join("\t");
-    const body = rows.map((p) => [p.name, p.zone, p.grade, ...COLS.map((c) => p.v[c.key] ?? 0)].join("\t"));
+    const body = [...(total ? [total] : []), ...rows].map((p) => [p.name, p.zone, p.grade, ...COLS.map((c) => p.v[c.key] ?? 0)].join("\t"));
     void navigator.clipboard?.writeText([head, ...body].join("\n"));
     toast.success("Grid copied for Excel");
   };
@@ -125,6 +127,7 @@ function FounderSheet() {
     if (last && last.group === c.group) last.span += 1; else acc.push({ group: c.group, span: 1 });
     return acc;
   }, []);
+
 
   return (
     <div className="space-y-3 pb-24">
