@@ -712,3 +712,86 @@ export function zeroAndStars(people: PersonNow[]) {
     stars: people.filter((p) => p.star),
   };
 }
+
+/* --------------------------- ZONE-CENTRIC ROLLUP ------------------------- */
+
+export interface ZoneDesk {
+  name: string;
+  people: PersonNow[];
+  /** the zone summed into one clickable synthetic person */
+  total: PersonNow;
+  zeros: PersonNow[];
+  ghosts: PersonNow[];
+  stars: PersonNow[];
+  top: PersonNow | null;
+  worst: PersonNow | null;
+  score: number;
+  moments: MomentSet[];
+  flags: string[];
+}
+
+/** Every zone as its own operating desk: summed numbers, people, moments, risk. */
+export function buildZoneDesks(people: PersonNow[]): ZoneDesk[] {
+  const map = new Map<string, PersonNow[]>();
+  people.forEach((p) => map.set(p.zone, [...(map.get(p.zone) ?? []), p]));
+  return Array.from(map.entries())
+    .map(([name, ps]) => {
+      const total = buildTotal(ps, `${name} — zone total`);
+      const s = zeroAndStars(ps);
+      const sorted = [...ps].sort((a, b) => b.score - a.score);
+      const flags: string[] = [];
+      if (s.zeros.length) flags.push(`${s.zeros.length} logged in with zero output`);
+      if (s.ghosts.length) flags.push(`${s.ghosts.length} never logged in`);
+      if ((total.v.untouched ?? 0) > 0) flags.push(`${total.v.untouched} untouched leads`);
+      if ((total.v.momentsStuck ?? 0) > 0) flags.push(`${total.v.momentsStuck} customers stuck mid-journey`);
+      if ((total.v.overdue ?? 0) > 0) flags.push(`${total.v.overdue} overdue follow-ups`);
+      return {
+        name,
+        people: sorted,
+        total,
+        zeros: s.zeros,
+        ghosts: s.ghosts,
+        stars: s.stars,
+        top: sorted[0] ?? null,
+        worst: sorted.length > 1 ? sorted[sorted.length - 1] : null,
+        score: total.score,
+        moments: total.moments,
+        flags,
+      };
+    })
+    .sort((a, b) => (b.total.v.bookings ?? 0) - (a.total.v.bookings ?? 0) || b.score - a.score);
+}
+
+/** WhatsApp block for one zone: numbers, moments, who is carrying and who is dead. */
+export function zoneWhatsApp(z: ZoneDesk, rangeLabel: string) {
+  const t = z.total.v;
+  return [
+    `GHARPAYY · ${z.name.toUpperCase()} — ${rangeLabel}`,
+    `Zone score ${z.score} · ${z.people.length} people`,
+    "",
+    `New leads: ${t.newLeads ?? 0} · Old leads contacted: ${t.oldContacted ?? 0} · Moved: ${t.moved ?? 0}`,
+    `Calls: ${t.calls ?? 0} (${t.connectRate ?? 0}% connected)`,
+    `Tours: ${t.toursScheduled ?? 0} booked · ${t.toursDone ?? 0} done`,
+    `Quotations: ${t.quotes ?? 0} · Bookings: ${t.bookings ?? 0} · Check-ins: ${t.checkins ?? 0}`,
+    `Untouched: ${t.untouched ?? 0} · Overdue: ${t.overdue ?? 0}`,
+    "",
+    "MOMENTS",
+    ...z.moments.map((m) => `${m.label}: ${m.to}/${m.from} (${m.rate}%) · ${m.stuck} stuck`),
+    "",
+    "PEOPLE",
+    ...z.people.map((p) => `${p.name} (${p.grade}) — ${p.v.calls ?? 0} calls · ${p.v.toursDone ?? 0} tours · ${p.v.bookings ?? 0} bookings${p.zeroDay && p.loggedInToday ? " ⚠️ ZERO OUTPUT" : ""}${p.star ? " ⭐" : ""}`),
+    ...(z.flags.length ? ["", "FIX NOW", ...z.flags.map((f) => `• ${f}`)] : []),
+  ].join("\n");
+}
+
+/** Zone-vs-zone league table copy block. */
+export function zoneLeagueWhatsApp(zones: ZoneDesk[], rangeLabel: string) {
+  return [
+    `GHARPAYY ZONE LEAGUE — ${rangeLabel}`,
+    "",
+    ...zones.map((z, i) =>
+      `${i + 1}. ${z.name} — ${z.total.v.bookings ?? 0} bookings · ${z.total.v.toursDone ?? 0} tours done · ${z.total.v.calls ?? 0} calls · ${z.total.v.untouched ?? 0} untouched · score ${z.score}`),
+    "",
+    ...zones.filter((z) => z.flags.length).map((z) => `${z.name}: ${z.flags.join(", ")}`),
+  ].join("\n");
+}
