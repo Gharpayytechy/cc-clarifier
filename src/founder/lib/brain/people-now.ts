@@ -183,6 +183,58 @@ export function buildPeople(snap: CrmSnapshot, range: Range, cmp: Range | null):
     const tourRows = (ts: typeof myTours, problem: string, next: string) =>
       ts.map((x) => leadOf.get(x.leadId)).filter(Boolean).map((l) => row(l as Lead, snap.tcms, problem, next));
 
+    /* -------------------------- momentum in window --------------------- */
+    const newLeads = mine.filter((l) => inRange(l.createdAt, range));
+    const oldContacted = mine.filter((l) => touchedIds.has(l.id) && !inRange(l.createdAt, range));
+    const movedLeads = mine.filter((l) =>
+      inWin.some((a) => a.leadId === l.id && /stage|moved|tour|quot|booked|token|check[- ]?in/i.test(a.text)),
+    );
+    const loggedInToday = acts.some((a) => {
+      const d = new Date(a.ts);
+      const n = new Date();
+      return d.toDateString() === n.toDateString();
+    });
+
+    /* ------------------------------ moments ---------------------------- */
+    const quotedMine = new Set(quotes.map((a) => a.leadId).filter(Boolean) as string[]);
+    const mTourDone: MomentSet = {
+      key: "tour-to-done",
+      label: "Tour → Done",
+      from: sched.length,
+      to: done.length,
+      rate: pct(done.length, sched.length),
+      rows: tourRows(done, "Tour completed", "Send quotation now"),
+      stuck: scheduledNoOutcome.length,
+      stuckRows: tourRows(scheduledNoOutcome, "Tour time passed, no outcome", "Mark outcome now"),
+    };
+    const quoteBookings = bookings.filter((b) => quotedLeadIds.has(b.leadId));
+    const mQuoteBooking: MomentSet = {
+      key: "quote-to-booking",
+      label: "Quotation → Booking",
+      from: quotes.length,
+      to: bookings.length,
+      rate: pct(bookings.length, quotes.length || quoteBookings.length),
+      rows: bookings.map((b) => leadOf.get(b.leadId)).filter(Boolean).map((l) => row(l as Lead, snap.tcms, undefined, "Move to check-in")),
+      stuck: done.filter((x) => !quotedMine.has(x.leadId) && !quotedLeadIds.has(x.leadId)).length,
+      stuckRows: tourRows(done.filter((x) => !quotedMine.has(x.leadId) && !quotedLeadIds.has(x.leadId)), "Toured, no quotation", "Send quotation"),
+    };
+    const bookedNoCheckin = snap.bookings.filter(
+      (b) => b.tcmId === t.id && !snap.activities.some((a) => a.leadId === b.leadId && isCheckin(a)),
+    );
+    const mCheckin: MomentSet = {
+      key: "booking-to-checkin",
+      label: "Booking → Check-in",
+      from: bookings.length,
+      to: checkins.length,
+      rate: pct(checkins.length, bookings.length),
+      rows: toRows(checkins, undefined, "Confirm move-in experience"),
+      stuck: bookedNoCheckin.length,
+      stuckRows: bookedNoCheckin.map((b) => leadOf.get(b.leadId)).filter(Boolean).map((l) => row(l as Lead, snap.tcms, "Booked, no check-in yet", "Lock the check-in date")),
+    };
+    const moments = [mTourDone, mQuoteBooking, mCheckin];
+
+
+
     /* ------------------------------ scores ----------------------------- */
     const effortRaw = calls.length * 3 + conn.length * 4 + msgs.length * 1.5 + notes.length;
     const effort = Math.min(100, Math.round(effortRaw * 2));
