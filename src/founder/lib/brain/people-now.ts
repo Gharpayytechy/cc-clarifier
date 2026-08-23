@@ -56,6 +56,17 @@ const m = (
   suffix?: string,
 ): Metric => ({ key, label, value, rows, tone, suffix });
 
+export interface MomentSet {
+  key: string;
+  label: string;
+  from: number;
+  to: number;
+  rate: number;
+  rows: BrainRow[];
+  stuck: number;
+  stuckRows: BrainRow[];
+}
+
 export interface PersonNow {
   id: string;
   name: string;
@@ -71,12 +82,20 @@ export interface PersonNow {
   verdict: string;
   flags: string[];
   lastSeen: string;
+  /* attention states */
+  loggedInToday: boolean;
+  zeroDay: boolean;
+  star: boolean;
   /* raw values used for the sheet view */
   v: Record<string, number>;
+  /* same keys for the comparison window (empty when comparison is off) */
+  pv: Record<string, number>;
+  moments: MomentSet[];
   metrics: { group: string; items: Metric[] }[];
   timeline: { ts: number; time: string; text: string; kind: string; leadId?: string }[];
   checkpoints: { id: string; label: string; at: string; state: "done" | "late" | "missed" | "upcoming"; proof: string }[];
 }
+
 
 const CHECKPOINTS = [
   { id: "goal", label: "Goal Set", hour: 10, minute: 35 },
