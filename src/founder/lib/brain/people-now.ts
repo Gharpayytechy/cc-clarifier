@@ -313,12 +313,57 @@ export function buildPeople(snap: CrmSnapshot, range: Range, cmp: Range | null):
       overdue: overdue.length,
       followUpsDone: fusDone.length,
       activity: inWin.length,
+      newLeads: newLeads.length,
+      oldContacted: oldContacted.length,
+      moved: movedLeads.length,
+      tourDoneRate: mTourDone.rate,
+      quoteBookRate: mQuoteBooking.rate,
+      checkinRate: mCheckin.rate,
+      momentsStuck: moments.reduce((s, x) => s + x.stuck, 0),
       trend,
       effort,
       outcome,
       discipline,
       score,
     };
+
+    /* --------------------- comparison window values -------------------- */
+    const pv: Record<string, number> = {};
+    if (cmp) {
+      const pCalls = prevWin.filter((a) => a.kind === "call_logged");
+      const pQuotes = prevWin.filter(isQuote);
+      const pCheckins = prevWin.filter(isCheckin);
+      const pSched = myTours.filter((x) => inRange(x.createdAt, cmp));
+      const pDone = myTours.filter((x) => x.status === "completed" && inRange(x.updatedAt, cmp));
+      const pBookings = snap.bookings.filter((b) => b.tcmId === t.id && inRange(b.ts, cmp));
+      Object.assign(pv, {
+        calls: pCalls.length,
+        connected: pCalls.filter(connectedCall).length,
+        connectRate: pct(pCalls.filter(connectedCall).length, pCalls.length),
+        messages: prevWin.filter((a) => a.kind === "message_sent").length,
+        notes: prevWin.filter((a) => a.kind === "note_added").length,
+        toursScheduled: pSched.length,
+        toursDone: pDone.length,
+        quotes: pQuotes.length,
+        bookings: pBookings.length,
+        checkins: pCheckins.length,
+        revenue: pBookings.reduce((s, b) => s + b.amount, 0),
+        activity: prevWin.length,
+        newLeads: mine.filter((l) => inRange(l.createdAt, cmp)).length,
+        oldContacted: prevWin.filter((a) => a.leadId && !inRange(leadOf.get(a.leadId)?.createdAt, cmp)).length,
+        tourDoneRate: pct(pDone.length, pSched.length),
+        quoteBookRate: pct(pBookings.length, pQuotes.length),
+        checkinRate: pct(pCheckins.length, pBookings.length),
+      });
+    }
+
+    const zeroDay = calls.length === 0 && sched.length === 0 && quotes.length === 0 && bookings.length === 0;
+    const star =
+      bookings.length > 0 ||
+      (done.length >= 2 && quotes.length >= 2) ||
+      (calls.length >= 12 && conn.length >= 6 && sched.length >= 2);
+
+
 
     const metrics: PersonNow["metrics"] = [
       {
