@@ -5,31 +5,24 @@
  * every number, every number is clickable, and every block is copyable to
  * WhatsApp. All data is derived from the live CRM snapshot.
  */
-import { useEffect, useMemo, useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import {
-  Activity, AlertTriangle, ArrowRight, ClipboardCopy, Flame, Grid3x3, MapPin, Sparkles, Users, Zap,
+  Activity, AlertTriangle, ArrowRight, ClipboardCopy, Flame, MapPin, Sparkles, Users, Zap,
 } from "lucide-react";
-import { watchCrm } from "@/founder/lib/crm-link";
+import { explain, type StageStat, type WhyAnalysis, type FeedEvent } from "@/founder/lib/brain/company-now";
 import {
-  buildCompanyNow, explain, type StageStat, type WhyAnalysis, type FeedEvent,
-} from "@/founder/lib/brain/company-now";
-import {
-  buildPeople, buildCheckpoints, buildTotal, buildZoneDesks, peopleWhatsApp, personWhatsApp,
-  momentsWhatsApp, zoneWhatsApp, zoneLeagueWhatsApp, zeroAndStars,
+  buildCheckpoints, peopleWhatsApp, personWhatsApp,
+  momentsWhatsApp, zoneWhatsApp, zeroAndStars,
   type PersonNow, type MomentSet,
 } from "@/founder/lib/brain/people-now";
-import {
-  COMPARE_OPTIONS, PERIOD_OPTIONS, compareRange, delta, periodRange, rangeLabel,
-  type CompareKey, type PeriodKey,
-} from "@/founder/lib/brain/timeengine";
-import { DrillDrawer, type Drill } from "@/founder/components/brain/DrillDrawer";
-import { PersonSheet } from "@/founder/components/brain/PersonSheet";
-import type { Metric } from "@/founder/lib/brain/engine";
+import { delta } from "@/founder/lib/brain/timeengine";
+import { useAdminFocus } from "@/founder/lib/admin-focus";
+
 
 export const Route = createFileRoute("/admin/")({
   head: () => ({
@@ -74,42 +67,26 @@ function Prev({ p }: { p: number | undefined }) {
 }
 
 function FounderOS() {
-  const [hydrated, setHydrated] = useState(false);
-  const [, bump] = useState(0);
-  useEffect(() => {
-    setHydrated(true);
-    return watchCrm(() => bump((n) => n + 1));
-  }, []);
-
-  const [period, setPeriod] = useState<PeriodKey>("today");
-  const [cmpKey, setCmpKey] = useState<CompareKey>("yesterday");
-  const [showCmp, setShowCmp] = useState(true);
-  const [zoneName, setZoneName] = useState<string>("all");
-  const [drill, setDrill] = useState<Drill | null>(null);
+  const f = useAdminFocus();
+  const {
+    hydrated, range, cmp, showCmp, zoneName, zone, zones, people, total, focus, company,
+  } = f;
+  const setZoneName = f.setZoneName;
+  const setFocusId = f.setPersonId;
+  const focusId = f.personId;
+  const setPerson = f.openPerson;
+  const setDrill = f.openRows;
   const [why, setWhy] = useState<WhyAnalysis | null>(null);
-  const [person, setPerson] = useState<PersonNow | null>(null);
-  const [focusId, setFocusId] = useState<string | null>(null);
   const [feedKind, setFeedKind] = useState<string>("all");
 
-  const range = useMemo(() => periodRange(period), [period, hydrated]);
-  const cmp = useMemo(() => (showCmp ? compareRange(range, cmpKey) : null), [range, cmpKey, showCmp]);
-
-  const company = useMemo(() => (hydrated ? buildCompanyNow(range, cmp) : null), [hydrated, range, cmp, bump]);
-  const allPeople = useMemo(() => (company ? buildPeople(company.snap, range, cmp) : []), [company, range, cmp]);
-  const zones = useMemo(() => (allPeople.length ? buildZoneDesks(allPeople) : []), [allPeople]);
-
-  const zone = zones.find((z) => z.name === zoneName) ?? null;
-  const people = zone ? zone.people : allPeople;
-  const total = useMemo(() => (people.length ? buildTotal(people, zone ? `${zone.name} — zone total` : "TOTAL — whole team") : null), [people, zone]);
   const checkpoints = useMemo(() => (people.length ? buildCheckpoints(people) : []), [people]);
   const risk = useMemo(() => zeroAndStars(people), [people]);
-  const focus = people.find((p) => p.id === focusId) ?? null;
 
   if (!hydrated || !company || !total) {
     return <div className="rounded-lg border p-10 text-sm text-muted-foreground">Reading the live CRM…</div>;
   }
 
-  const g = (k: string) => company.funnel.find((f) => f.key === k);
+  const g = (k: string) => company.funnel.find((x) => x.key === k);
   const headline: { key: string; label: string }[] = [
     { key: "new", label: "New leads" },
     { key: "connected", label: "Connected" },
@@ -124,14 +101,13 @@ function FounderOS() {
     const rows = zone ? s.rows.filter((r) => r.zone === zone.name) : s.rows;
     setDrill({ title: `${s.label}${zone ? ` · ${zone.name}` : ""}`, subtitle: `${rows.length} customers in ${range.label}${cmp ? ` · ${s.prev} company-wide in ${cmp.label}` : ""}`, rows });
   };
-  const openMetric = (p: PersonNow, m: Metric) =>
-    setDrill({ title: `${p.name} · ${m.label}`, subtitle: `${m.value}${m.suffix ?? ""} in ${range.label}`, rows: m.rows });
   const openMoment = (owner: string, m: MomentSet, stuck = false) =>
     setDrill({
       title: `${owner} · ${m.label}${stuck ? " · stuck" : ""}`,
       subtitle: stuck ? `${m.stuck} customers stuck at this moment` : `${m.to} of ${m.from} converted (${m.rate}%) in ${range.label}`,
       rows: stuck ? m.stuckRows : m.rows,
     });
+
 
   const feed: FeedEvent[] = company.feed
     .filter((f) => (zone ? f.zone === zone.name : true))
@@ -150,51 +126,8 @@ function FounderOS() {
 
   return (
     <div className="space-y-4 pb-24">
-      {/* ---------------- time control ---------------- */}
-      <section className="sticky top-[64px] z-30 rounded-lg border bg-card/95 p-3 backdrop-blur">
-        <div className="flex flex-wrap items-center gap-1.5">
-          {PERIOD_OPTIONS.filter((p) => p.id !== "custom").map((p) => (
-            <button key={p.id} onClick={() => setPeriod(p.id)}
-              className={`rounded-full border px-2.5 py-1 text-xs ${period === p.id ? "border-primary bg-primary text-primary-foreground" : "hover:bg-muted"}`}>
-              {p.label}
-            </button>
-          ))}
-        </div>
-        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-          <span className="font-medium text-foreground">{range.label}</span>
-          <span>{rangeLabel(range)}</span>
-          <button onClick={() => setShowCmp((s) => !s)}
-            className={`rounded-full border px-2 py-0.5 text-[10px] ${showCmp ? "border-primary/50 text-primary" : "text-muted-foreground"}`}>
-            compare {showCmp ? "on" : "off"}
-          </button>
-          {showCmp && (
-            <select value={cmpKey} onChange={(e) => setCmpKey(e.target.value as CompareKey)}
-              className="rounded border bg-background px-2 py-0.5 text-[11px]">
-              {COMPARE_OPTIONS.map((c) => <option key={c.id} value={c.id}>vs {c.label}</option>)}
-            </select>
-          )}
-          <Link to="/admin/sheet" className="ml-auto inline-flex items-center gap-1 text-primary">
-            <Grid3x3 className="h-3.5 w-3.5" /> Spreadsheet view
-          </Link>
-        </div>
-        {/* zone rail — drives the whole page */}
-        <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t pt-2">
-          <MapPin className="h-3.5 w-3.5 text-primary" />
-          <button onClick={() => { setZoneName("all"); setFocusId(null); }}
-            className={`rounded-full border px-2.5 py-1 text-xs ${zoneName === "all" ? "border-primary bg-primary text-primary-foreground" : "hover:bg-muted"}`}>
-            All zones
-          </button>
-          {zones.map((z) => (
-            <button key={z.name} onClick={() => { setZoneName(z.name); setFocusId(null); }}
-              className={`rounded-full border px-2.5 py-1 text-xs ${zoneName === z.name ? "border-primary bg-primary text-primary-foreground" : "hover:bg-muted"}`}>
-              {z.name}
-              <span className="ml-1 opacity-70">{z.total.v.bookings ?? 0}b</span>
-              {z.zeros.length > 0 && <span className="ml-1 text-destructive">●</span>}
-            </button>
-          ))}
-          <CopyBtn className="ml-auto" text={zone ? zoneWhatsApp(zone, range.label) : zoneLeagueWhatsApp(zones, range.label)} label={zone ? zone.name : "Zone league"} />
-        </div>
-      </section>
+      {/* time, zone and person scope live in the shared Battlefield Bar above */}
+
 
       {/* ---------------- zone league ---------------- */}
       <section className="rounded-lg border bg-card p-3">
@@ -613,8 +546,7 @@ function FounderOS() {
         </section>
       )}
 
-      <DrillDrawer drill={drill} onClose={() => setDrill(null)} />
-      <PersonSheet person={person} onClose={() => setPerson(null)} onMetric={openMetric} rangeLabel={range.label} />
+
     </div>
   );
 }

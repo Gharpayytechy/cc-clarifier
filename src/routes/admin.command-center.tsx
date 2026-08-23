@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { RoleGate } from "@/founder/components/RoleGate";
-import { DrillDrawer, type Drill } from "@/founder/components/brain/DrillDrawer";
+import { useAdminFocus } from "@/founder/lib/admin-focus";
+import { PersonLink } from "@/founder/components/admin/PersonLink";
 import { useCrmLink } from "@/founder/hooks/useCrmLink";
 import {
   buildBrain, searchBrain, DATE_OPTIONS, DEFAULT_FILTERS,
@@ -52,6 +53,17 @@ const ROLES: (BrainRole | "all")[] = ["all", "control-tower", "flow-ops", "tcm",
 const PHASES: PhaseId[] = ["p1", "p2", "eod", "week", "month"];
 const PHASE_LABEL: Record<PhaseId, string> = { p1: "P1 · 1 PM", p2: "P2 · 5 PM", eod: "EOD", week: "Week", month: "Month" };
 
+/** the battlefield bar speaks in PeriodKey; the brain engine speaks in DateKey */
+function periodToDateKey(p: string, fallback: DateKey): DateKey {
+  const map: Record<string, DateKey> = {
+    now: "today", "1h": "today", "3h": "today", "6h": "today", "12h": "today",
+    today: "today", yesterday: "yesterday", "24h": "today", "48h": "last-7",
+    "3d": "last-7", "7d": "last-7", "14d": "last-14",
+    "this-week": "this-week", "prev-week": "last-week", "this-month": "this-month",
+  };
+  return map[p] ?? fallback;
+}
+
 function CommandCenter() {
   useCrmLink(); // re-render on every CRM mutation
   const business = useBrainTargets((s) => s.business);
@@ -59,19 +71,35 @@ function CommandCenter() {
   const overrides = useBrainTargets((s) => s.overrides);
   const setOverride = useBrainTargets((s) => s.setOverride);
 
-  const [filters, setFilters] = useState<BrainFilters>(DEFAULT_FILTERS);
+  const focusCtx = useAdminFocus();
+
+  const [localFilters, setFilters] = useState<BrainFilters>(DEFAULT_FILTERS);
   const [query, setQuery] = useState("");
-  const [drill, setDrill] = useState<Drill | null>(null);
   const [mode, setMode] = useState<"brain" | "sheet">("brain");
   const [sheetSet, setSheetSet] = useState<"people" | "leads">("people");
   const [done, setDone] = useState<Record<string, boolean>>({});
 
-  const patch = (p: Partial<BrainFilters>) => setFilters((f) => ({ ...f, ...p }));
-  const model = useMemo(() => buildBrain(filters, business, undefined, Date.now()), [filters, business, overrides]);
+  // the shared battlefield scope wins: zone and time come from the admin bar
+  const filters: BrainFilters = {
+    ...localFilters,
+    zone: focusCtx.zoneName,
+    date: periodToDateKey(focusCtx.period, localFilters.date),
+  };
+
+  const patch = (p: Partial<BrainFilters>) => {
+    if (p.zone !== undefined) focusCtx.setZoneName(p.zone);
+    setFilters((f) => ({ ...f, ...p }));
+  };
+  const model = useMemo(
+    () => buildBrain(filters, business, undefined, Date.now()),
+    [filters.date, filters.zone, filters.role, filters.source, filters.intent, filters.health, filters.employees, business, overrides],
+  );
   const results = useMemo(() => searchBrain(model, query), [model, query]);
   const phase = currentPhase();
 
-  const open = (title: string, rows: BrainRow[], subtitle?: string) => setDrill({ title, rows, subtitle });
+  const open = (title: string, rows: BrainRow[], subtitle?: string) => focusCtx.openDrill(title, rows, subtitle);
+  const focusPerson = (name: string) => focusCtx.focusByName(name);
+
 
   return (
     <div className="space-y-4 pb-16">
@@ -307,7 +335,9 @@ function CommandCenter() {
             {model.zones.map((z) => (
               <div key={z.name} className="rounded-lg border bg-card p-3">
                 <div className="flex items-center justify-between">
-                  <div className="font-semibold text-sm uppercase tracking-wide">{z.name}</div>
+                  <button className="font-semibold text-sm uppercase tracking-wide hover:text-primary"
+                    onClick={() => focusCtx.setZoneName(focusCtx.zoneName === z.name ? "all" : z.name)}
+                    title="Run the whole admin on this zone">{z.name}</button>
                   <span className={cn("text-xs font-mono", BAND_CLASS[band(z.bbdActual, z.bbdTarget)])}>
                     {z.bbdActual}/{z.bbdTarget} BBD · {BAND_LABEL[band(z.bbdActual, z.bbdTarget)]}
                   </span>
@@ -359,7 +389,9 @@ function CommandCenter() {
                   <tr key={p.id} className="hover:bg-muted/40">
                     <td className="px-3 py-1.5">
                       <button className="font-medium hover:underline"
-                        onClick={() => open(`Person 360 · ${p.name}`, p.rows, `${p.zone} · EOD ${p.eod.actual}/${p.eod.target} · queue ${p.executable} executable vs ${p.requiredWork} required · ${p.slaBreaches} SLA breaches · ${p.classification}`)}>
+                        onClick={() => {
+                          if (!focusPerson(p.name)) open(`Person 360 · ${p.name}`, p.rows, `${p.zone} · EOD ${p.eod.actual}/${p.eod.target} · queue ${p.executable} executable vs ${p.requiredWork} required · ${p.slaBreaches} SLA breaches · ${p.classification}`);
+                        }}>
                         {p.name}
                       </button>
                     </td>
@@ -449,7 +481,6 @@ function CommandCenter() {
         </>
       )}
 
-      <DrillDrawer drill={drill} onClose={() => setDrill(null)} />
     </div>
   );
 }
@@ -486,7 +517,7 @@ function SheetMode({
             <tbody className="divide-y">
               {model.people.map((p) => (
                 <tr key={p.id} className="hover:bg-muted/40 cursor-pointer" onClick={() => open(`Person 360 · ${p.name}`, p.rows)}>
-                  <td className="px-3 py-1.5 font-medium">{p.name}</td>
+                  <td className="px-3 py-1.5 font-medium"><PersonLink name={p.name} /></td>
                   <td className="px-3 py-1.5">{p.role}</td>
                   <td className="px-3 py-1.5">{p.zone}</td>
                   {(["p1", "p2", "eod", "week", "month"] as const).map((k) => (
