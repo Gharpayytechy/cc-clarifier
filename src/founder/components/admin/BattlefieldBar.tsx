@@ -20,6 +20,7 @@ import { personWhatsApp, zoneWhatsApp, zoneLeagueWhatsApp } from "@/founder/lib/
 
 const JUMPS = [
   { to: "/admin", label: "Desk" },
+  { to: "/admin/watchtower", label: "Watchtower" },
   { to: "/admin/sheet", label: "Sheet" },
   { to: "/admin/command-center", label: "Command" },
   { to: "/admin/ops", label: "Ops" },
@@ -28,6 +29,7 @@ const JUMPS = [
   { to: "/admin/playbooks", label: "Playbooks" },
   { to: "/admin/report-center", label: "Reports" },
 ] as const;
+
 
 export function BattlefieldBar() {
   const f = useAdminFocus();
