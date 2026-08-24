@@ -64,6 +64,7 @@ import { Route as TowerAnalyticsRouteImport } from './routes/tower.analytics'
 import { Route as TowerAdminRouteImport } from './routes/tower.admin'
 import { Route as TowerAccessRouteImport } from './routes/tower.access'
 import { Route as SupplyHubMatchRouteImport } from './routes/supply-hub/match'
+import { Route as SupplyHubHeatmapRouteImport } from './routes/supply-hub/heatmap'
 import { Route as SupplyHubDemandRouteImport } from './routes/supply-hub/demand'
 import { Route as SupplyHubAreasRouteImport } from './routes/supply-hub/areas'
 import { Route as SupplyHubAdminRouteImport } from './routes/supply-hub/admin'
@@ -392,6 +393,11 @@ const TowerAccessRoute = TowerAccessRouteImport.update({
 const SupplyHubMatchRoute = SupplyHubMatchRouteImport.update({
   id: '/supply-hub/match',
   path: '/supply-hub/match',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SupplyHubHeatmapRoute = SupplyHubHeatmapRouteImport.update({
+  id: '/supply-hub/heatmap',
+  path: '/supply-hub/heatmap',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SupplyHubDemandRoute = SupplyHubDemandRouteImport.update({
@@ -746,6 +752,7 @@ export interface FileRoutesByFullPath {
   '/supply-hub/admin': typeof SupplyHubAdminRoute
   '/supply-hub/areas': typeof SupplyHubAreasRoute
   '/supply-hub/demand': typeof SupplyHubDemandRoute
+  '/supply-hub/heatmap': typeof SupplyHubHeatmapRoute
   '/supply-hub/match': typeof SupplyHubMatchRoute
   '/tower/access': typeof TowerAccessRoute
   '/tower/admin': typeof TowerAdminRoute
@@ -855,6 +862,7 @@ export interface FileRoutesByTo {
   '/supply-hub/admin': typeof SupplyHubAdminRoute
   '/supply-hub/areas': typeof SupplyHubAreasRoute
   '/supply-hub/demand': typeof SupplyHubDemandRoute
+  '/supply-hub/heatmap': typeof SupplyHubHeatmapRoute
   '/supply-hub/match': typeof SupplyHubMatchRoute
   '/tower/access': typeof TowerAccessRoute
   '/tower/admin': typeof TowerAdminRoute
@@ -967,6 +975,7 @@ export interface FileRoutesById {
   '/supply-hub/admin': typeof SupplyHubAdminRoute
   '/supply-hub/areas': typeof SupplyHubAreasRoute
   '/supply-hub/demand': typeof SupplyHubDemandRoute
+  '/supply-hub/heatmap': typeof SupplyHubHeatmapRoute
   '/supply-hub/match': typeof SupplyHubMatchRoute
   '/tower/access': typeof TowerAccessRoute
   '/tower/admin': typeof TowerAdminRoute
@@ -1080,6 +1089,7 @@ export interface FileRouteTypes {
     | '/supply-hub/admin'
     | '/supply-hub/areas'
     | '/supply-hub/demand'
+    | '/supply-hub/heatmap'
     | '/supply-hub/match'
     | '/tower/access'
     | '/tower/admin'
@@ -1189,6 +1199,7 @@ export interface FileRouteTypes {
     | '/supply-hub/admin'
     | '/supply-hub/areas'
     | '/supply-hub/demand'
+    | '/supply-hub/heatmap'
     | '/supply-hub/match'
     | '/tower/access'
     | '/tower/admin'
@@ -1300,6 +1311,7 @@ export interface FileRouteTypes {
     | '/supply-hub/admin'
     | '/supply-hub/areas'
     | '/supply-hub/demand'
+    | '/supply-hub/heatmap'
     | '/supply-hub/match'
     | '/tower/access'
     | '/tower/admin'
@@ -1399,6 +1411,7 @@ export interface RootRouteChildren {
   SupplyHubAdminRoute: typeof SupplyHubAdminRoute
   SupplyHubAreasRoute: typeof SupplyHubAreasRoute
   SupplyHubDemandRoute: typeof SupplyHubDemandRoute
+  SupplyHubHeatmapRoute: typeof SupplyHubHeatmapRoute
   SupplyHubMatchRoute: typeof SupplyHubMatchRoute
   MytIndexRoute: typeof MytIndexRoute
   OwnerIndexRoute: typeof OwnerIndexRoute
@@ -1794,6 +1807,13 @@ declare module '@tanstack/react-router' {
       path: '/supply-hub/match'
       fullPath: '/supply-hub/match'
       preLoaderRoute: typeof SupplyHubMatchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/supply-hub/heatmap': {
+      id: '/supply-hub/heatmap'
+      path: '/supply-hub/heatmap'
+      fullPath: '/supply-hub/heatmap'
+      preLoaderRoute: typeof SupplyHubHeatmapRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/supply-hub/demand': {
@@ -2356,6 +2376,7 @@ const rootRouteChildren: RootRouteChildren = {
   SupplyHubAdminRoute: SupplyHubAdminRoute,
   SupplyHubAreasRoute: SupplyHubAreasRoute,
   SupplyHubDemandRoute: SupplyHubDemandRoute,
+  SupplyHubHeatmapRoute: SupplyHubHeatmapRoute,
   SupplyHubMatchRoute: SupplyHubMatchRoute,
   MytIndexRoute: MytIndexRoute,
   OwnerIndexRoute: OwnerIndexRoute,
