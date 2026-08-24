@@ -118,8 +118,12 @@ function SupplyHubHome() {
           <Pill label="Tier" value={tier} options={TIERS as readonly string[]} onChange={(v) => setTier(v as typeof tier)} />
           <Pill label="Gender" value={gender} options={GENDERS as readonly string[]} onChange={(v) => setGender(v as typeof gender)} />
           <Pill label="Area" value={area} options={areas} onChange={setArea} />
+          <label className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+            <input type="checkbox" checked={showDisabled} onChange={(e) => setShowDisabled(e.target.checked)} /> Show disabled
+          </label>
           <div className="text-xs text-muted-foreground ml-auto">{results.length} matches</div>
         </div>
+
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {results.slice(0, 60).map(({ pg, matched }) => {
