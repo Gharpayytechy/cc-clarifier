@@ -10,7 +10,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Search, Plus, Download, AlertTriangle, Database, Power, Pencil } from "lucide-react";
+import { Search, Plus, Download, AlertTriangle, Database, Power, Pencil, Map } from "lucide-react";
+import { zoneOfPG, zoneCounts, ZONE_META, ZONES, zonePlan, type SupplyZone } from "@/supply-hub/lib/zones";
 
 export const Route = createFileRoute("/supply-hub/admin")({
   head: () => ({
@@ -35,6 +36,7 @@ function SupplyAdmin() {
   const [status, setStatus] = useState<"all" | "enabled" | "disabled">("all");
   const [area, setArea] = useState("All");
   const [onlyGaps, setOnlyGaps] = useState(false);
+  const [zone, setZone] = useState<SupplyZone | "All">("All");
   const [editing, setEditing] = useState<PG | null>(null);
   const [msgFor, setMsgFor] = useState<PG | null>(null);
 
@@ -51,12 +53,13 @@ function SupplyAdmin() {
         if (status === "enabled" && !i.enabled) return false;
         if (status === "disabled" && i.enabled) return false;
         if (area !== "All" && i.pg.area !== area) return false;
+        if (zone !== "All" && zoneOfPG(i.pg) !== zone) return false;
         if (onlyGaps && i.gap.missing.length === 0) return false;
         if (!needle) return true;
         return [i.pg.name, i.pg.actualName, i.pg.area, i.pg.locality].join(" ").toLowerCase().includes(needle);
       })
       .sort((a, b) => a.gap.score - b.gap.score);
-  }, [items, q, status, area, onlyGaps]);
+  }, [items, q, status, area, zone, onlyGaps]);
 
   const stats = useMemo(() => {
     const total = items.length;
@@ -66,6 +69,24 @@ function SupplyAdmin() {
     const avg = total ? Math.round(items.reduce((s, i) => s + gapReport(i.pg).score, 0) / total) : 0;
     return { total, disabled, added, gaps, avg, live: total - disabled };
   }, [items]);
+
+  const zoneRows = useMemo(() => {
+    const all = zoneCounts(items.map((i) => i.pg));
+    const live = zoneCounts(items.filter((i) => i.enabled).map((i) => i.pg));
+    return ZONES.filter((z) => all[z] > 0).map((z) => ({ zone: z, plan: zonePlan(z, all[z]), live: live[z], off: all[z] - live[z] }));
+  }, [items]);
+
+  const bulkZone = async (z: SupplyZone, v: boolean) => {
+    const targets = items.filter((i) => zoneOfPG(i.pg) === z && i.enabled !== v);
+    if (!targets.length) { toast.info("Nothing to change in this zone"); return; }
+    let failed = 0;
+    for (const t of targets) {
+      const res = await setEnabled(t.pg, v);
+      if (!res.ok) failed += 1;
+    }
+    if (failed) toast.error(`${failed} of ${targets.length} could not update`);
+    else toast.success(`${targets.length} properties ${v ? "enabled" : "disabled"} in ${z}`);
+  };
 
   const exportGaps = () => {
     const csv = gapsCsv(gapReports(items.map((i) => i.pg)));
@@ -107,6 +128,31 @@ function SupplyAdmin() {
           <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">{error}</div>
         )}
 
+        <section className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold inline-flex items-center gap-1.5"><Map className="h-4 w-4 text-accent" /> Zone control</h2>
+            <button onClick={() => setZone("All")} className={cn("text-[11px] rounded-md border px-2 py-1", zone === "All" ? "border-accent text-accent" : "border-border text-muted-foreground hover:bg-muted")}>All zones</button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+            {zoneRows.map(({ zone: z, plan, live, off }) => (
+              <div key={z} className={cn("rounded-lg border bg-card p-3", zone === z && "border-accent ring-1 ring-accent/30")}>
+                <button onClick={() => setZone(zone === z ? "All" : z)} className="w-full text-left">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className={cn("rounded-md border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider", plan.accent)}>{z}</span>
+                    <span className="font-display text-lg font-semibold">{live}<span className="text-xs text-muted-foreground">/{plan.properties}</span></span>
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground truncate">{plan.cluster}</div>
+                  <div className="mt-1 text-[10px] text-muted-foreground">{off} disabled · {plan.coverageQs} coverage Qs · {plan.mcqSets}</div>
+                </button>
+                <div className="mt-2 flex gap-2">
+                  <button onClick={() => void bulkZone(z, true)} className="flex-1 rounded-md border border-border px-2 py-1 text-[11px] font-medium hover:bg-muted">Enable all</button>
+                  <button onClick={() => void bulkZone(z, false)} className="flex-1 rounded-md border border-destructive/40 px-2 py-1 text-[11px] font-medium text-destructive hover:bg-destructive/10">Disable all</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {[
             { label: "Properties", value: stats.total, sub: "In the hub" },
@@ -137,6 +183,10 @@ function SupplyAdmin() {
             <option value="all">All statuses</option>
             <option value="enabled">Enabled</option>
             <option value="disabled">Disabled</option>
+          </select>
+          <select value={zone} onChange={(e) => setZone(e.target.value as SupplyZone | "All")} className="rounded-md border border-border bg-background px-2 py-1.5 text-sm">
+            <option value="All">All zones</option>
+            {ZONES.map((z) => <option key={z} value={z}>{z}</option>)}
           </select>
           <select value={area} onChange={(e) => setArea(e.target.value)} className="rounded-md border border-border bg-background px-2 py-1.5 text-sm">
             {areas.map((a) => <option key={a} value={a}>{a}</option>)}
@@ -226,8 +276,11 @@ function PropertyRow({
           {item.source === "admin" && <span className="rounded bg-accent/10 text-accent px-1 py-0.5 text-[9px] uppercase tracking-wider">New</span>}
           {!item.enabled && <span className="rounded bg-rose-400/10 text-rose-400 px-1 py-0.5 text-[9px] uppercase tracking-wider">Disabled</span>}
         </div>
-        <div className="text-[11px] text-muted-foreground truncate">
-          {[pg.area, pg.locality, pg.gender, pg.tier].filter(Boolean).join(" · ")}
+        <div className="mt-0.5 flex items-center gap-1.5">
+          <span className={cn("rounded border px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wider", ZONE_META[zoneOfPG(pg)].accent)}>{ZONE_META[zoneOfPG(pg)].short}</span>
+          <span className="text-[11px] text-muted-foreground truncate">
+            {[pg.area, pg.locality, pg.gender, pg.tier].filter(Boolean).join(" · ")}
+          </span>
         </div>
       </div>
 

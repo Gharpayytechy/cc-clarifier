@@ -1,6 +1,7 @@
 // Data-completeness audit for the Supply Hub catalogue.
 import type { PG } from "../data/types";
 import { rawFor } from "./messages-kit";
+import { zoneOfPG } from "./zones";
 
 export interface GapField {
   key: string;
@@ -32,6 +33,7 @@ export const GAP_FIELDS: GapField[] = [
   { key: "groupName", label: "Owner group name", weight: 3, ok: (p) => !!p.groupName },
   { key: "geo", label: "Lat / Lng", weight: 5, ok: (p) => typeof p.lat === "number" && typeof p.lng === "number" },
   { key: "msgLocation", label: "Location copy-paste message", weight: 8, ok: (p) => !!(rawFor(p).location || p.location_card) },
+  { key: "zone", label: "Zone mapping", weight: 6, ok: (p) => zoneOfPG(p) !== "UNMAPPED" },
   { key: "msgPricing", label: "Pricing copy-paste message", weight: 8, ok: (p) => !!rawFor(p).pricing },
 ];
 
@@ -41,6 +43,7 @@ export interface GapReport {
   id: string;
   name: string;
   area: string;
+  zone: string;
   missing: string[];
   score: number;
 }
@@ -52,6 +55,7 @@ export function gapReport(pg: PG): GapReport {
     id: pg.id,
     name: pg.name,
     area: pg.area,
+    zone: zoneOfPG(pg),
     missing: missing.map((f) => f.label),
     score: Math.round(((TOTAL - lost) / TOTAL) * 100),
   };
@@ -62,8 +66,8 @@ export function gapReports(pgs: PG[]): GapReport[] {
 }
 
 export function gapsCsv(reports: GapReport[]): string {
-  const head = ["Property", "Area", "Completeness %", "Missing fields"];
-  const rows = reports.map((r) => [r.name, r.area, String(r.score), r.missing.join(" | ")]);
+  const head = ["Property", "Zone", "Area", "Completeness %", "Missing fields"];
+  const rows = reports.map((r) => [r.name, r.zone, r.area, String(r.score), r.missing.join(" | ")]);
   return [head, ...rows]
     .map((cols) => cols.map((c) => `"${(c ?? "").replace(/"/g, '""')}"`).join(","))
     .join("\n");
