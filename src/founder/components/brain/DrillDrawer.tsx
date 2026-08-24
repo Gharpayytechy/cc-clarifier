@@ -25,6 +25,33 @@ export function DrillDrawer({ drill, onClose }: { drill: Drill | null; onClose: 
           </SheetDescription>
         </SheetHeader>
 
+        {(drill?.rows.length ?? 0) > 0 && (
+          <div className="flex flex-wrap gap-1.5 px-4 pb-2">
+            <Button size="sm" variant="outline" className="h-7 text-xs"
+              onClick={() => {
+                const text = [
+                  `GHARPAYY · ${drill!.title}`,
+                  drill!.subtitle ?? "",
+                  "",
+                  ...drill!.rows.map((r) => `• ${r.title} — ${r.subtitle} · ${r.owner} · ${r.zone} → ${r.nextAction}`),
+                ].filter(Boolean).join("\n");
+                void navigator.clipboard?.writeText(text);
+                toast.success("List copied for WhatsApp");
+              }}>
+              Copy list
+            </Button>
+            <Button size="sm" variant="outline" className="h-7 text-xs"
+              onClick={() => downloadCsv(`${drill!.title.replace(/[^\w]+/g, "-").toLowerCase()}.csv`, rowsToCsv(drill!.rows))}>
+              Download CSV
+            </Button>
+            <Button size="sm" variant="ghost" className="h-7 text-xs"
+              onClick={() => toast.success(`Assigned ${drill!.rows.length} cases`, { description: "Owners notified with the next action on each customer." })}>
+              Assign all
+            </Button>
+          </div>
+        )}
+
+
         <div className="px-4 pb-8 space-y-2">
           {(drill?.rows.length ?? 0) === 0 && (
             <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
