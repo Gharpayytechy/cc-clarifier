@@ -83,6 +83,7 @@ function SupplyHubHome() {
           <div className="flex gap-2">
             <Link to="/supply-hub/match" className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-2 text-sm font-medium text-accent-foreground hover:opacity-90"><Sparkles className="h-4 w-4" /> Lead Matcher</Link>
             <Link to="/supply-hub/areas" className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-2 text-sm font-medium hover:bg-muted"><MapPin className="h-4 w-4" /> Area Mood</Link>
+            <Link to="/supply-hub/admin" className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-2 text-sm font-medium hover:bg-muted"><Settings2 className="h-4 w-4" /> Property Control</Link>
           </div>
         </header>
 
@@ -90,10 +91,11 @@ function SupplyHubHome() {
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
-            { label: "Properties", value: stats.total, sub: "Verified inventory" },
+            { label: "Live properties", value: stats.total, sub: `${stats.off} disabled` },
             { label: "Premium tier", value: stats.premium, sub: "₹22k+/mo cohort" },
             { label: "Hot scarcity", value: stats.hot, sub: "1–2 beds left", accent: true },
             { label: "Updated <30d", value: stats.fresh, sub: "Fresh inventory evidence" },
+
           ].map((s) => (
             <div key={s.label} className={cn("rounded-lg border bg-card p-4", s.accent && "border-accent/40")}>
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{s.label}</div>
