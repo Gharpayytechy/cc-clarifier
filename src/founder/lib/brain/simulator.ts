@@ -52,15 +52,19 @@ export function baselineLevers(total: PersonNow | null, peopleCount: number, avg
   const checkins = v.checkins ?? 0;
   const n = Math.max(1, peopleCount);
 
+  /** Only trust an observed rate with a real sample; otherwise use the company norm. */
+  const rate = (num: number, den: number, fallback: number) =>
+    den >= 3 && num > 0 ? clamp(pct(num, den), 2, 100) : fallback;
+
   return {
     people: n,
     callsPerPerson: Math.max(10, Math.round(calls / n)),
-    connectPct: clamp(calls ? pct(connected, calls) : 55, 5, 95),
-    tourBookPct: clamp(connected ? pct(booked, connected) : 30, 2, 95),
-    tourShowPct: clamp(booked ? pct(done, booked) : 65, 5, 100),
-    quotePct: clamp(done ? pct(quotes, done) : 55, 5, 100),
-    bookingPct: clamp(quotes ? pct(bookings, quotes) : 30, 2, 100),
-    checkinPct: clamp(bookings ? pct(checkins, bookings) : 70, 5, 100),
+    connectPct: rate(connected, calls, 55),
+    tourBookPct: rate(booked, connected, 30),
+    tourShowPct: rate(done, booked, 65),
+    quotePct: rate(quotes, done, 55),
+    bookingPct: rate(bookings, quotes, 30),
+    checkinPct: rate(checkins, bookings, 70),
     avgTicket,
   };
 }
