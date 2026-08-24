@@ -91,8 +91,9 @@ function SupplyHubHome() {
             <h1 className="font-display text-2xl font-semibold tracking-tight">Supply Guarantee</h1>
             <p className="text-sm text-muted-foreground mt-1">Inventory is not a separate catalogue. First unblock live customer demand, then improve matchable supply and freshness.</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Link to="/supply-hub/match" className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-2 text-sm font-medium text-accent-foreground hover:opacity-90"><Sparkles className="h-4 w-4" /> Lead Matcher</Link>
+            <Link to="/supply-hub/demand" className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-2 text-sm font-medium hover:bg-muted"><MapPin className="h-4 w-4" /> Supply vs Demand</Link>
             <Link to="/supply-hub/areas" className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-2 text-sm font-medium hover:bg-muted"><MapPin className="h-4 w-4" /> Area Mood</Link>
             <Link to="/supply-hub/admin" className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-2 text-sm font-medium hover:bg-muted"><Settings2 className="h-4 w-4" /> Property Control</Link>
           </div>
