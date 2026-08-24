@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Search, Plus, Download, AlertTriangle, Database, Power, Pencil, Map, Settings2, ArrowUp, ArrowDown, Trash2, RotateCcw } from "lucide-react";
+import { Search, Plus, Download, AlertTriangle, Database, Power, Pencil, Map, Settings2, ArrowUp, ArrowDown, Trash2, RotateCcw, Merge } from "lucide-react";
 import {
   zoneOfPG, zoneCounts, zoneMeta, zonePlan, useZones, UNMAPPED, ZONE_ACCENTS,
   type ZoneDef,
@@ -474,6 +474,8 @@ function ZoneManager({
   onRemove,
   onMove,
   onReset,
+  onRename,
+  onMerge,
 }: {
   zones: ZoneDef[];
   onAdd: (z: Omit<ZoneDef, "accent"> & { accent?: string }) => void;
@@ -481,8 +483,15 @@ function ZoneManager({
   onRemove: (id: string) => void;
   onMove: (id: string, dir: -1 | 1) => void;
   onReset: () => void;
+  onRename: (oldId: string, next: { id: string; label?: string; short?: string }) => { ok: boolean; error?: string };
+  onMerge: (
+    sourceId: string,
+    targetId: string,
+    opts?: { id?: string; label?: string; short?: string; cluster?: string },
+  ) => { ok: boolean; error?: string };
 }) {
-  const [draft, setDraft] = useState({ id: "", short: "", cluster: "", keywords: "" });
+  const [draft, setDraft] = useState({ id: "", label: "", short: "", cluster: "", keywords: "" });
+  const [merge, setMerge] = useState({ source: "", target: "", id: "", label: "" });
 
   const add = () => {
     const id = draft.id.trim().toUpperCase();
@@ -490,57 +499,146 @@ function ZoneManager({
     if (zones.some((z) => z.id === id)) { toast.error("That zone code already exists"); return; }
     onAdd({
       id,
-      label: id,
+      label: draft.label.trim() || id,
       short: draft.short.trim() || id,
       cluster: draft.cluster.trim() || "New catchment",
       keywords: draft.keywords.split(",").map((k) => k.trim().toLowerCase()).filter(Boolean),
     });
-    setDraft({ id: "", short: "", cluster: "", keywords: "" });
+    setDraft({ id: "", label: "", short: "", cluster: "", keywords: "" });
     toast.success(`${id} added`);
+  };
+
+  const doMerge = () => {
+    if (!merge.source || !merge.target) { toast.error("Pick both zones"); return; }
+    const res = onMerge(merge.source, merge.target, { id: merge.id, label: merge.label });
+    if (!res.ok) { toast.error(res.error ?? "Could not merge"); return; }
+    toast.success(`${merge.source} merged into ${merge.id.trim().toUpperCase() || merge.target}`);
+    setMerge({ source: "", target: "", id: "", label: "" });
   };
 
   return (
     <div className="space-y-4">
       <div className="rounded-lg border p-3 space-y-2">
-        <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Add a zone</div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-          <input value={draft.id} onChange={(e) => setDraft({ ...draft, id: e.target.value })} placeholder="Code e.g. MTPSJR" className="rounded-md border bg-background px-2 py-1.5 text-xs" />
-          <input value={draft.short} onChange={(e) => setDraft({ ...draft, short: e.target.value })} placeholder="Badge e.g. MTPSJR" className="rounded-md border bg-background px-2 py-1.5 text-xs" />
-          <input value={draft.cluster} onChange={(e) => setDraft({ ...draft, cluster: e.target.value })} placeholder="Catchment e.g. Manyata + Sarjapur" className="rounded-md border bg-background px-2 py-1.5 text-xs" />
+        <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Merge two zones into one</div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <label className="text-[11px] text-muted-foreground">
+            Merge this zone…
+            <select value={merge.source} onChange={(e) => setMerge({ ...merge, source: e.target.value })} className="mt-1 w-full rounded-md border bg-background px-2 py-1.5 text-xs">
+              <option value="">Select zone</option>
+              {zones.map((z) => <option key={z.id} value={z.id}>{z.id} — {z.label}</option>)}
+            </select>
+          </label>
+          <label className="text-[11px] text-muted-foreground">
+            …into this zone
+            <select value={merge.target} onChange={(e) => setMerge({ ...merge, target: e.target.value })} className="mt-1 w-full rounded-md border bg-background px-2 py-1.5 text-xs">
+              <option value="">Select zone</option>
+              {zones.filter((z) => z.id !== merge.source).map((z) => <option key={z.id} value={z.id}>{z.id} — {z.label}</option>)}
+            </select>
+          </label>
+          <input value={merge.id} onChange={(e) => setMerge({ ...merge, id: e.target.value })} placeholder="New code (optional) e.g. MWB" className="rounded-md border bg-background px-2 py-1.5 text-xs" />
+          <input value={merge.label} onChange={(e) => setMerge({ ...merge, label: e.target.value })} placeholder="New name (optional)" className="rounded-md border bg-background px-2 py-1.5 text-xs" />
         </div>
-        <input value={draft.keywords} onChange={(e) => setDraft({ ...draft, keywords: e.target.value })} placeholder="Keywords, comma separated: manyata, nagawara, sarjapur" className="w-full rounded-md border bg-background px-2 py-1.5 text-xs" />
+        <button onClick={doMerge} className="inline-flex items-center gap-1 rounded-md border border-accent px-3 py-1.5 text-xs font-semibold text-accent hover:bg-accent/10">
+          <Merge className="h-3 w-3" /> Merge zones
+        </button>
+        <p className="text-[10px] text-muted-foreground">Keywords are combined and every manually pinned property moves to the merged zone.</p>
+      </div>
+
+      <div className="rounded-lg border p-3 space-y-2">
+        <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Add a zone</div>
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+          <input value={draft.id} onChange={(e) => setDraft({ ...draft, id: e.target.value })} placeholder="Code e.g. MRH" className="rounded-md border bg-background px-2 py-1.5 text-xs" />
+          <input value={draft.label} onChange={(e) => setDraft({ ...draft, label: e.target.value })} placeholder="Name e.g. Marathahalli" className="rounded-md border bg-background px-2 py-1.5 text-xs" />
+          <input value={draft.short} onChange={(e) => setDraft({ ...draft, short: e.target.value })} placeholder="Badge e.g. MRH" className="rounded-md border bg-background px-2 py-1.5 text-xs" />
+          <input value={draft.cluster} onChange={(e) => setDraft({ ...draft, cluster: e.target.value })} placeholder="Catchment" className="rounded-md border bg-background px-2 py-1.5 text-xs" />
+        </div>
+        <input value={draft.keywords} onChange={(e) => setDraft({ ...draft, keywords: e.target.value })} placeholder="Keywords, comma separated: marathahalli, brookefield, aecs" className="w-full rounded-md border bg-background px-2 py-1.5 text-xs" />
         <div className="flex items-center gap-2">
           <button onClick={add} className="inline-flex items-center gap-1 rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-accent-foreground"><Plus className="h-3 w-3" /> Add zone</button>
-          <button onClick={() => { onReset(); toast.success("Zones reset to defaults"); }} className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-muted"><RotateCcw className="h-3 w-3" /> Reset to defaults</button>
+          <button onClick={() => { onReset(); toast.success("Zones reset to the Gharpayy structure"); }} className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-muted"><RotateCcw className="h-3 w-3" /> Reset to defaults</button>
         </div>
       </div>
 
       <div className="rounded-lg border divide-y">
         {zones.map((z, i) => (
-          <div key={z.id} className="p-3 space-y-2">
-            <div className="flex items-center gap-2">
-              <span className={cn("rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider", z.accent)}>{z.short}</span>
-              <span className="text-sm font-semibold">{z.id}</span>
-              <div className="ml-auto flex items-center gap-1">
-                <button disabled={i === 0} onClick={() => onMove(z.id, -1)} className="rounded border p-1 disabled:opacity-30 hover:bg-muted"><ArrowUp className="h-3 w-3" /></button>
-                <button disabled={i === zones.length - 1} onClick={() => onMove(z.id, 1)} className="rounded border p-1 disabled:opacity-30 hover:bg-muted"><ArrowDown className="h-3 w-3" /></button>
-                <button onClick={() => { onRemove(z.id); toast.success(`${z.id} removed`); }} className="rounded border p-1 text-rose-400 hover:bg-muted"><Trash2 className="h-3 w-3" /></button>
-              </div>
-            </div>
-            <input value={z.cluster} onChange={(e) => onSave({ ...z, cluster: e.target.value })} className="w-full rounded-md border bg-background px-2 py-1.5 text-xs" placeholder="Catchment" />
-            <textarea
-              value={z.keywords.join(", ")}
-              onChange={(e) => onSave({ ...z, keywords: e.target.value.split(",").map((k) => k.trim().toLowerCase()).filter(Boolean) })}
-              rows={2}
-              className="w-full rounded-md border bg-background px-2 py-1.5 text-xs font-mono"
-              placeholder="Keywords, comma separated"
-            />
-            <div className="flex items-center gap-1 flex-wrap">
-              {ZONE_ACCENTS.map((a) => (
-                <button key={a} onClick={() => onSave({ ...z, accent: a })} className={cn("h-5 w-5 rounded border", a, z.accent === a && "ring-2 ring-accent")} />
-              ))}
-            </div>
-          </div>
+          <ZoneRow
+            key={z.id}
+            zone={z}
+            first={i === 0}
+            last={i === zones.length - 1}
+            onSave={onSave}
+            onRemove={onRemove}
+            onMove={onMove}
+            onRename={onRename}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ZoneRow({
+  zone: z,
+  first,
+  last,
+  onSave,
+  onRemove,
+  onMove,
+  onRename,
+}: {
+  zone: ZoneDef;
+  first: boolean;
+  last: boolean;
+  onSave: (z: ZoneDef) => void;
+  onRemove: (id: string) => void;
+  onMove: (id: string, dir: -1 | 1) => void;
+  onRename: (oldId: string, next: { id: string; label?: string; short?: string }) => { ok: boolean; error?: string };
+}) {
+  const [code, setCode] = useState(z.id);
+  const [label, setLabel] = useState(z.label);
+  const [short, setShort] = useState(z.short);
+  const dirty = code.trim().toUpperCase() !== z.id || label !== z.label || short !== z.short;
+
+  const rename = () => {
+    const res = onRename(z.id, { id: code, label, short });
+    if (!res.ok) { toast.error(res.error ?? "Could not rename"); return; }
+    toast.success(`Saved ${code.trim().toUpperCase()}`);
+  };
+
+  return (
+    <div className="p-3 space-y-2">
+      <div className="flex items-center gap-2">
+        <span className={cn("rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider", z.accent)}>{z.short}</span>
+        <span className="text-sm font-semibold">{z.id}</span>
+        <button
+          onClick={() => onSave({ ...z, core: !z.core })}
+          className={cn("rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider", z.core ? "border-accent text-accent" : "border-border text-muted-foreground")}
+        >
+          {z.core ? "Core zone" : "Expansion"}
+        </button>
+        <div className="ml-auto flex items-center gap-1">
+          <button disabled={first} onClick={() => onMove(z.id, -1)} className="rounded border p-1 disabled:opacity-30 hover:bg-muted"><ArrowUp className="h-3 w-3" /></button>
+          <button disabled={last} onClick={() => onMove(z.id, 1)} className="rounded border p-1 disabled:opacity-30 hover:bg-muted"><ArrowDown className="h-3 w-3" /></button>
+          <button onClick={() => { onRemove(z.id); toast.success(`${z.id} removed`); }} className="rounded border p-1 text-rose-400 hover:bg-muted"><Trash2 className="h-3 w-3" /></button>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+        <input value={code} onChange={(e) => setCode(e.target.value)} className="rounded-md border bg-background px-2 py-1.5 text-xs font-semibold uppercase" placeholder="Code" />
+        <input value={label} onChange={(e) => setLabel(e.target.value)} className="rounded-md border bg-background px-2 py-1.5 text-xs" placeholder="Zone name" />
+        <input value={short} onChange={(e) => setShort(e.target.value)} className="rounded-md border bg-background px-2 py-1.5 text-xs" placeholder="Badge" />
+        <button onClick={rename} disabled={!dirty} className="rounded-md border border-accent px-2 py-1.5 text-xs font-semibold text-accent disabled:opacity-30 hover:bg-accent/10">Save name</button>
+      </div>
+      <input value={z.cluster} onChange={(e) => onSave({ ...z, cluster: e.target.value })} className="w-full rounded-md border bg-background px-2 py-1.5 text-xs" placeholder="Catchment / sub-areas" />
+      <textarea
+        value={z.keywords.join(", ")}
+        onChange={(e) => onSave({ ...z, keywords: e.target.value.split(",").map((k) => k.trim().toLowerCase()).filter(Boolean) })}
+        rows={2}
+        className="w-full rounded-md border bg-background px-2 py-1.5 text-xs font-mono"
+        placeholder="Keywords, comma separated"
+      />
+      <div className="flex items-center gap-1 flex-wrap">
+        {ZONE_ACCENTS.map((a) => (
+          <button key={a} onClick={() => onSave({ ...z, accent: a })} className={cn("h-5 w-5 rounded border", a, z.accent === a && "ring-2 ring-accent")} />
         ))}
       </div>
     </div>
