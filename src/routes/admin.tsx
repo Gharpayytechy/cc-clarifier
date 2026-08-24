@@ -8,7 +8,10 @@ import { BattlefieldBar } from "@/founder/components/admin/BattlefieldBar";
 
 const TABS = [
   { to: "/admin", label: "Founder Desk", exact: true },
+  { to: "/admin/briefing", label: "Briefing" },
   { to: "/admin/watchtower", label: "Watchtower" },
+  { to: "/admin/war-room", label: "War Room" },
+  { to: "/admin/simulator", label: "Simulator" },
   { to: "/admin/sheet", label: "Sheet" },
   { to: "/admin/command-center", label: "Command Centre" },
 

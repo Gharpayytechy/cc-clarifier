@@ -15,6 +15,7 @@ import {
   alertsWhatsApp, buildAlerts, buildLeague, buildPace, downloadCsv, leagueWhatsApp,
   PACE_CLASS, paceWhatsApp, rowsToCsv, type AlertLevel,
 } from "@/founder/lib/brain/watchtower";
+import { nextCheckpoint, useDecisions } from "@/founder/lib/admin/decisions-store";
 
 export const Route = createFileRoute("/admin/watchtower")({
   head: () => ({
@@ -49,7 +50,9 @@ const copy = (text: string, what: string) => {
 
 function Watchtower() {
   const f = useAdminFocus();
+  const dec = useDecisions();
   const [level, setLevel] = useState<AlertLevel | "all">("all");
+  const owned = new Set(dec.items.filter((d) => d.status === "open").map((d) => d.sourceId));
 
   const alerts = useMemo(
     () => buildAlerts(f.company, f.zone ? [f.zone] : f.zones, f.people),
@@ -139,6 +142,19 @@ function Watchtower() {
               <div className="mt-1 text-xs text-muted-foreground">{a.because}</div>
               <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                 <Badge className="text-[10px]">Fix: {a.fix}</Badge>
+                <Button size="sm" className="h-7 text-xs" disabled={owned.has(a.id)}
+                  onClick={() => {
+                    const gate = nextCheckpoint();
+                    dec.add({
+                      title: a.title, why: a.because, fix: a.fix,
+                      owner: a.person?.name ?? (f.zone ? `${f.zone.name} manager` : "Founder"),
+                      ownerId: a.person?.id, zone: a.zone, count: a.count, money: a.money,
+                      level: a.level, dueAt: gate.at, sourceId: a.id,
+                    });
+                    toast.success(`Owned — due by ${gate.label}`);
+                  }}>
+                  {owned.has(a.id) ? "Owned" : "Own it"}
+                </Button>
                 {a.rows.length > 0 && (
                   <Button size="sm" variant="outline" className="h-7 text-xs"
                     onClick={() => f.openDrill(a.title, a.rows, a.because)}>

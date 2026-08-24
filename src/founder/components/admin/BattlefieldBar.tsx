@@ -17,10 +17,14 @@ import { useAdminFocus } from "@/founder/lib/admin-focus";
 import { COMPARE_OPTIONS, PERIOD_OPTIONS, rangeLabel, type CompareKey, type PeriodKey } from "@/founder/lib/brain/timeengine";
 import { buildBrain, searchBrain, DEFAULT_FILTERS } from "@/founder/lib/brain/engine";
 import { personWhatsApp, zoneWhatsApp, zoneLeagueWhatsApp } from "@/founder/lib/brain/people-now";
+import { useDecisions } from "@/founder/lib/admin/decisions-store";
 
 const JUMPS = [
   { to: "/admin", label: "Desk" },
+  { to: "/admin/briefing", label: "Briefing" },
   { to: "/admin/watchtower", label: "Watchtower" },
+  { to: "/admin/war-room", label: "War Room" },
+  { to: "/admin/simulator", label: "Simulator" },
   { to: "/admin/sheet", label: "Sheet" },
   { to: "/admin/command-center", label: "Command" },
   { to: "/admin/ops", label: "Ops" },
@@ -34,6 +38,10 @@ const JUMPS = [
 export function BattlefieldBar() {
   const f = useAdminFocus();
   const [query, setQuery] = useState("");
+  const decisions = useDecisions((s) => s.items);
+  const openDecisions = decisions.filter((d) => d.status === "open");
+  const pastDue = openDecisions.filter((d) => d.dueAt < Date.now()).length;
+
 
   const results = useMemo(() => {
     if (!query.trim() || !f.hydrated) return [];
@@ -141,6 +149,11 @@ export function BattlefieldBar() {
             <span className="text-[11px] text-muted-foreground">No person focused — click any name anywhere to lock them across every tab.</span>
           </>
         )}
+        <Link to="/admin/war-room" className="ml-3 rounded-full border px-2 py-0.5 text-[10px] hover:bg-muted">
+          {openDecisions.length
+            ? `${openDecisions.length} open decision${openDecisions.length === 1 ? "" : "s"}${pastDue ? ` · ${pastDue} past due` : ""}`
+            : "No open decisions"}
+        </Link>
         <div className="ml-auto flex flex-wrap gap-1">
           {JUMPS.map((j) => (
             <Link key={j.to} to={j.to} className="rounded border px-2 py-0.5 text-[10px] hover:bg-muted">{j.label}</Link>
