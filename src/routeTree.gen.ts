@@ -106,6 +106,7 @@ import { Route as AdminOpsRouteImport } from './routes/admin.ops'
 import { Route as AdminFlowRouteImport } from './routes/admin.flow'
 import { Route as AdminConsoleRouteImport } from './routes/admin.console'
 import { Route as AdminCommandCenterRouteImport } from './routes/admin.command-center'
+import { Route as AdminBriefingRouteImport } from './routes/admin.briefing'
 import { Route as TowerReviewIndexRouteImport } from './routes/tower.review.index'
 import { Route as TowerReviewIdRouteImport } from './routes/tower.review.$id'
 import { Route as TowerLeadsIdRouteImport } from './routes/tower.leads.$id'
@@ -601,6 +602,11 @@ const AdminCommandCenterRoute = AdminCommandCenterRouteImport.update({
   path: '/command-center',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminBriefingRoute = AdminBriefingRouteImport.update({
+  id: '/briefing',
+  path: '/briefing',
+  getParentRoute: () => AdminRoute,
+} as any)
 const TowerReviewIndexRoute = TowerReviewIndexRouteImport.update({
   id: '/review/',
   path: '/review/',
@@ -683,6 +689,7 @@ export interface FileRoutesByFullPath {
   '/tower': typeof TowerRouteWithChildren
   '/zone-brain': typeof ZoneBrainRoute
   '/zones': typeof ZonesRoute
+  '/admin/briefing': typeof AdminBriefingRoute
   '/admin/command-center': typeof AdminCommandCenterRoute
   '/admin/console': typeof AdminConsoleRoute
   '/admin/flow': typeof AdminFlowRoute
@@ -789,6 +796,7 @@ export interface FileRoutesByTo {
   '/tours': typeof ToursRoute
   '/zone-brain': typeof ZoneBrainRoute
   '/zones': typeof ZonesRoute
+  '/admin/briefing': typeof AdminBriefingRoute
   '/admin/command-center': typeof AdminCommandCenterRoute
   '/admin/console': typeof AdminConsoleRoute
   '/admin/flow': typeof AdminFlowRoute
@@ -898,6 +906,7 @@ export interface FileRoutesById {
   '/tower': typeof TowerRouteWithChildren
   '/zone-brain': typeof ZoneBrainRoute
   '/zones': typeof ZonesRoute
+  '/admin/briefing': typeof AdminBriefingRoute
   '/admin/command-center': typeof AdminCommandCenterRoute
   '/admin/console': typeof AdminConsoleRoute
   '/admin/flow': typeof AdminFlowRoute
@@ -1008,6 +1017,7 @@ export interface FileRouteTypes {
     | '/tower'
     | '/zone-brain'
     | '/zones'
+    | '/admin/briefing'
     | '/admin/command-center'
     | '/admin/console'
     | '/admin/flow'
@@ -1114,6 +1124,7 @@ export interface FileRouteTypes {
     | '/tours'
     | '/zone-brain'
     | '/zones'
+    | '/admin/briefing'
     | '/admin/command-center'
     | '/admin/console'
     | '/admin/flow'
@@ -1222,6 +1233,7 @@ export interface FileRouteTypes {
     | '/tower'
     | '/zone-brain'
     | '/zones'
+    | '/admin/briefing'
     | '/admin/command-center'
     | '/admin/console'
     | '/admin/flow'
@@ -2052,6 +2064,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCommandCenterRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/briefing': {
+      id: '/admin/briefing'
+      path: '/briefing'
+      fullPath: '/admin/briefing'
+      preLoaderRoute: typeof AdminBriefingRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/tower/review/': {
       id: '/tower/review/'
       path: '/review'
@@ -2119,6 +2138,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdminRouteChildren {
+  AdminBriefingRoute: typeof AdminBriefingRoute
   AdminCommandCenterRoute: typeof AdminCommandCenterRoute
   AdminConsoleRoute: typeof AdminConsoleRoute
   AdminFlowRoute: typeof AdminFlowRoute
@@ -2134,6 +2154,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminBriefingRoute: AdminBriefingRoute,
   AdminCommandCenterRoute: AdminCommandCenterRoute,
   AdminConsoleRoute: AdminConsoleRoute,
   AdminFlowRoute: AdminFlowRoute,
