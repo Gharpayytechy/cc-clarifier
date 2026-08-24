@@ -71,7 +71,7 @@ function DemandPage() {
   const hotLeads = useMemo(() => {
     const since = Date.now() - days * 86400000;
     return leads
-      .filter((l) => new Date(l.createdAt).getTime() >= since && l.stage !== "dead")
+      .filter((l) => new Date(l.createdAt).getTime() >= since && l.stage !== "dropped" && l.stage !== "booked")
       .filter((l) => !zoneFilter || zoneOfText(l.preferredArea, zones) === zoneFilter)
       .sort((a, b) => (b.intent === "hot" ? 1 : 0) - (a.intent === "hot" ? 1 : 0) || b.confidence - a.confidence)
       .slice(0, 8)
