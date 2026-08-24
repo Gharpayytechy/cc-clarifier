@@ -144,6 +144,11 @@ export function BattlefieldBar() {
             <span className="text-[11px] text-muted-foreground">No person focused — click any name anywhere to lock them across every tab.</span>
           </>
         )}
+        <Link to="/admin/war-room" className="ml-3 rounded-full border px-2 py-0.5 text-[10px] hover:bg-muted">
+          {openDecisions.length
+            ? `${openDecisions.length} open decision${openDecisions.length === 1 ? "" : "s"}${pastDue ? ` · ${pastDue} past due` : ""}`
+            : "No open decisions"}
+        </Link>
         <div className="ml-auto flex flex-wrap gap-1">
           {JUMPS.map((j) => (
             <Link key={j.to} to={j.to} className="rounded border px-2 py-0.5 text-[10px] hover:bg-muted">{j.label}</Link>
