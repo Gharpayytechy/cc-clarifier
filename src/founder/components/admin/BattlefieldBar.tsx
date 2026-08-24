@@ -37,6 +37,10 @@ const JUMPS = [
 export function BattlefieldBar() {
   const f = useAdminFocus();
   const [query, setQuery] = useState("");
+  const decisions = useDecisions((s) => s.items);
+  const openDecisions = decisions.filter((d) => d.status === "open");
+  const pastDue = openDecisions.filter((d) => d.dueAt < Date.now()).length;
+
 
   const results = useMemo(() => {
     if (!query.trim() || !f.hydrated) return [];
