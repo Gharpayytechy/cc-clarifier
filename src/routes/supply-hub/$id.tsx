@@ -10,6 +10,8 @@ import {
 } from "@/supply-hub/lib/intel";
 import { buildBrochure, buildParentPack, buildThreeOptions, buildWalkthrough, buildReengagement } from "@/supply-hub/lib/messages";
 import { buildWaCard, waLink, telLink } from "@/supply-hub/lib/wa";
+import { MessageKitPanel } from "@/components/supply/MessageKit";
+
 import { ArrowLeft, Copy, Phone, MessageCircle, Flame, BadgeCheck, MapPin, Coins, Calendar, Sparkles, Users, Utensils, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -265,7 +267,14 @@ function SupplyHubDetail() {
         )}
 
         {tab === "wa" && (
+          <div className="space-y-4">
+            <MessageKitPanel pg={pg} />
+          </div>
+        )}
+
+        {tab === "wa" && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
             <MessageCard title="WhatsApp card" body={waCard} pgPhone={pg.manager.phone} />
             <MessageCard title="Full brochure" body={brochure} pgPhone={pg.manager.phone} />
             {pg.gender === "Girls" && <MessageCard title="Parent safety pack" body={parentPack} pgPhone={pg.manager.phone} />}
