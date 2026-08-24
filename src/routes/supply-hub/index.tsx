@@ -6,8 +6,10 @@ import { useEffect, useMemo, useState } from "react";
 import { searchPGs } from "@/supply-hub/lib/search";
 import { personaBadge, personaStyle, scarcity, perDayLabel, freshness } from "@/supply-hub/lib/intel";
 import { PGS } from "@/supply-hub/data/pgs";
-import { Search, MapPin, Sparkles, Flame, BadgeCheck } from "lucide-react";
+import { useSupplyStore, docKey } from "@/supply-hub/lib/store";
+import { Search, MapPin, Sparkles, Flame, BadgeCheck, Settings2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
 
 export const Route = createFileRoute("/supply-hub/")({
   head: () => ({
