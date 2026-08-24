@@ -123,6 +123,7 @@ export function AdminFocusProvider({ children }: { children: ReactNode }) {
   return (
     <Ctx.Provider value={value}>
       {children}
+      <CommandPalette />
       <DrillDrawer drill={drill} onClose={() => setDrill(null)} />
       <PersonSheet
         person={person}
@@ -133,3 +134,4 @@ export function AdminFocusProvider({ children }: { children: ReactNode }) {
     </Ctx.Provider>
   );
 }
+
