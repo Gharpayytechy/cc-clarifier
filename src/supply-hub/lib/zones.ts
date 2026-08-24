@@ -5,14 +5,16 @@ import { useCallback, useSyncExternalStore } from "react";
 import type { PG } from "../data/types";
 
 export interface ZoneDef {
-  id: string;            // e.g. "MTPSJR"
+  id: string;            // e.g. "MRH"
   label: string;         // display name
   short: string;         // badge text
   cluster: string;       // human description of the catchment
   keywords: string[];    // lowercase match terms (area / locality / name / landmarks)
   accent: string;        // tailwind classes for the badge
   builtin?: boolean;
+  core?: boolean;        // day-1 operational zone vs expansion zone
 }
+
 
 export const UNMAPPED = "UNMAPPED";
 
