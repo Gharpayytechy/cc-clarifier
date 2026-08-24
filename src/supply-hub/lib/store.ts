@@ -160,7 +160,7 @@ export function useSupplyStore() {
       const existing = rows.find((r) => r.key === key);
       const payload = {
         key,
-        doc: pg as unknown as Record<string, unknown>,
+        doc: JSON.parse(JSON.stringify(pg)) as never,
         enabled: opts?.enabled ?? existing?.enabled ?? true,
         source: opts?.source ?? existing?.source ?? "admin",
         notes: opts?.notes ?? existing?.notes ?? null,
