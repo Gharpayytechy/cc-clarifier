@@ -392,6 +392,9 @@ export function useZones() {
     removeZone,
     moveZone,
     resetZones,
+    renameZone,
+    mergeZones,
     setZoneOverride,
   };
 }
+
