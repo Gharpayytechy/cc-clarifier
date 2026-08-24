@@ -238,7 +238,10 @@ function SupplyAdmin() {
             onRemove={removeZone}
             onMove={moveZone}
             onReset={resetZones}
+            onRename={renameZone}
+            onMerge={mergeZones}
           />
+
         </DialogContent>
       </Dialog>
 
