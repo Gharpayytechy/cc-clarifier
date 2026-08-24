@@ -20,7 +20,10 @@ import { personWhatsApp, zoneWhatsApp, zoneLeagueWhatsApp } from "@/founder/lib/
 
 const JUMPS = [
   { to: "/admin", label: "Desk" },
+  { to: "/admin/briefing", label: "Briefing" },
   { to: "/admin/watchtower", label: "Watchtower" },
+  { to: "/admin/war-room", label: "War Room" },
+  { to: "/admin/simulator", label: "Simulator" },
   { to: "/admin/sheet", label: "Sheet" },
   { to: "/admin/command-center", label: "Command" },
   { to: "/admin/ops", label: "Ops" },
