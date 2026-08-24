@@ -909,6 +909,42 @@ export type Database = {
           },
         ]
       }
+      supply_properties: {
+        Row: {
+          created_at: string
+          doc: Json
+          enabled: boolean
+          id: string
+          key: string
+          notes: string | null
+          source: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          doc?: Json
+          enabled?: boolean
+          id?: string
+          key: string
+          notes?: string | null
+          source?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          doc?: Json
+          enabled?: boolean
+          id?: string
+          key?: string
+          notes?: string | null
+          source?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       system_settings: {
         Row: {
           key: string
