@@ -9,7 +9,7 @@ import { PGS } from "@/supply-hub/data/pgs";
 import { useSupplyStore, docKey } from "@/supply-hub/lib/store";
 import { Search, MapPin, Sparkles, Flame, BadgeCheck, Settings2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { zoneOfPG, zoneCounts, ZONE_META, ZONES, zonePlan, type SupplyZone } from "@/supply-hub/lib/zones";
+import { zoneOfPG, zoneCounts, zoneMeta, zonePlan, useZones, UNMAPPED } from "@/supply-hub/lib/zones";
 
 
 export const Route = createFileRoute("/supply-hub/")({
@@ -37,7 +37,9 @@ function SupplyHubHome() {
   const [gender, setGender] = useState<(typeof GENDERS)[number]>("All");
   const [area, setArea] = useState("All");
   const [showDisabled, setShowDisabled] = useState(false);
-  const [zone, setZone] = useState<SupplyZone | "All">("All");
+  const [zone, setZone] = useState<string>("All");
+  const { zones } = useZones();
+  const zoneIds = useMemo(() => [...zones.map((z) => z.id), UNMAPPED], [zones]);
 
   const { items } = useSupplyStore();
   const disabled = useMemo(
@@ -59,10 +61,10 @@ function SupplyHubHome() {
     });
   }, [q, tier, gender, area, zone, disabled, showDisabled]);
 
-  const counts = useMemo(() => zoneCounts(PGS), []);
+  const counts = useMemo(() => zoneCounts(PGS), [zones]);
   const liveCounts = useMemo(
     () => zoneCounts(PGS.filter((p) => !disabled.has(docKey(p.name)))),
-    [disabled],
+    [disabled, zones],
   );
 
   const stats = useMemo(() => {
@@ -125,7 +127,7 @@ function SupplyHubHome() {
             </button>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-            {ZONES.filter((z) => counts[z] > 0).map((z) => {
+            {zoneIds.filter((z) => (counts[z] || 0) > 0).map((z) => {
               const plan = zonePlan(z, counts[z]);
               const active = zone === z;
               return (
@@ -165,7 +167,7 @@ function SupplyHubHome() {
           </div>
           <Pill label="Tier" value={tier} options={TIERS as readonly string[]} onChange={(v) => setTier(v as typeof tier)} />
           <Pill label="Gender" value={gender} options={GENDERS as readonly string[]} onChange={(v) => setGender(v as typeof gender)} />
-          <Pill label="Zone" value={zone} options={["All", ...ZONES]} onChange={(v) => setZone(v as SupplyZone | "All")} />
+          <Pill label="Zone" value={zone} options={["All", ...zoneIds]} onChange={(v) => setZone(v)} />
           <Pill label="Area" value={area} options={areas} onChange={setArea} />
           <label className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
             <input type="checkbox" checked={showDisabled} onChange={(e) => setShowDisabled(e.target.checked)} /> Show disabled
@@ -191,7 +193,7 @@ function SupplyHubHome() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <span className={cn("rounded border px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wider", ZONE_META[zoneOfPG(pg)].accent)}>{ZONE_META[zoneOfPG(pg)].short}</span>
+                      <span className={cn("rounded border px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wider", zoneMeta(zoneOfPG(pg)).accent)}>{zoneMeta(zoneOfPG(pg)).short}</span>
                       <span className="text-[10px] uppercase tracking-wider text-muted-foreground truncate">{pg.area} · {pg.tier} · {pg.gender}</span>
                     </div>
                     <h3 className="mt-0.5 font-semibold truncate group-hover:text-accent">{pg.name}</h3>
