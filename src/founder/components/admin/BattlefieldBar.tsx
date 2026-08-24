@@ -20,6 +20,7 @@ import { personWhatsApp, zoneWhatsApp, zoneLeagueWhatsApp } from "@/founder/lib/
 
 const JUMPS = [
   { to: "/admin", label: "Desk" },
+  { to: "/admin/watchtower", label: "Watchtower" },
   { to: "/admin/sheet", label: "Sheet" },
   { to: "/admin/command-center", label: "Command" },
   { to: "/admin/ops", label: "Ops" },
@@ -28,6 +29,7 @@ const JUMPS = [
   { to: "/admin/playbooks", label: "Playbooks" },
   { to: "/admin/report-center", label: "Reports" },
 ] as const;
+
 
 export function BattlefieldBar() {
   const f = useAdminFocus();
@@ -64,8 +66,10 @@ export function BattlefieldBar() {
         )}
         <div className="relative ml-auto min-w-[220px] flex-1 md:max-w-[420px]">
           <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input value={query} onChange={(e) => setQuery(e.target.value)} className="h-8 pl-8 text-xs"
+          <Input value={query} onChange={(e) => setQuery(e.target.value)} className="h-8 pl-8 pr-12 text-xs"
             placeholder="Search anything — lead, phone, person, zone, “tours without quotation”" />
+          <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded border px-1 text-[10px] text-muted-foreground">⌘K</span>
+
           {results.length > 0 && (
             <div className="absolute left-0 right-0 top-9 z-40 max-h-72 overflow-y-auto rounded-md border bg-card shadow-xl">
               {results.map((r) => (

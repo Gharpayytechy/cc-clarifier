@@ -95,6 +95,7 @@ import { Route as MytDraftsRouteImport } from './routes/myt/drafts'
 import { Route as MytCalendarRouteImport } from './routes/myt/calendar'
 import { Route as MytBookingsRouteImport } from './routes/myt/bookings'
 import { Route as LeadsAddRouteImport } from './routes/leads.add'
+import { Route as AdminWatchtowerRouteImport } from './routes/admin.watchtower'
 import { Route as AdminSheetRouteImport } from './routes/admin.sheet'
 import { Route as AdminReportCenterRouteImport } from './routes/admin.report-center'
 import { Route as AdminPulseRouteImport } from './routes/admin.pulse'
@@ -543,6 +544,11 @@ const LeadsAddRoute = LeadsAddRouteImport.update({
   path: '/add',
   getParentRoute: () => LeadsRoute,
 } as any)
+const AdminWatchtowerRoute = AdminWatchtowerRouteImport.update({
+  id: '/watchtower',
+  path: '/watchtower',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminSheetRoute = AdminSheetRouteImport.update({
   id: '/sheet',
   path: '/sheet',
@@ -673,6 +679,7 @@ export interface FileRoutesByFullPath {
   '/admin/pulse': typeof AdminPulseRoute
   '/admin/report-center': typeof AdminReportCenterRoute
   '/admin/sheet': typeof AdminSheetRoute
+  '/admin/watchtower': typeof AdminWatchtowerRoute
   '/leads/add': typeof LeadsAddRoute
   '/myt/bookings': typeof MytBookingsRoute
   '/myt/calendar': typeof MytCalendarRoute
@@ -776,6 +783,7 @@ export interface FileRoutesByTo {
   '/admin/pulse': typeof AdminPulseRoute
   '/admin/report-center': typeof AdminReportCenterRoute
   '/admin/sheet': typeof AdminSheetRoute
+  '/admin/watchtower': typeof AdminWatchtowerRoute
   '/leads/add': typeof LeadsAddRoute
   '/myt/bookings': typeof MytBookingsRoute
   '/myt/calendar': typeof MytCalendarRoute
@@ -882,6 +890,7 @@ export interface FileRoutesById {
   '/admin/pulse': typeof AdminPulseRoute
   '/admin/report-center': typeof AdminReportCenterRoute
   '/admin/sheet': typeof AdminSheetRoute
+  '/admin/watchtower': typeof AdminWatchtowerRoute
   '/leads/add': typeof LeadsAddRoute
   '/myt/bookings': typeof MytBookingsRoute
   '/myt/calendar': typeof MytCalendarRoute
@@ -989,6 +998,7 @@ export interface FileRouteTypes {
     | '/admin/pulse'
     | '/admin/report-center'
     | '/admin/sheet'
+    | '/admin/watchtower'
     | '/leads/add'
     | '/myt/bookings'
     | '/myt/calendar'
@@ -1092,6 +1102,7 @@ export interface FileRouteTypes {
     | '/admin/pulse'
     | '/admin/report-center'
     | '/admin/sheet'
+    | '/admin/watchtower'
     | '/leads/add'
     | '/myt/bookings'
     | '/myt/calendar'
@@ -1197,6 +1208,7 @@ export interface FileRouteTypes {
     | '/admin/pulse'
     | '/admin/report-center'
     | '/admin/sheet'
+    | '/admin/watchtower'
     | '/leads/add'
     | '/myt/bookings'
     | '/myt/calendar'
@@ -1939,6 +1951,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LeadsAddRouteImport
       parentRoute: typeof LeadsRoute
     }
+    '/admin/watchtower': {
+      id: '/admin/watchtower'
+      path: '/watchtower'
+      fullPath: '/admin/watchtower'
+      preLoaderRoute: typeof AdminWatchtowerRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/sheet': {
       id: '/admin/sheet'
       path: '/sheet'
@@ -2070,6 +2089,7 @@ interface AdminRouteChildren {
   AdminPulseRoute: typeof AdminPulseRoute
   AdminReportCenterRoute: typeof AdminReportCenterRoute
   AdminSheetRoute: typeof AdminSheetRoute
+  AdminWatchtowerRoute: typeof AdminWatchtowerRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
@@ -2082,6 +2102,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminPulseRoute: AdminPulseRoute,
   AdminReportCenterRoute: AdminReportCenterRoute,
   AdminSheetRoute: AdminSheetRoute,
+  AdminWatchtowerRoute: AdminWatchtowerRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
 
