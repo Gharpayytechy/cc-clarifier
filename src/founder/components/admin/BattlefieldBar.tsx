@@ -17,6 +17,7 @@ import { useAdminFocus } from "@/founder/lib/admin-focus";
 import { COMPARE_OPTIONS, PERIOD_OPTIONS, rangeLabel, type CompareKey, type PeriodKey } from "@/founder/lib/brain/timeengine";
 import { buildBrain, searchBrain, DEFAULT_FILTERS } from "@/founder/lib/brain/engine";
 import { personWhatsApp, zoneWhatsApp, zoneLeagueWhatsApp } from "@/founder/lib/brain/people-now";
+import { useDecisions } from "@/founder/lib/admin/decisions-store";
 
 const JUMPS = [
   { to: "/admin", label: "Desk" },
