@@ -4,6 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import type { BrainRow } from "@/founder/lib/brain/engine";
+import { downloadCsv, rowsToCsv } from "@/founder/lib/brain/watchtower";
+
 
 export interface Drill {
   title: string;
