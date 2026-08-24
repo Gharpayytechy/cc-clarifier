@@ -35,26 +35,39 @@ function SupplyHubHome() {
   const [tier, setTier] = useState<(typeof TIERS)[number]>("All");
   const [gender, setGender] = useState<(typeof GENDERS)[number]>("All");
   const [area, setArea] = useState("All");
+  const [showDisabled, setShowDisabled] = useState(false);
+
+  const { items } = useSupplyStore();
+  const disabled = useMemo(
+    () => new Set(items.filter((i) => !i.enabled).map((i) => docKey(i.pg.name))),
+    [items],
+  );
 
   const areas = useMemo(() => ["All", ...Array.from(new Set(PGS.map((p) => p.area))).filter(Boolean).sort()], []);
 
   const results = useMemo(() => {
-    const hits = q.trim() ? searchPGs(q, 60) : PGS.slice(0, 60).map((pg) => ({ pg, score: 1, matched: [] as string[] }));
+    const hits = q.trim() ? searchPGs(q, 120) : PGS.map((pg) => ({ pg, score: 1, matched: [] as string[] }));
     return hits.filter((h) => {
+      if (!showDisabled && disabled.has(docKey(h.pg.name))) return false;
       if (tier !== "All" && h.pg.tier !== tier) return false;
       if (gender !== "All" && h.pg.gender !== gender) return false;
       if (area !== "All" && h.pg.area !== area) return false;
       return true;
     });
-  }, [q, tier, gender, area]);
+  }, [q, tier, gender, area, disabled, showDisabled]);
 
   const stats = useMemo(() => {
-    const total = PGS.length;
-    const premium = PGS.filter((p) => p.tier === "Premium").length;
-    const hot = PGS.filter((p) => scarcity(p).hot).length;
-    const fresh = PGS.filter((p) => freshness(p).isFresh).length;
-    return { total, premium, hot, fresh };
-  }, []);
+    const live = PGS.filter((p) => !disabled.has(docKey(p.name)));
+    return {
+      total: live.length,
+      premium: live.filter((p) => p.tier === "Premium").length,
+      hot: live.filter((p) => scarcity(p).hot).length,
+      fresh: live.filter((p) => freshness(p).isFresh).length,
+      off: disabled.size,
+    };
+  }, [disabled]);
+
+
 
   if (role === "owner") return null;
 
