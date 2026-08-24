@@ -39,62 +39,145 @@ export const UNMAPPED_META: ZoneDef = {
   builtin: true,
 };
 
-// Order matters — first keyword hit wins.
+// Order matters — first keyword hit wins, so the most specific belts come first.
 export const DEFAULT_ZONES: ZoneDef[] = [
   {
-    id: "MTPSJR",
-    label: "MTPSJR",
-    short: "MTPSJR",
-    cluster: "Manyata / Nagawara + Sarjapur",
+    id: "WFD",
+    label: "Whitefield",
+    short: "WFD",
+    cluster: "Whitefield · ITPL · Hoodi · Hope Farm · Kadugodi · EPIP",
     keywords: [
-      "manyata", "nagawara", "nagwara", "thanisandra", "bhartiya", "hebbal", "hennur",
-      "sarjapur", "sarja pura", "sarjapura",
+      "whitefield", "wfd", "itpl", "epip", "hope farm", "kadugodi", "hoodi",
+      "nallurhalli", "pattandur", "seegehalli", "varthur", "prestige shantiniketan", "vr bengaluru",
+    ],
+    accent: ZONE_ACCENTS[1],
+    builtin: true,
+    core: true,
+  },
+  {
+    id: "MRH",
+    label: "Marathahalli–Mahadevapura",
+    short: "MRH",
+    cluster: "Marathahalli · Brookefield · AECS · Kundalahalli · Doddanekkundi · Mahadevapura",
+    keywords: [
+      "marathahalli", "marathalli", "brookefield", "brookfield", "brookfeild", "aecs", "aces",
+      "kundalahalli", "kundanhalli", "mahadevapura", "mahadevpura", "madadevpura", "doddanekkundi",
+      "munnekollal", "chinnapanahalli", "chinnapannahalli", "spice garden", "bagmane", "phoenix marketcity",
+      "mwb", "bgm",
+    ],
+    accent: ZONE_ACCENTS[7],
+    builtin: true,
+    core: true,
+  },
+  {
+    id: "BLR",
+    label: "Bellandur",
+    short: "BLR",
+    cluster: "Bellandur · Kadubeesanahalli · Green Glen · Ecospace / Ecoworld belt",
+    keywords: [
+      "bellandur", "kadubees", "kadubeshanalli", "kadubeensanhalli", "kadubeesanahalli",
+      "devarabeesanahalli", "green glen", "glen green", "kariyammana", "panathur", "yemalur",
+      "ecospace", "ecoworld", "embassy techvillage", "sjr", "sarjapur", "outer ring road", "orr",
+    ],
+    accent: ZONE_ACCENTS[4],
+    builtin: true,
+    core: true,
+  },
+  {
+    id: "HSR",
+    label: "HSR–BTM",
+    short: "HSR",
+    cluster: "HSR Sector 1–7 · BTM · Silk Board · Bommanahalli · Kudlu",
+    keywords: [
+      "hsr", "btm", "agara", "somasundarapalya", "haralur", "kudlu", "singasandra",
+      "silk board", "bommanahalli",
+    ],
+    accent: ZONE_ACCENTS[5],
+    builtin: true,
+    core: true,
+  },
+  {
+    id: "KOR",
+    label: "Koramangala Core",
+    short: "KOR",
+    cluster: "Koramangala 1st–8th · SG Palya · Tavarekere · Ejipura · Adugodi · Madiwala",
+    keywords: [
+      "koramangala", "koramangla", "sg palya", "sg palaya", "s.g palya", "sgpalya", "ejipura",
+      "tavarekere", "dairy circle", "adugodi", "audugodi", "madiwala", "st john", "christ university",
+      "forum mall", "nexus koramangala",
+    ],
+    accent: ZONE_ACCENTS[0],
+    builtin: true,
+    core: true,
+  },
+  {
+    id: "MTP",
+    label: "Manyata–North",
+    short: "MTP",
+    cluster: "Manyata · Nagawara · Thanisandra · Hebbal · HBR / Kalyan Nagar",
+    keywords: [
+      "manyata", "mtp", "nagawara", "nagwara", "thanisandra", "hebbal", "hennur", "bhartiya",
+      "hbr", "hrbr", "kalyan nagar", "veerannapalya", "jakkur", "kasturi nagar",
     ],
     accent: ZONE_ACCENTS[2],
     builtin: true,
+    core: true,
   },
   {
-    id: "YPR CORE",
-    label: "YPR CORE",
+    id: "YPR",
+    label: "Yeshwanthpur–Ramaiah",
     short: "YPR",
-    cluster: "YPR / Christ YPR",
-    keywords: ["ypr", "yeshwanthpur", "yeshwantpur", "christ yesh", "christ campus", "malleshwaram", "rajajinagar"],
+    cluster: "Yeshwanthpur · Mathikere · MS Ramaiah · BEL Road · Malleswaram · Peenya",
+    keywords: [
+      "ypr", "yeshwanthpur", "yeshwantpur", "christ yesh", "christ campus", "mathikere",
+      "ramaiah", "bel road", "malleshwaram", "malleswaram", "rajajinagar", "jalahalli", "peenya",
+      "nagasandra", "ikea",
+    ],
+    accent: ZONE_ACCENTS[3],
+    builtin: true,
+    core: true,
+  },
+  {
+    id: "IDR",
+    label: "Indiranagar–Central East",
+    short: "IDR",
+    cluster: "Indiranagar · Domlur · Ulsoor · CV Raman Nagar · MG Road belt",
+    keywords: [
+      "indiranagar", "indranagar", "domlur", "ulsoor", "halasur", "thippasandra", "cv raman",
+      "kaggadasapura", "gm palya", "baiyappanahalli", "mg road", "richmond", "shanti nagar",
+      "shanthinagar", "vasanth nagar", "wilson garden", "sampangi", "ub city", "brigade road",
+    ],
+    accent: ZONE_ACCENTS[6],
+    builtin: true,
+  },
+  {
+    id: "JPN",
+    label: "JP Nagar–Bannerghatta",
+    short: "JPN",
+    cluster: "JP Nagar · Bannerghatta Road · Jayanagar · Arekere · Hulimavu",
+    keywords: [
+      "jp nagar", "jayanagar", "bannerghatta", "arekere", "hulimavu", "bilekahalli",
+      "gottigere", "dollars colony",
+    ],
     accent: ZONE_ACCENTS[3],
     builtin: true,
   },
   {
-    id: "EAST CORE",
-    label: "EAST CORE",
-    short: "East",
-    cluster: "Whitefield/Brookfield + MWB/Bellandur",
+    id: "ECT",
+    label: "Electronic City",
+    short: "ECT",
+    cluster: "Electronic City Phase 1 & 2 · Neeladri · Doddathoguru · Hosa Road",
     keywords: [
-      "whitefield", "wfd", "brookfield", "brookfeild", "brookefield", "aecs", "aces", "kundanhalli",
-      "kundalahalli", "mahadevapura", "mahadevpura", "madadevpura", "mwb", "marathahalli", "marathalli",
-      "munnekollal", "bellandur", "kadubees", "kadubeshanalli", "kadubeensanhalli",
-      "spice garden", "varthur", "panathur", "ecospace", "outer ring road", "orr", "sjr", "domlur",
-      "indiranagar", "indranagar", "thippasandra", "halasur", "hoodi", "itpl",
+      "electronic city", "e city", "ecity", "neeladri", "doddathoguru", "konappana", "hosa road",
     ],
-    accent: ZONE_ACCENTS[1],
-    builtin: true,
-  },
-  {
-    id: "SOUTH CORE",
-    label: "SOUTH CORE",
-    short: "South",
-    cluster: "Koramangala + HSR + BTM",
-    keywords: [
-      "koramangala", "koramangla", "sg palya", "sg palaya", "s.g palya", "sgpalya", "ejipura",
-      "hsr", "btm", "jayanagar", "jp nagar", "bannerghatta", "bommanahalli", "silk board",
-      "electronic city", "st joseph", "jain cms", "christ university", "madiwala", "audugodi", "adugodi",
-      "shanti nagar", "shanthinagar", "wilson garden", "sampangi", "richmond", "mg road", "vasanth nagar",
-    ],
-    accent: ZONE_ACCENTS[0],
+    accent: ZONE_ACCENTS[5],
     builtin: true,
   },
 ];
 
-const ZONES_KEY = "gharpayy.supply.zones.v2";
+const ZONES_KEY = "gharpayy.supply.zones.v3";
 const OVERRIDES_KEY = "gharpayy.supply.zone-overrides.v1";
+
 
 const canStore = () => typeof window !== "undefined";
 
