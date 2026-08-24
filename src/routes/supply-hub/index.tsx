@@ -9,6 +9,7 @@ import { PGS } from "@/supply-hub/data/pgs";
 import { useSupplyStore, docKey } from "@/supply-hub/lib/store";
 import { Search, MapPin, Sparkles, Flame, BadgeCheck, Settings2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { zoneOfPG, zoneCounts, ZONE_META, ZONES, zonePlan, type SupplyZone } from "@/supply-hub/lib/zones";
 
 
 export const Route = createFileRoute("/supply-hub/")({
@@ -36,6 +37,7 @@ function SupplyHubHome() {
   const [gender, setGender] = useState<(typeof GENDERS)[number]>("All");
   const [area, setArea] = useState("All");
   const [showDisabled, setShowDisabled] = useState(false);
+  const [zone, setZone] = useState<SupplyZone | "All">("All");
 
   const { items } = useSupplyStore();
   const disabled = useMemo(
@@ -52,9 +54,16 @@ function SupplyHubHome() {
       if (tier !== "All" && h.pg.tier !== tier) return false;
       if (gender !== "All" && h.pg.gender !== gender) return false;
       if (area !== "All" && h.pg.area !== area) return false;
+      if (zone !== "All" && zoneOfPG(h.pg) !== zone) return false;
       return true;
     });
-  }, [q, tier, gender, area, disabled, showDisabled]);
+  }, [q, tier, gender, area, zone, disabled, showDisabled]);
+
+  const counts = useMemo(() => zoneCounts(PGS), []);
+  const liveCounts = useMemo(
+    () => zoneCounts(PGS.filter((p) => !disabled.has(docKey(p.name)))),
+    [disabled],
+  );
 
   const stats = useMemo(() => {
     const live = PGS.filter((p) => !disabled.has(docKey(p.name)));
@@ -105,6 +114,45 @@ function SupplyHubHome() {
           ))}
         </div>
 
+        <section className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold">Zone map</h2>
+            <button
+              onClick={() => setZone("All")}
+              className={cn("text-[11px] rounded-md border px-2 py-1", zone === "All" ? "border-accent text-accent" : "border-border text-muted-foreground hover:bg-muted")}
+            >
+              All zones ({PGS.length})
+            </button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+            {ZONES.filter((z) => counts[z] > 0).map((z) => {
+              const plan = zonePlan(z, counts[z]);
+              const active = zone === z;
+              return (
+                <button
+                  key={z}
+                  onClick={() => setZone(active ? "All" : z)}
+                  className={cn(
+                    "text-left rounded-lg border bg-card p-3 transition-colors hover:border-accent/50",
+                    active && "border-accent ring-1 ring-accent/30",
+                  )}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className={cn("rounded-md border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider", plan.accent)}>{z}</span>
+                    <span className="font-display text-lg font-semibold">{liveCounts[z]}</span>
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground truncate">{plan.cluster}</div>
+                  <div className="mt-2 text-[10px] text-muted-foreground leading-relaxed">
+                    {plan.properties} clean properties · {plan.pages} pages of learning<br />
+                    {plan.mcqSets} · {plan.coverageQs} coverage Qs<br />
+                    {plan.masteryBar}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
         <div className="rounded-lg border bg-card p-3 flex flex-wrap items-center gap-3">
           <div className="relative flex-1 min-w-[280px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -117,6 +165,7 @@ function SupplyHubHome() {
           </div>
           <Pill label="Tier" value={tier} options={TIERS as readonly string[]} onChange={(v) => setTier(v as typeof tier)} />
           <Pill label="Gender" value={gender} options={GENDERS as readonly string[]} onChange={(v) => setGender(v as typeof gender)} />
+          <Pill label="Zone" value={zone} options={["All", ...ZONES]} onChange={(v) => setZone(v as SupplyZone | "All")} />
           <Pill label="Area" value={area} options={areas} onChange={setArea} />
           <label className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
             <input type="checkbox" checked={showDisabled} onChange={(e) => setShowDisabled(e.target.checked)} /> Show disabled
@@ -141,7 +190,10 @@ function SupplyHubHome() {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{pg.area} · {pg.tier} · {pg.gender}</div>
+                    <div className="flex items-center gap-1.5">
+                      <span className={cn("rounded border px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wider", ZONE_META[zoneOfPG(pg)].accent)}>{ZONE_META[zoneOfPG(pg)].short}</span>
+                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground truncate">{pg.area} · {pg.tier} · {pg.gender}</span>
+                    </div>
                     <h3 className="mt-0.5 font-semibold truncate group-hover:text-accent">{pg.name}</h3>
                     <div className="text-xs text-muted-foreground truncate">{pg.locality}</div>
                   </div>
