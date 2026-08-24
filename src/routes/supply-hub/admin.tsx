@@ -41,7 +41,7 @@ function SupplyAdmin() {
   const [onlyGaps, setOnlyGaps] = useState(false);
   const [zone, setZone] = useState<string>("All");
   const [zoneMgr, setZoneMgr] = useState(false);
-  const { zones, addZone, upsertZone, removeZone, moveZone, resetZones, setZoneOverride } = useZones();
+  const { zones, addZone, upsertZone, removeZone, moveZone, resetZones, renameZone, mergeZones, setZoneOverride } = useZones();
   const zoneIds = useMemo(() => [...zones.map((z) => z.id), UNMAPPED], [zones]);
   const [editing, setEditing] = useState<PG | null>(null);
   const [msgFor, setMsgFor] = useState<PG | null>(null);
