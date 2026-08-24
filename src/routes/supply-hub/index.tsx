@@ -6,8 +6,10 @@ import { useEffect, useMemo, useState } from "react";
 import { searchPGs } from "@/supply-hub/lib/search";
 import { personaBadge, personaStyle, scarcity, perDayLabel, freshness } from "@/supply-hub/lib/intel";
 import { PGS } from "@/supply-hub/data/pgs";
-import { Search, MapPin, Sparkles, Flame, BadgeCheck } from "lucide-react";
+import { useSupplyStore, docKey } from "@/supply-hub/lib/store";
+import { Search, MapPin, Sparkles, Flame, BadgeCheck, Settings2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
 
 export const Route = createFileRoute("/supply-hub/")({
   head: () => ({
@@ -33,26 +35,39 @@ function SupplyHubHome() {
   const [tier, setTier] = useState<(typeof TIERS)[number]>("All");
   const [gender, setGender] = useState<(typeof GENDERS)[number]>("All");
   const [area, setArea] = useState("All");
+  const [showDisabled, setShowDisabled] = useState(false);
+
+  const { items } = useSupplyStore();
+  const disabled = useMemo(
+    () => new Set(items.filter((i) => !i.enabled).map((i) => docKey(i.pg.name))),
+    [items],
+  );
 
   const areas = useMemo(() => ["All", ...Array.from(new Set(PGS.map((p) => p.area))).filter(Boolean).sort()], []);
 
   const results = useMemo(() => {
-    const hits = q.trim() ? searchPGs(q, 60) : PGS.slice(0, 60).map((pg) => ({ pg, score: 1, matched: [] as string[] }));
+    const hits = q.trim() ? searchPGs(q, 120) : PGS.map((pg) => ({ pg, score: 1, matched: [] as string[] }));
     return hits.filter((h) => {
+      if (!showDisabled && disabled.has(docKey(h.pg.name))) return false;
       if (tier !== "All" && h.pg.tier !== tier) return false;
       if (gender !== "All" && h.pg.gender !== gender) return false;
       if (area !== "All" && h.pg.area !== area) return false;
       return true;
     });
-  }, [q, tier, gender, area]);
+  }, [q, tier, gender, area, disabled, showDisabled]);
 
   const stats = useMemo(() => {
-    const total = PGS.length;
-    const premium = PGS.filter((p) => p.tier === "Premium").length;
-    const hot = PGS.filter((p) => scarcity(p).hot).length;
-    const fresh = PGS.filter((p) => freshness(p).isFresh).length;
-    return { total, premium, hot, fresh };
-  }, []);
+    const live = PGS.filter((p) => !disabled.has(docKey(p.name)));
+    return {
+      total: live.length,
+      premium: live.filter((p) => p.tier === "Premium").length,
+      hot: live.filter((p) => scarcity(p).hot).length,
+      fresh: live.filter((p) => freshness(p).isFresh).length,
+      off: disabled.size,
+    };
+  }, [disabled]);
+
+
 
   if (role === "owner") return null;
 
@@ -68,6 +83,7 @@ function SupplyHubHome() {
           <div className="flex gap-2">
             <Link to="/supply-hub/match" className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-2 text-sm font-medium text-accent-foreground hover:opacity-90"><Sparkles className="h-4 w-4" /> Lead Matcher</Link>
             <Link to="/supply-hub/areas" className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-2 text-sm font-medium hover:bg-muted"><MapPin className="h-4 w-4" /> Area Mood</Link>
+            <Link to="/supply-hub/admin" className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-2 text-sm font-medium hover:bg-muted"><Settings2 className="h-4 w-4" /> Property Control</Link>
           </div>
         </header>
 
@@ -75,10 +91,11 @@ function SupplyHubHome() {
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
-            { label: "Properties", value: stats.total, sub: "Verified inventory" },
+            { label: "Live properties", value: stats.total, sub: `${stats.off} disabled` },
             { label: "Premium tier", value: stats.premium, sub: "₹22k+/mo cohort" },
             { label: "Hot scarcity", value: stats.hot, sub: "1–2 beds left", accent: true },
             { label: "Updated <30d", value: stats.fresh, sub: "Fresh inventory evidence" },
+
           ].map((s) => (
             <div key={s.label} className={cn("rounded-lg border bg-card p-4", s.accent && "border-accent/40")}>
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{s.label}</div>
@@ -101,8 +118,12 @@ function SupplyHubHome() {
           <Pill label="Tier" value={tier} options={TIERS as readonly string[]} onChange={(v) => setTier(v as typeof tier)} />
           <Pill label="Gender" value={gender} options={GENDERS as readonly string[]} onChange={(v) => setGender(v as typeof gender)} />
           <Pill label="Area" value={area} options={areas} onChange={setArea} />
+          <label className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+            <input type="checkbox" checked={showDisabled} onChange={(e) => setShowDisabled(e.target.checked)} /> Show disabled
+          </label>
           <div className="text-xs text-muted-foreground ml-auto">{results.length} matches</div>
         </div>
+
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {results.slice(0, 60).map(({ pg, matched }) => {

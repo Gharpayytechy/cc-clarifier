@@ -1,0 +1,373 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
+import { AppShell } from "@/components/AppShell";
+import { useSupplyStore, blankPG, docKey, type SupplyItem } from "@/supply-hub/lib/store";
+import { gapReport, gapsCsv, gapReports } from "@/supply-hub/lib/gaps";
+import { MessageKitPanel, CopyButton } from "@/components/supply/MessageKit";
+import type { PG, Gender, Tier } from "@/supply-hub/data/types";
+import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { Search, Plus, Download, AlertTriangle, Database, Power, Pencil } from "lucide-react";
+
+export const Route = createFileRoute("/supply-hub/admin")({
+  head: () => ({
+    meta: [
+      { title: "Supply Hub Admin — Property Control | Gharpayy" },
+      { name: "description", content: "Enable or disable any PG, add new properties, fix missing data and copy exact location, pricing and amenity messages." },
+      { property: "og:title", content: "Supply Hub Admin — Property Control" },
+      { property: "og:description", content: "One console to add, enable, disable and complete every Gharpayy property." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
+  component: SupplyAdmin,
+});
+
+const GENDERS: Gender[] = ["Boys", "Girls", "Co-live"];
+const TIERS: Tier[] = ["Premium", "Mid", "Budget"];
+
+function SupplyAdmin() {
+  const { items, loading, error, setEnabled, saveDoc, removeDoc } = useSupplyStore();
+  const [q, setQ] = useState("");
+  const [status, setStatus] = useState<"all" | "enabled" | "disabled">("all");
+  const [area, setArea] = useState("All");
+  const [onlyGaps, setOnlyGaps] = useState(false);
+  const [editing, setEditing] = useState<PG | null>(null);
+  const [msgFor, setMsgFor] = useState<PG | null>(null);
+
+  const areas = useMemo(
+    () => ["All", ...Array.from(new Set(items.map((i) => i.pg.area).filter(Boolean))).sort()],
+    [items],
+  );
+
+  const rows = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    return items
+      .map((i) => ({ ...i, gap: gapReport(i.pg) }))
+      .filter((i) => {
+        if (status === "enabled" && !i.enabled) return false;
+        if (status === "disabled" && i.enabled) return false;
+        if (area !== "All" && i.pg.area !== area) return false;
+        if (onlyGaps && i.gap.missing.length === 0) return false;
+        if (!needle) return true;
+        return [i.pg.name, i.pg.actualName, i.pg.area, i.pg.locality].join(" ").toLowerCase().includes(needle);
+      })
+      .sort((a, b) => a.gap.score - b.gap.score);
+  }, [items, q, status, area, onlyGaps]);
+
+  const stats = useMemo(() => {
+    const total = items.length;
+    const disabled = items.filter((i) => !i.enabled).length;
+    const added = items.filter((i) => i.source === "admin").length;
+    const gaps = items.filter((i) => gapReport(i.pg).missing.length > 0).length;
+    const avg = total ? Math.round(items.reduce((s, i) => s + gapReport(i.pg).score, 0) / total) : 0;
+    return { total, disabled, added, gaps, avg, live: total - disabled };
+  }, [items]);
+
+  const exportGaps = () => {
+    const csv = gapsCsv(gapReports(items.map((i) => i.pg)));
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "gharpayy-supply-gaps.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <AppShell>
+      <div className="space-y-6">
+        <header className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <div className="text-[10px] uppercase tracking-wider text-accent font-semibold mb-1 flex items-center gap-1.5">
+              <Database className="h-3 w-3" /> Supply Hub · document store
+            </div>
+            <h1 className="font-display text-2xl font-semibold tracking-tight">Property Control</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Every property is one document. Toggle sold-out PGs off in a click, add new ones in seconds, and copy the exact customer messages.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={exportGaps} className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-2 text-sm font-medium hover:bg-muted">
+              <Download className="h-4 w-4" /> Missing-info sheet
+            </button>
+            <button
+              onClick={() => setEditing(blankPG())}
+              className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-2 text-sm font-medium text-accent-foreground hover:opacity-90"
+            >
+              <Plus className="h-4 w-4" /> Add property
+            </button>
+          </div>
+        </header>
+
+        {error && (
+          <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">{error}</div>
+        )}
+
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          {[
+            { label: "Properties", value: stats.total, sub: "In the hub" },
+            { label: "Live", value: stats.live, sub: "Sellable now" },
+            { label: "Disabled", value: stats.disabled, sub: "Sold out / paused" },
+            { label: "Added by admin", value: stats.added, sub: "New documents" },
+            { label: "Avg completeness", value: `${stats.avg}%`, sub: `${stats.gaps} need info` },
+          ].map((s) => (
+            <div key={s.label} className="rounded-lg border bg-card p-4">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{s.label}</div>
+              <div className="mt-1 font-display text-2xl font-semibold">{s.value}</div>
+              <div className="text-xs text-muted-foreground mt-0.5">{s.sub}</div>
+            </div>
+          ))}
+        </div>
+
+        <div className="rounded-lg border bg-card p-3 flex flex-wrap items-center gap-3">
+          <div className="relative flex-1 min-w-[240px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search property, actual name, area, locality"
+              className="w-full rounded-md border border-border bg-background pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
+            />
+          </div>
+          <select value={status} onChange={(e) => setStatus(e.target.value as typeof status)} className="rounded-md border border-border bg-background px-2 py-1.5 text-sm">
+            <option value="all">All statuses</option>
+            <option value="enabled">Enabled</option>
+            <option value="disabled">Disabled</option>
+          </select>
+          <select value={area} onChange={(e) => setArea(e.target.value)} className="rounded-md border border-border bg-background px-2 py-1.5 text-sm">
+            {areas.map((a) => <option key={a} value={a}>{a}</option>)}
+          </select>
+          <label className="inline-flex items-center gap-2 text-xs">
+            <input type="checkbox" checked={onlyGaps} onChange={(e) => setOnlyGaps(e.target.checked)} /> Only missing info
+          </label>
+          <div className="ml-auto text-xs text-muted-foreground">{loading ? "Syncing…" : `${rows.length} shown`}</div>
+        </div>
+
+        <div className="rounded-lg border bg-card divide-y">
+          {rows.slice(0, 120).map((item) => (
+            <PropertyRow
+              key={item.pg.id || item.pg.name}
+              item={item}
+              onToggle={async (v) => {
+                const res = await setEnabled(item.pg, v);
+                if (!res.ok) toast.error(res.error ?? "Could not update");
+                else toast.success(`${item.pg.name} ${v ? "enabled" : "disabled"}`);
+              }}
+              onEdit={() => setEditing(item.pg)}
+              onMessages={() => setMsgFor(item.pg)}
+            />
+          ))}
+          {rows.length === 0 && !loading && <div className="p-8 text-center text-sm text-muted-foreground">No properties match these filters.</div>}
+        </div>
+      </div>
+
+      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editing?.name ? `Edit ${editing.name}` : "Add new property"}</DialogTitle>
+          </DialogHeader>
+          {editing && (
+            <PropertyForm
+              initial={editing}
+              onCancel={() => setEditing(null)}
+              onDelete={
+                items.find((i) => docKey(i.pg.name) === docKey(editing.name))?.source === "admin"
+                  ? async () => {
+                      const res = await removeDoc(docKey(editing.name));
+                      if (res.ok) { toast.success("Property removed"); setEditing(null); }
+                      else toast.error(res.error ?? "Could not delete");
+                    }
+                  : undefined
+              }
+              onSave={async (pg) => {
+                const res = await saveDoc(pg);
+                if (res.ok) { toast.success("Saved to the supply document store"); setEditing(null); }
+                else toast.error(res.error ?? "Could not save");
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Sheet open={!!msgFor} onOpenChange={(o) => !o && setMsgFor(null)}>
+        <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>{msgFor?.name} — customer messages</SheetTitle>
+          </SheetHeader>
+          {msgFor && <div className="mt-4"><MessageKitPanel pg={msgFor} compact /></div>}
+        </SheetContent>
+      </Sheet>
+    </AppShell>
+  );
+}
+
+function PropertyRow({
+  item,
+  onToggle,
+  onEdit,
+  onMessages,
+}: {
+  item: SupplyItem & { gap: ReturnType<typeof gapReport> };
+  onToggle: (v: boolean) => void;
+  onEdit: () => void;
+  onMessages: () => void;
+}) {
+  const { pg, gap } = item;
+  const cheap = [pg.prices.triple, pg.prices.double, pg.prices.single].filter((x) => x > 0).sort((a, b) => a - b)[0];
+  return (
+    <div className={cn("p-3 flex flex-wrap items-center gap-3", !item.enabled && "opacity-60")}>
+      <div className="min-w-[220px] flex-1">
+        <div className="flex items-center gap-2">
+          <span className="font-semibold text-sm truncate">{pg.name}</span>
+          {item.source === "admin" && <span className="rounded bg-accent/10 text-accent px-1 py-0.5 text-[9px] uppercase tracking-wider">New</span>}
+          {!item.enabled && <span className="rounded bg-rose-400/10 text-rose-400 px-1 py-0.5 text-[9px] uppercase tracking-wider">Disabled</span>}
+        </div>
+        <div className="text-[11px] text-muted-foreground truncate">
+          {[pg.area, pg.locality, pg.gender, pg.tier].filter(Boolean).join(" · ")}
+        </div>
+      </div>
+
+      <div className="text-right w-20">
+        <div className="text-sm font-medium">{cheap ? `₹${(cheap / 1000).toFixed(0)}k` : "—"}</div>
+        <div className="text-[10px] text-muted-foreground">from</div>
+      </div>
+
+      <div className="w-40">
+        <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+          <span>Data</span><span>{gap.score}%</span>
+        </div>
+        <div className="h-1.5 rounded bg-muted overflow-hidden">
+          <div className={cn("h-full", gap.score > 80 ? "bg-emerald-400" : gap.score > 55 ? "bg-amber-400" : "bg-rose-400")} style={{ width: `${gap.score}%` }} />
+        </div>
+        {gap.missing.length > 0 && (
+          <div className="mt-1 flex items-center gap-1 text-[10px] text-amber-400 truncate" title={gap.missing.join(", ")}>
+            <AlertTriangle className="h-3 w-3 shrink-0" /> {gap.missing.length} missing
+          </div>
+        )}
+      </div>
+
+      <div className="flex items-center gap-2 ml-auto">
+        <button onClick={onMessages} className="rounded-md border border-border px-2 py-1 text-[11px] font-medium hover:bg-muted">Messages</button>
+        <CopyButton text={pg.mapsLink || pg.locality} label="Maps" />
+        <button onClick={onEdit} className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] font-medium hover:bg-muted">
+          <Pencil className="h-3 w-3" /> Edit
+        </button>
+        <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground"><Power className="h-3 w-3" /></span>
+        <Switch checked={item.enabled} onCheckedChange={onToggle} />
+      </div>
+    </div>
+  );
+}
+
+function PropertyForm({
+  initial,
+  onSave,
+  onCancel,
+  onDelete,
+}: {
+  initial: PG;
+  onSave: (pg: PG) => void | Promise<void>;
+  onCancel: () => void;
+  onDelete?: () => void | Promise<void>;
+}) {
+  const [pg, setPg] = useState<PG>(() => JSON.parse(JSON.stringify(initial)) as PG);
+  const set = <K extends keyof PG>(k: K, v: PG[K]) => setPg((p) => ({ ...p, [k]: v }));
+  const gap = gapReport(pg);
+
+  const submit = () => {
+    if (!pg.name.trim()) { toast.error("Property name is required"); return; }
+    const prices = { ...pg.prices };
+    const vals = [prices.single, prices.double, prices.triple].filter((x) => x > 0);
+    prices.min = vals.length ? Math.min(...vals) : 0;
+    prices.max = vals.length ? Math.max(...vals) : 0;
+    void onSave({ ...pg, prices, id: pg.id || docKey(pg.name).replace(/[^A-Z0-9]+/g, "_") });
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-md border border-border bg-muted/30 px-3 py-2 text-xs">
+        Completeness <b>{gap.score}%</b>
+        {gap.missing.length > 0 && <span className="text-muted-foreground"> — still missing: {gap.missing.join(", ")}</span>}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <Field label="Gharpayy name *" value={pg.name} onChange={(v) => set("name", v)} />
+        <Field label="Actual PG name" value={pg.actualName} onChange={(v) => set("actualName", v)} />
+        <Field label="Area" value={pg.area} onChange={(v) => set("area", v)} />
+        <Field label="Locality" value={pg.locality} onChange={(v) => set("locality", v)} />
+        <Select label="Gender" value={pg.gender} options={GENDERS} onChange={(v) => set("gender", v as Gender)} />
+        <Select label="Tier" value={pg.tier} options={TIERS} onChange={(v) => set("tier", v as Tier)} />
+        <Field label="Single ₹/mo" value={String(pg.prices.single || "")} onChange={(v) => set("prices", { ...pg.prices, single: Number(v) || 0 })} />
+        <Field label="Double ₹/mo" value={String(pg.prices.double || "")} onChange={(v) => set("prices", { ...pg.prices, double: Number(v) || 0 })} />
+        <Field label="Triple ₹/mo" value={String(pg.prices.triple || "")} onChange={(v) => set("prices", { ...pg.prices, triple: Number(v) || 0 })} />
+        <Field label="Room types" value={pg.rooms} onChange={(v) => set("rooms", v)} />
+        <Field label="Furnishing" value={pg.furnishing} onChange={(v) => set("furnishing", v)} />
+        <Field label="Food type" value={pg.foodType} onChange={(v) => set("foodType", v)} />
+        <Field label="Meals included" value={pg.mealsIncluded} onChange={(v) => set("mealsIncluded", v)} />
+        <Field label="Utilities / bills" value={pg.utilities} onChange={(v) => set("utilities", v)} />
+        <Field label="Cleaning frequency" value={pg.cleaning} onChange={(v) => set("cleaning", v)} />
+        <Field label="Deposit" value={pg.deposit} onChange={(v) => set("deposit", v)} />
+        <Field label="Minimum stay" value={pg.minStay} onChange={(v) => set("minStay", v)} />
+        <Field label="Manager name" value={pg.manager.name} onChange={(v) => set("manager", { ...pg.manager, name: v })} />
+        <Field label="Manager phone" value={pg.manager.phone} onChange={(v) => set("manager", { ...pg.manager, phone: v })} />
+        <Field label="Owner name" value={pg.owner.name} onChange={(v) => set("owner", { ...pg.owner, name: v })} />
+        <Field label="Owner phone" value={pg.owner.phone} onChange={(v) => set("owner", { ...pg.owner, phone: v })} />
+        <Field label="Owner group name" value={pg.groupName} onChange={(v) => set("groupName", v)} />
+        <Field label="Google Maps link" value={pg.mapsLink} onChange={(v) => set("mapsLink", v)} />
+        <Field label="Amenities (comma separated)" value={pg.amenities.join(", ")} onChange={(v) => set("amenities", v.split(",").map((x) => x.trim()).filter(Boolean))} />
+        <Field label="Safety (comma separated)" value={pg.safety.join(", ")} onChange={(v) => set("safety", v.split(",").map((x) => x.trim()).filter(Boolean))} />
+        <Field label="Latitude" value={pg.lat == null ? "" : String(pg.lat)} onChange={(v) => set("lat", v ? Number(v) : null)} />
+        <Field label="Longitude" value={pg.lng == null ? "" : String(pg.lng)} onChange={(v) => set("lng", v ? Number(v) : null)} />
+      </div>
+
+      <Area label="USP" value={pg.usp} onChange={(v) => set("usp", v)} />
+      <Area label="House rules" value={pg.rules} onChange={(v) => set("rules", v)} />
+      <Area label="Lows (never disclose)" value={pg.lows} onChange={(v) => set("lows", v)} />
+      <Area label="Location message (sent verbatim)" value={pg.location_card} onChange={(v) => set("location_card", v)} rows={5} />
+      <Area label="Pricing message (sent verbatim)" value={pg.wa_card} onChange={(v) => set("wa_card", v)} rows={5} />
+
+      <div className="flex items-center gap-2 pt-2">
+        <button onClick={submit} className="rounded-md bg-accent px-3 py-2 text-sm font-medium text-accent-foreground hover:opacity-90">Save property</button>
+        <button onClick={onCancel} className="rounded-md border border-border px-3 py-2 text-sm font-medium hover:bg-muted">Cancel</button>
+        {onDelete && (
+          <button onClick={() => void onDelete()} className="ml-auto rounded-md border border-destructive/40 px-3 py-2 text-sm font-medium text-destructive hover:bg-destructive/10">
+            Delete
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <label className="block">
+      <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</span>
+      <input value={value} onChange={(e) => onChange(e.target.value)} className="mt-1 w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm" />
+    </label>
+  );
+}
+
+function Area({ label, value, onChange, rows = 3 }: { label: string; value: string; onChange: (v: string) => void; rows?: number }) {
+  return (
+    <label className="block">
+      <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</span>
+      <textarea rows={rows} value={value} onChange={(e) => onChange(e.target.value)} className="mt-1 w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm" />
+    </label>
+  );
+}
+
+function Select({ label, value, options, onChange }: { label: string; value: string; options: readonly string[]; onChange: (v: string) => void }) {
+  return (
+    <label className="block">
+      <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</span>
+      <select value={value} onChange={(e) => onChange(e.target.value)} className="mt-1 w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm">
+        {options.map((o) => <option key={o} value={o}>{o}</option>)}
+      </select>
+    </label>
+  );
+}
