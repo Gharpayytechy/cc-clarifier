@@ -97,6 +97,7 @@ import { Route as MytBookingsRouteImport } from './routes/myt/bookings'
 import { Route as LeadsAddRouteImport } from './routes/leads.add'
 import { Route as AdminWatchtowerRouteImport } from './routes/admin.watchtower'
 import { Route as AdminWarRoomRouteImport } from './routes/admin.war-room'
+import { Route as AdminSimulatorRouteImport } from './routes/admin.simulator'
 import { Route as AdminSheetRouteImport } from './routes/admin.sheet'
 import { Route as AdminReportCenterRouteImport } from './routes/admin.report-center'
 import { Route as AdminPulseRouteImport } from './routes/admin.pulse'
@@ -555,6 +556,11 @@ const AdminWarRoomRoute = AdminWarRoomRouteImport.update({
   path: '/war-room',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminSimulatorRoute = AdminSimulatorRouteImport.update({
+  id: '/simulator',
+  path: '/simulator',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminSheetRoute = AdminSheetRouteImport.update({
   id: '/sheet',
   path: '/sheet',
@@ -685,6 +691,7 @@ export interface FileRoutesByFullPath {
   '/admin/pulse': typeof AdminPulseRoute
   '/admin/report-center': typeof AdminReportCenterRoute
   '/admin/sheet': typeof AdminSheetRoute
+  '/admin/simulator': typeof AdminSimulatorRoute
   '/admin/war-room': typeof AdminWarRoomRoute
   '/admin/watchtower': typeof AdminWatchtowerRoute
   '/leads/add': typeof LeadsAddRoute
@@ -790,6 +797,7 @@ export interface FileRoutesByTo {
   '/admin/pulse': typeof AdminPulseRoute
   '/admin/report-center': typeof AdminReportCenterRoute
   '/admin/sheet': typeof AdminSheetRoute
+  '/admin/simulator': typeof AdminSimulatorRoute
   '/admin/war-room': typeof AdminWarRoomRoute
   '/admin/watchtower': typeof AdminWatchtowerRoute
   '/leads/add': typeof LeadsAddRoute
@@ -898,6 +906,7 @@ export interface FileRoutesById {
   '/admin/pulse': typeof AdminPulseRoute
   '/admin/report-center': typeof AdminReportCenterRoute
   '/admin/sheet': typeof AdminSheetRoute
+  '/admin/simulator': typeof AdminSimulatorRoute
   '/admin/war-room': typeof AdminWarRoomRoute
   '/admin/watchtower': typeof AdminWatchtowerRoute
   '/leads/add': typeof LeadsAddRoute
@@ -1007,6 +1016,7 @@ export interface FileRouteTypes {
     | '/admin/pulse'
     | '/admin/report-center'
     | '/admin/sheet'
+    | '/admin/simulator'
     | '/admin/war-room'
     | '/admin/watchtower'
     | '/leads/add'
@@ -1112,6 +1122,7 @@ export interface FileRouteTypes {
     | '/admin/pulse'
     | '/admin/report-center'
     | '/admin/sheet'
+    | '/admin/simulator'
     | '/admin/war-room'
     | '/admin/watchtower'
     | '/leads/add'
@@ -1219,6 +1230,7 @@ export interface FileRouteTypes {
     | '/admin/pulse'
     | '/admin/report-center'
     | '/admin/sheet'
+    | '/admin/simulator'
     | '/admin/war-room'
     | '/admin/watchtower'
     | '/leads/add'
@@ -1977,6 +1989,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminWarRoomRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/simulator': {
+      id: '/admin/simulator'
+      path: '/simulator'
+      fullPath: '/admin/simulator'
+      preLoaderRoute: typeof AdminSimulatorRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/sheet': {
       id: '/admin/sheet'
       path: '/sheet'
@@ -2108,6 +2127,7 @@ interface AdminRouteChildren {
   AdminPulseRoute: typeof AdminPulseRoute
   AdminReportCenterRoute: typeof AdminReportCenterRoute
   AdminSheetRoute: typeof AdminSheetRoute
+  AdminSimulatorRoute: typeof AdminSimulatorRoute
   AdminWarRoomRoute: typeof AdminWarRoomRoute
   AdminWatchtowerRoute: typeof AdminWatchtowerRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -2122,6 +2142,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminPulseRoute: AdminPulseRoute,
   AdminReportCenterRoute: AdminReportCenterRoute,
   AdminSheetRoute: AdminSheetRoute,
+  AdminSimulatorRoute: AdminSimulatorRoute,
   AdminWarRoomRoute: AdminWarRoomRoute,
   AdminWatchtowerRoute: AdminWatchtowerRoute,
   AdminIndexRoute: AdminIndexRoute,
