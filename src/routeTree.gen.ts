@@ -65,6 +65,7 @@ import { Route as TowerAdminRouteImport } from './routes/tower.admin'
 import { Route as TowerAccessRouteImport } from './routes/tower.access'
 import { Route as SupplyHubMatchRouteImport } from './routes/supply-hub/match'
 import { Route as SupplyHubAreasRouteImport } from './routes/supply-hub/areas'
+import { Route as SupplyHubAdminRouteImport } from './routes/supply-hub/admin'
 import { Route as SupplyHubIdRouteImport } from './routes/supply-hub/$id'
 import { Route as Property360OnboardRouteImport } from './routes/property360/onboard'
 import { Route as Property360PidRouteImport } from './routes/property360/$pid'
@@ -395,6 +396,11 @@ const SupplyHubMatchRoute = SupplyHubMatchRouteImport.update({
 const SupplyHubAreasRoute = SupplyHubAreasRouteImport.update({
   id: '/supply-hub/areas',
   path: '/supply-hub/areas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SupplyHubAdminRoute = SupplyHubAdminRouteImport.update({
+  id: '/supply-hub/admin',
+  path: '/supply-hub/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SupplyHubIdRoute = SupplyHubIdRouteImport.update({
@@ -731,6 +737,7 @@ export interface FileRoutesByFullPath {
   '/property360/$pid': typeof Property360PidRoute
   '/property360/onboard': typeof Property360OnboardRoute
   '/supply-hub/$id': typeof SupplyHubIdRoute
+  '/supply-hub/admin': typeof SupplyHubAdminRoute
   '/supply-hub/areas': typeof SupplyHubAreasRoute
   '/supply-hub/match': typeof SupplyHubMatchRoute
   '/tower/access': typeof TowerAccessRoute
@@ -838,6 +845,7 @@ export interface FileRoutesByTo {
   '/property360/$pid': typeof Property360PidRoute
   '/property360/onboard': typeof Property360OnboardRoute
   '/supply-hub/$id': typeof SupplyHubIdRoute
+  '/supply-hub/admin': typeof SupplyHubAdminRoute
   '/supply-hub/areas': typeof SupplyHubAreasRoute
   '/supply-hub/match': typeof SupplyHubMatchRoute
   '/tower/access': typeof TowerAccessRoute
@@ -948,6 +956,7 @@ export interface FileRoutesById {
   '/property360/$pid': typeof Property360PidRoute
   '/property360/onboard': typeof Property360OnboardRoute
   '/supply-hub/$id': typeof SupplyHubIdRoute
+  '/supply-hub/admin': typeof SupplyHubAdminRoute
   '/supply-hub/areas': typeof SupplyHubAreasRoute
   '/supply-hub/match': typeof SupplyHubMatchRoute
   '/tower/access': typeof TowerAccessRoute
@@ -1059,6 +1068,7 @@ export interface FileRouteTypes {
     | '/property360/$pid'
     | '/property360/onboard'
     | '/supply-hub/$id'
+    | '/supply-hub/admin'
     | '/supply-hub/areas'
     | '/supply-hub/match'
     | '/tower/access'
@@ -1166,6 +1176,7 @@ export interface FileRouteTypes {
     | '/property360/$pid'
     | '/property360/onboard'
     | '/supply-hub/$id'
+    | '/supply-hub/admin'
     | '/supply-hub/areas'
     | '/supply-hub/match'
     | '/tower/access'
@@ -1275,6 +1286,7 @@ export interface FileRouteTypes {
     | '/property360/$pid'
     | '/property360/onboard'
     | '/supply-hub/$id'
+    | '/supply-hub/admin'
     | '/supply-hub/areas'
     | '/supply-hub/match'
     | '/tower/access'
@@ -1372,6 +1384,7 @@ export interface RootRouteChildren {
   Property360PidRoute: typeof Property360PidRoute
   Property360OnboardRoute: typeof Property360OnboardRoute
   SupplyHubIdRoute: typeof SupplyHubIdRoute
+  SupplyHubAdminRoute: typeof SupplyHubAdminRoute
   SupplyHubAreasRoute: typeof SupplyHubAreasRoute
   SupplyHubMatchRoute: typeof SupplyHubMatchRoute
   MytIndexRoute: typeof MytIndexRoute
@@ -1775,6 +1788,13 @@ declare module '@tanstack/react-router' {
       path: '/supply-hub/areas'
       fullPath: '/supply-hub/areas'
       preLoaderRoute: typeof SupplyHubAreasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/supply-hub/admin': {
+      id: '/supply-hub/admin'
+      path: '/supply-hub/admin'
+      fullPath: '/supply-hub/admin'
+      preLoaderRoute: typeof SupplyHubAdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/supply-hub/$id': {
@@ -2313,6 +2333,7 @@ const rootRouteChildren: RootRouteChildren = {
   Property360PidRoute: Property360PidRoute,
   Property360OnboardRoute: Property360OnboardRoute,
   SupplyHubIdRoute: SupplyHubIdRoute,
+  SupplyHubAdminRoute: SupplyHubAdminRoute,
   SupplyHubAreasRoute: SupplyHubAreasRoute,
   SupplyHubMatchRoute: SupplyHubMatchRoute,
   MytIndexRoute: MytIndexRoute,
