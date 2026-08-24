@@ -220,11 +220,27 @@ function SupplyAdmin() {
               }}
               onEdit={() => setEditing(item.pg)}
               onMessages={() => setMsgFor(item.pg)}
+              zoneIds={zoneIds}
+              onZone={(z) => { setZoneOverride(item.pg, z); toast.success(z ? `${item.pg.name} → ${z}` : `${item.pg.name} → auto zone`); }}
             />
           ))}
           {rows.length === 0 && !loading && <div className="p-8 text-center text-sm text-muted-foreground">No properties match these filters.</div>}
         </div>
       </div>
+
+      <Dialog open={zoneMgr} onOpenChange={setZoneMgr}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Manage zones</DialogTitle></DialogHeader>
+          <ZoneManager
+            zones={zones}
+            onAdd={addZone}
+            onSave={upsertZone}
+            onRemove={removeZone}
+            onMove={moveZone}
+            onReset={resetZones}
+          />
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
@@ -445,5 +461,85 @@ function Select({ label, value, options, onChange }: { label: string; value: str
         {options.map((o) => <option key={o} value={o}>{o}</option>)}
       </select>
     </label>
+  );
+}
+
+function ZoneManager({
+  zones,
+  onAdd,
+  onSave,
+  onRemove,
+  onMove,
+  onReset,
+}: {
+  zones: ZoneDef[];
+  onAdd: (z: Omit<ZoneDef, "accent"> & { accent?: string }) => void;
+  onSave: (z: ZoneDef) => void;
+  onRemove: (id: string) => void;
+  onMove: (id: string, dir: -1 | 1) => void;
+  onReset: () => void;
+}) {
+  const [draft, setDraft] = useState({ id: "", short: "", cluster: "", keywords: "" });
+
+  const add = () => {
+    const id = draft.id.trim().toUpperCase();
+    if (!id) { toast.error("Zone code is required"); return; }
+    if (zones.some((z) => z.id === id)) { toast.error("That zone code already exists"); return; }
+    onAdd({
+      id,
+      label: id,
+      short: draft.short.trim() || id,
+      cluster: draft.cluster.trim() || "New catchment",
+      keywords: draft.keywords.split(",").map((k) => k.trim().toLowerCase()).filter(Boolean),
+    });
+    setDraft({ id: "", short: "", cluster: "", keywords: "" });
+    toast.success(`${id} added`);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-lg border p-3 space-y-2">
+        <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Add a zone</div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <input value={draft.id} onChange={(e) => setDraft({ ...draft, id: e.target.value })} placeholder="Code e.g. MTPSJR" className="rounded-md border bg-background px-2 py-1.5 text-xs" />
+          <input value={draft.short} onChange={(e) => setDraft({ ...draft, short: e.target.value })} placeholder="Badge e.g. MTPSJR" className="rounded-md border bg-background px-2 py-1.5 text-xs" />
+          <input value={draft.cluster} onChange={(e) => setDraft({ ...draft, cluster: e.target.value })} placeholder="Catchment e.g. Manyata + Sarjapur" className="rounded-md border bg-background px-2 py-1.5 text-xs" />
+        </div>
+        <input value={draft.keywords} onChange={(e) => setDraft({ ...draft, keywords: e.target.value })} placeholder="Keywords, comma separated: manyata, nagawara, sarjapur" className="w-full rounded-md border bg-background px-2 py-1.5 text-xs" />
+        <div className="flex items-center gap-2">
+          <button onClick={add} className="inline-flex items-center gap-1 rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-accent-foreground"><Plus className="h-3 w-3" /> Add zone</button>
+          <button onClick={() => { onReset(); toast.success("Zones reset to defaults"); }} className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-muted"><RotateCcw className="h-3 w-3" /> Reset to defaults</button>
+        </div>
+      </div>
+
+      <div className="rounded-lg border divide-y">
+        {zones.map((z, i) => (
+          <div key={z.id} className="p-3 space-y-2">
+            <div className="flex items-center gap-2">
+              <span className={cn("rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider", z.accent)}>{z.short}</span>
+              <span className="text-sm font-semibold">{z.id}</span>
+              <div className="ml-auto flex items-center gap-1">
+                <button disabled={i === 0} onClick={() => onMove(z.id, -1)} className="rounded border p-1 disabled:opacity-30 hover:bg-muted"><ArrowUp className="h-3 w-3" /></button>
+                <button disabled={i === zones.length - 1} onClick={() => onMove(z.id, 1)} className="rounded border p-1 disabled:opacity-30 hover:bg-muted"><ArrowDown className="h-3 w-3" /></button>
+                <button onClick={() => { onRemove(z.id); toast.success(`${z.id} removed`); }} className="rounded border p-1 text-rose-400 hover:bg-muted"><Trash2 className="h-3 w-3" /></button>
+              </div>
+            </div>
+            <input value={z.cluster} onChange={(e) => onSave({ ...z, cluster: e.target.value })} className="w-full rounded-md border bg-background px-2 py-1.5 text-xs" placeholder="Catchment" />
+            <textarea
+              value={z.keywords.join(", ")}
+              onChange={(e) => onSave({ ...z, keywords: e.target.value.split(",").map((k) => k.trim().toLowerCase()).filter(Boolean) })}
+              rows={2}
+              className="w-full rounded-md border bg-background px-2 py-1.5 text-xs font-mono"
+              placeholder="Keywords, comma separated"
+            />
+            <div className="flex items-center gap-1 flex-wrap">
+              {ZONE_ACCENTS.map((a) => (
+                <button key={a} onClick={() => onSave({ ...z, accent: a })} className={cn("h-5 w-5 rounded border", a, z.accent === a && "ring-2 ring-accent")} />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
