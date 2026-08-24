@@ -17,6 +17,8 @@ import {
 import { compareRange, periodRange, type CompareKey, type PeriodKey, type Range } from "@/founder/lib/brain/timeengine";
 import { DrillDrawer, type Drill } from "@/founder/components/brain/DrillDrawer";
 import { PersonSheet } from "@/founder/components/brain/PersonSheet";
+import { CommandPalette } from "@/founder/components/admin/CommandPalette";
+
 import type { BrainRow } from "@/founder/lib/brain/engine";
 import type { Metric } from "@/founder/lib/brain/engine";
 
