@@ -296,6 +296,67 @@ export function resetZones() {
   persistZones();
 }
 
+/** Rename a zone: change its code/label/badge and carry every manual override across. */
+export function renameZone(oldId: string, next: { id: string; label?: string; short?: string }) {
+  const newId = next.id.trim().toUpperCase();
+  if (!newId || newId === UNMAPPED) return { ok: false, error: "Invalid zone code" };
+  if (newId !== oldId && ZONE_LIST.some((z) => z.id === newId)) {
+    return { ok: false, error: `${newId} already exists — merge instead` };
+  }
+  ZONE_LIST = ZONE_LIST.map((z) =>
+    z.id === oldId
+      ? { ...z, id: newId, label: next.label?.trim() || newId, short: next.short?.trim() || newId }
+      : z,
+  );
+  if (newId !== oldId) {
+    const remapped: Record<string, string> = {};
+    Object.entries(OVERRIDES).forEach(([k, v]) => { remapped[k] = v === oldId ? newId : v; });
+    OVERRIDES = remapped;
+    if (canStore()) window.localStorage.setItem(OVERRIDES_KEY, JSON.stringify(OVERRIDES));
+  }
+  persistZones();
+  return { ok: true as const };
+}
+
+/**
+ * Merge two zones into one. Keywords are unioned, manual overrides pointing at the
+ * source zone are repointed at the target, and the source zone is removed.
+ */
+export function mergeZones(sourceId: string, targetId: string, opts?: { id?: string; label?: string; short?: string; cluster?: string }) {
+  if (sourceId === targetId) return { ok: false, error: "Pick two different zones" };
+  const source = ZONE_LIST.find((z) => z.id === sourceId);
+  const target = ZONE_LIST.find((z) => z.id === targetId);
+  if (!source || !target) return { ok: false, error: "Zone not found" };
+
+  const mergedId = (opts?.id?.trim().toUpperCase() || target.id);
+  if (mergedId !== target.id && mergedId !== source.id && ZONE_LIST.some((z) => z.id === mergedId)) {
+    return { ok: false, error: `${mergedId} already exists` };
+  }
+
+  const keywords = Array.from(new Set([...target.keywords, ...source.keywords]));
+  const merged: ZoneDef = {
+    ...target,
+    id: mergedId,
+    label: opts?.label?.trim() || (mergedId === target.id ? target.label : mergedId),
+    short: opts?.short?.trim() || (mergedId === target.id ? target.short : mergedId),
+    cluster: opts?.cluster?.trim() || `${target.cluster} + ${source.cluster}`,
+    keywords,
+    core: target.core || source.core,
+  };
+
+  ZONE_LIST = ZONE_LIST.filter((z) => z.id !== sourceId).map((z) => (z.id === targetId ? merged : z));
+
+  const remapped: Record<string, string> = {};
+  Object.entries(OVERRIDES).forEach(([k, v]) => {
+    remapped[k] = v === sourceId || v === targetId ? mergedId : v;
+  });
+  OVERRIDES = remapped;
+  if (canStore()) window.localStorage.setItem(OVERRIDES_KEY, JSON.stringify(OVERRIDES));
+  persistZones();
+  return { ok: true as const, id: mergedId };
+}
+
+
 export function setZoneOverride(pg: { name: string }, zoneId: string | null) {
   const key = propKey(pg);
   const next = { ...OVERRIDES };
