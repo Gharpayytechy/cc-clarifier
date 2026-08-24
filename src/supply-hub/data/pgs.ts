@@ -1,8 +1,9 @@
 // AUTO-GENERATED from gharpay_v4.jsx (base64 dataset) + Find PG GG + IQ Form.
 // Source of truth: per-bed prices ARE NOT FABRICATED — missing = 0 = not offered.
 import type { PG } from './types';
+import { EXTRA_PGS } from './pgs-extra';
 
-export const PGS: PG[] = [
+const BASE_PGS: PG[] = [
  {
   "id": "FORUM_PRO_BOYS",
   "name": "FORUM PRO BOYS",
@@ -42157,3 +42158,6 @@ export const PGS: PG[] = [
   }
  }
 ];
+
+// Base catalogue + properties imported from the supply sheets.
+export const PGS: PG[] = [...BASE_PGS, ...EXTRA_PGS];
