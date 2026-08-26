@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.15"
+    PostgrestVersion: "14.17"
   }
   public: {
     Tables: {
@@ -119,6 +119,84 @@ export type Database = {
           next?: Json | null
           prev?: Json | null
           reason?: string | null
+        }
+        Relationships: []
+      }
+      crib_bookings: {
+        Row: {
+          agreement_duration: number
+          agreement_start_date: string
+          country_code: string
+          created_at: string
+          created_by: string | null
+          due_type: string
+          due_value: string
+          id: string
+          lock_in_period: number
+          maintenance_amount: number
+          monthly_rent: number
+          notes: string | null
+          notice_period: number
+          property_id: string
+          property_name: string | null
+          rent_cycle: string
+          room_type_id: string
+          security_deposit: number
+          status: string
+          tenant_name: string
+          tenant_phone: string
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          agreement_duration?: number
+          agreement_start_date: string
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          due_type?: string
+          due_value?: string
+          id?: string
+          lock_in_period?: number
+          maintenance_amount?: number
+          monthly_rent?: number
+          notes?: string | null
+          notice_period?: number
+          property_id: string
+          property_name?: string | null
+          rent_cycle?: string
+          room_type_id: string
+          security_deposit?: number
+          status?: string
+          tenant_name: string
+          tenant_phone: string
+          token?: string
+          updated_at?: string
+        }
+        Update: {
+          agreement_duration?: number
+          agreement_start_date?: string
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          due_type?: string
+          due_value?: string
+          id?: string
+          lock_in_period?: number
+          maintenance_amount?: number
+          monthly_rent?: number
+          notes?: string | null
+          notice_period?: number
+          property_id?: string
+          property_name?: string | null
+          rent_cycle?: string
+          room_type_id?: string
+          security_deposit?: number
+          status?: string
+          tenant_name?: string
+          tenant_phone?: string
+          token?: string
+          updated_at?: string
         }
         Relationships: []
       }

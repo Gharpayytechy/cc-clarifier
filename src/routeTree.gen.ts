@@ -49,6 +49,7 @@ import { Route as SupplyHubIndexRouteImport } from './routes/supply-hub/index'
 import { Route as Property360IndexRouteImport } from './routes/property360/index'
 import { Route as OwnerIndexRouteImport } from './routes/owner/index'
 import { Route as MytIndexRouteImport } from './routes/myt/index'
+import { Route as CribbookingIndexRouteImport } from './routes/cribbooking/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as TowerWorkflowGuaranteeRouteImport } from './routes/tower.workflow-guarantee'
 import { Route as TowerTeamRouteImport } from './routes/tower.team'
@@ -318,6 +319,11 @@ const OwnerIndexRoute = OwnerIndexRouteImport.update({
 const MytIndexRoute = MytIndexRouteImport.update({
   id: '/myt/',
   path: '/myt/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CribbookingIndexRoute = CribbookingIndexRouteImport.update({
+  id: '/cribbooking/',
+  path: '/cribbooking/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
@@ -768,6 +774,7 @@ export interface FileRoutesByFullPath {
   '/tower/team': typeof TowerTeamRoute
   '/tower/workflow-guarantee': typeof TowerWorkflowGuaranteeRoute
   '/admin/': typeof AdminIndexRoute
+  '/cribbooking/': typeof CribbookingIndexRoute
   '/myt/': typeof MytIndexRoute
   '/owner/': typeof OwnerIndexRoute
   '/property360/': typeof Property360IndexRoute
@@ -878,6 +885,7 @@ export interface FileRoutesByTo {
   '/tower/team': typeof TowerTeamRoute
   '/tower/workflow-guarantee': typeof TowerWorkflowGuaranteeRoute
   '/admin': typeof AdminIndexRoute
+  '/cribbooking': typeof CribbookingIndexRoute
   '/myt': typeof MytIndexRoute
   '/owner': typeof OwnerIndexRoute
   '/property360': typeof Property360IndexRoute
@@ -991,6 +999,7 @@ export interface FileRoutesById {
   '/tower/team': typeof TowerTeamRoute
   '/tower/workflow-guarantee': typeof TowerWorkflowGuaranteeRoute
   '/admin/': typeof AdminIndexRoute
+  '/cribbooking/': typeof CribbookingIndexRoute
   '/myt/': typeof MytIndexRoute
   '/owner/': typeof OwnerIndexRoute
   '/property360/': typeof Property360IndexRoute
@@ -1105,6 +1114,7 @@ export interface FileRouteTypes {
     | '/tower/team'
     | '/tower/workflow-guarantee'
     | '/admin/'
+    | '/cribbooking/'
     | '/myt/'
     | '/owner/'
     | '/property360/'
@@ -1215,6 +1225,7 @@ export interface FileRouteTypes {
     | '/tower/team'
     | '/tower/workflow-guarantee'
     | '/admin'
+    | '/cribbooking'
     | '/myt'
     | '/owner'
     | '/property360'
@@ -1327,6 +1338,7 @@ export interface FileRouteTypes {
     | '/tower/team'
     | '/tower/workflow-guarantee'
     | '/admin/'
+    | '/cribbooking/'
     | '/myt/'
     | '/owner/'
     | '/property360/'
@@ -1413,6 +1425,7 @@ export interface RootRouteChildren {
   SupplyHubDemandRoute: typeof SupplyHubDemandRoute
   SupplyHubHeatmapRoute: typeof SupplyHubHeatmapRoute
   SupplyHubMatchRoute: typeof SupplyHubMatchRoute
+  CribbookingIndexRoute: typeof CribbookingIndexRoute
   MytIndexRoute: typeof MytIndexRoute
   OwnerIndexRoute: typeof OwnerIndexRoute
   Property360IndexRoute: typeof Property360IndexRoute
@@ -1702,6 +1715,13 @@ declare module '@tanstack/react-router' {
       path: '/myt'
       fullPath: '/myt/'
       preLoaderRoute: typeof MytIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cribbooking/': {
+      id: '/cribbooking/'
+      path: '/cribbooking'
+      fullPath: '/cribbooking/'
+      preLoaderRoute: typeof CribbookingIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/': {
@@ -2378,6 +2398,7 @@ const rootRouteChildren: RootRouteChildren = {
   SupplyHubDemandRoute: SupplyHubDemandRoute,
   SupplyHubHeatmapRoute: SupplyHubHeatmapRoute,
   SupplyHubMatchRoute: SupplyHubMatchRoute,
+  CribbookingIndexRoute: CribbookingIndexRoute,
   MytIndexRoute: MytIndexRoute,
   OwnerIndexRoute: OwnerIndexRoute,
   Property360IndexRoute: Property360IndexRoute,
